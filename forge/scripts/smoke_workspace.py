@@ -134,6 +134,38 @@ def locate_workspace(source: Path, run_id: str) -> Dict[str, str]:
     }
 
 
+def destroy_workspace(source: Path, run_id: str) -> Dict[str, str]:
+    source = source.resolve()
+    root = _run_root(source).resolve()
+    target = (root / run_id).resolve()
+
+    if target.parent != root:
+        raise SmokeWorkspaceError("Refusing to delete path outside smoke run root.")
+    if not target.exists():
+        return {
+            "run_id": run_id,
+            "source_repository": str(source),
+            "run_directory": str(target),
+            "destroyed": "false",
+            "reason": "NOT_FOUND",
+        }
+
+    # Safety check: only delete a workspace created by this helper.
+    branch = _run_git(target, "branch", "--show-current") or "DETACHED"
+    if branch != "smoke-run":
+        raise SmokeWorkspaceError(
+            "Refusing to delete workspace whose current branch is not smoke-run: {}".format(branch)
+        )
+
+    shutil.rmtree(str(target))
+    return {
+        "run_id": run_id,
+        "source_repository": str(source),
+        "run_directory": str(target),
+        "destroyed": "true",
+    }
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Manage isolated SubhForge smoke workspaces.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -147,6 +179,10 @@ def _parser() -> argparse.ArgumentParser:
     locate.add_argument("--source", required=True)
     locate.add_argument("--run-id", required=True)
 
+    destroy = sub.add_parser("destroy")
+    destroy.add_argument("--source", required=True)
+    destroy.add_argument("--run-id", required=True)
+
     return parser
 
 
@@ -155,8 +191,10 @@ def main() -> int:
     try:
         if args.command == "create":
             result = create_workspace(Path(args.source), args.profile, args.fixture)
-        else:
+        elif args.command == "locate":
             result = locate_workspace(Path(args.source), args.run_id)
+        else:
+            result = destroy_workspace(Path(args.source), args.run_id)
     except SmokeWorkspaceError as exc:
         print(json.dumps({"ok": False, "error": str(exc)}))
         return 2
