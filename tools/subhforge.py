@@ -149,13 +149,17 @@ def init_project(
             raise RuntimeError("git init failed: " + (proc.stderr or proc.stdout).strip())
 
 
-def _same_tree(source: Path, dest: Path) -> Tuple[bool, str]:
+def _same_tree(
+    source: Path,
+    dest: Path,
+    ignore: Tuple[str, ...] = (),
+) -> Tuple[bool, str]:
     if not source.exists():
         return False, "source missing: {}".format(source)
     if not dest.exists():
         return False, "destination missing: {}".format(dest)
 
-    comparison = filecmp.dircmp(str(source), str(dest))
+    comparison = filecmp.dircmp(str(source), str(dest), ignore=list(ignore))
     if comparison.left_only:
         return False, "missing: " + ", ".join(comparison.left_only)
     if comparison.right_only:
@@ -172,7 +176,7 @@ def _same_tree(source: Path, dest: Path) -> Tuple[bool, str]:
         return False, "comparison error: " + ", ".join(errors)
 
     for name in comparison.common_dirs:
-        ok, detail = _same_tree(source / name, dest / name)
+        ok, detail = _same_tree(source / name, dest / name, ignore=ignore)
         if not ok:
             return False, name + "/" + detail
     return True, "exact match"
@@ -207,17 +211,9 @@ def doctor(
 
     if project_dir is not None:
         project_dir = project_dir.expanduser().resolve()
-        exact_project, project_detail = _same_tree(template, project_dir)
-        # Ignore .git when the initializer created a repository.
-        if not exact_project and project_dir.exists() and (project_dir / ".git").exists():
-            temporary = project_dir / ".git"
-            renamed = project_dir / ".git.__subhforge_doctor__"
-            try:
-                temporary.rename(renamed)
-                exact_project, project_detail = _same_tree(template, project_dir)
-            finally:
-                if renamed.exists():
-                    renamed.rename(temporary)
+        exact_project, project_detail = _same_tree(
+            template, project_dir, ignore=(".git",)
+        )
         checks.append(("Project scaffold", exact_project, project_detail))
 
     failed = False
