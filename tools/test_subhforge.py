@@ -2,6 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 import sys
+import subprocess
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import subhforge
@@ -37,6 +38,30 @@ class SubhForgeBootstrapTests(unittest.TestCase):
             subhforge.init_project(project, self.root, git_init=False)
             ok, detail = subhforge._same_tree(self.root / "template", project)
             self.assertTrue(ok, detail)
+
+    def test_init_with_git_creates_baseline_commit(self):
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp) / "sample"
+            subhforge.init_project(project, self.root, git_init=True)
+            head = subprocess.run(
+                ["git", "rev-parse", "--verify", "HEAD"],
+                cwd=str(project),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            self.assertEqual(0, head.returncode, head.stderr)
+            subject = subprocess.run(
+                ["git", "log", "-1", "--format=%s"],
+                cwd=str(project),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            self.assertEqual(
+                "Initialize project from SubhForge template",
+                subject.stdout.strip(),
+            )
 
     def test_project_comparison_ignores_git_metadata(self):
         with tempfile.TemporaryDirectory() as temp:
