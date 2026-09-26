@@ -148,6 +148,36 @@ def init_project(
         if proc.returncode != 0:
             raise RuntimeError("git init failed: " + (proc.stderr or proc.stdout).strip())
 
+        # Establish a deterministic baseline commit so workflow/smoke tooling can
+        # create disposable branches and record an exact baseline HEAD.
+        add = subprocess.run(
+            [git, "add", "-A"],
+            cwd=str(project_dir),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if add.returncode != 0:
+            raise RuntimeError("git add failed: " + (add.stderr or add.stdout).strip())
+
+        commit = subprocess.run(
+            [
+                git,
+                "-c", "user.name=SubhForge",
+                "-c", "user.email=subhforge@local",
+                "commit",
+                "-m", "Initialize project from SubhForge template",
+            ],
+            cwd=str(project_dir),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if commit.returncode != 0:
+            raise RuntimeError(
+                "initial baseline commit failed: " + (commit.stderr or commit.stdout).strip()
+            )
+
 
 def _same_tree(
     source: Path,
