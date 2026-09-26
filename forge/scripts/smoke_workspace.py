@@ -7,6 +7,7 @@ import argparse
 import datetime as dt
 import json
 import shutil
+import stat
 import subprocess
 import sys
 import uuid
@@ -134,6 +135,11 @@ def locate_workspace(source: Path, run_id: str) -> Dict[str, str]:
     }
 
 
+def _remove_readonly(func, path, exc):
+    Path(path).chmod(stat.S_IWRITE)
+    func(path)
+
+
 def destroy_workspace(source: Path, run_id: str) -> Dict[str, str]:
     source = source.resolve()
     root = _run_root(source).resolve()
@@ -157,7 +163,7 @@ def destroy_workspace(source: Path, run_id: str) -> Dict[str, str]:
             "Refusing to delete workspace whose current branch is not smoke-run: {}".format(branch)
         )
 
-    shutil.rmtree(str(target))
+    shutil.rmtree(str(target), onexc=_remove_readonly)
     return {
         "run_id": run_id,
         "source_repository": str(source),
