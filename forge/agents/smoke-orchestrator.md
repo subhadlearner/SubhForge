@@ -76,13 +76,17 @@ Claude-family adversaries require the same explicit approval rules as the global
 
 ## Repository safety
 
-Smoke runs must use a disposable branch/worktree/clone.
+Smoke runs must use the deterministic disposable clone helper installed at `scripts/smoke_workspace.py`.
+
+For new runs, invoke that helper and use the returned run directory. Do not manually create/switch smoke branches, derive branch names from run IDs, scan branch names for sequence numbers, or mutate the baseline repository.
 
 Before allocating a new run, inspect `git status --porcelain`. If the current branch is protected (`main`, `master`, `develop`, or `release`) and the working tree is not clean, return `SMOKE_BLOCKED`. Do not carry uncommitted artifacts from a previous smoke run into a new run.
 
 
 Do not:
 
+- run `git switch -c`, `git checkout -b`, or equivalent branch-creation commands for smoke workspace allocation
+- allocate smoke run IDs yourself
 - mutate protected integration branches
 - discard unrelated work
 - force-reset
