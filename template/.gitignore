@@ -1,0 +1,55 @@
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+dist/
+build/
+coverage/
+.next/
+out/
+
+# .NET
+bin/
+obj/
+TestResults/
+*.user
+*.suo
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Logs
+*.log
+logs/
+
+# Temporary
+tmp/
+temp/
+*.tmp
+
+# IaC / deployment
+.terraform/
+terraform.tfstate
+terraform.tfstate.*
+.aws-sam/
+.serverless/
+
+# Local tooling
+.kilo/worktrees/
