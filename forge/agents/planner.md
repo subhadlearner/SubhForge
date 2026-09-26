@@ -57,8 +57,8 @@ Recognized aliases:
 - `use Terra` → `openai/gpt-5.6-terra`
 - `use Luna` → `openai/gpt-5.6-luna`
 - `use Claude`, `use Sonnet` → `anthropic/claude-sonnet-5`
-- `use Haiku` → `anthropic/claude-haiku-4.5`
-- `use Opus` → `anthropic/claude-opus-5`
+- `use Haiku` → `anthropic/claude-haiku-4-5`
+- `use Opus` → `anthropic/claude-opus-5-5` (variant `high`)
 - `use DeepSeek` → `deepseek/deepseek-flash`
 
 When an explicit model is requested:

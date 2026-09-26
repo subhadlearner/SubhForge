@@ -1,7 +1,8 @@
 ---
 description: Escalation architect for high-risk or unresolved engineering decisions
 mode: subagent
-model: anthropic/claude-opus-5
+model: anthropic/claude-opus-5-5
+variant: high
 color: "#DC2626"
 steps: 12
 permission:

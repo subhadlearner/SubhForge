@@ -248,7 +248,7 @@ Supported aliases:
 | `use Luna` | GPT-5.6 Luna |
 | `use Claude`, `use Sonnet` | Claude Sonnet 5 |
 | `use Haiku` | Claude Haiku 4.5 |
-| `use Opus` | Claude Opus 5 |
+| `use Opus` | Claude Opus 5.5 |
 | `use DeepSeek` | DeepSeek V4.1 Flash |
 
 An explicit model request is authoritative for that workflow invocation/session and does not require the default model to justify the choice.

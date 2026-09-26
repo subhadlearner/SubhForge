@@ -36,7 +36,7 @@ Aliases resolve as:
 - Luna → GPT-5.6 Luna
 - Claude / Sonnet → Claude Sonnet 5
 - Haiku → Claude Haiku 4.5
-- Opus → Claude Opus 5
+- Opus → Claude Opus 5.5
 - DeepSeek → DeepSeek V4.1 Flash
 
 If the user explicitly selects a model, delegate the fresh-context challenge to `adversary-flex` using Kilo's explicit per-task model override.

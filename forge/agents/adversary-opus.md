@@ -1,7 +1,8 @@
 ---
 description: Premium fresh-context adversarial reviewer for rare critical architecture, security, data-integrity, migration, concurrency, and irreversible decisions
 mode: subagent
-model: anthropic/claude-opus-5
+model: anthropic/claude-opus-5-5
+variant: high
 color: "#7C3AED"
 steps: 20
 permission:
