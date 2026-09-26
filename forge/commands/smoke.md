@@ -118,20 +118,38 @@ Use the selected registry fixture, its `source_repository`, and its product brie
 
 The fixture-specific source repository is a template/baseline, not architecture authority.
 
-For a new run:
+For every new run, use the deterministic installed helper:
 
-- require a disposable branch/worktree/clone
-- when using a branch, name it exactly `smoke/<run-id>`; do not concatenate profile/fixture text around an already-complete run ID
-- never mutate protected `main`, `master`, `develop`, or `release`
-- never discard unrelated changes
-- never force-reset or clean a non-disposable repository
-- record the exact baseline HEAD
+```text
+python <global-config>/scripts/smoke_workspace.py create --source <baseline-project-path> --profile <FAST|FULL> --fixture <fixture-id>
+```
 
-If safe disposable state cannot be established, return:
+The helper is the only supported mechanism for allocating a new smoke workspace.
+
+It must:
+
+- require the baseline project repository to be clean
+- record the exact baseline HEAD and baseline branch
+- generate a globally unique run ID using UTC timestamp plus random suffix
+- create a physically separate local clone under a sibling `<project>-smoke-runs/<run-id>/` directory
+- create exactly one fixed local branch named `smoke-run` inside the clone
+- return machine-readable JSON containing run ID, run directory, baseline HEAD, baseline branch, profile, fixture, and branch
+- never switch, branch, commit, reset, clean, or otherwise mutate the baseline project repository
+
+Do not:
+
+- allocate run IDs by scanning Git branches
+- allocate run IDs by scanning old smoke records
+- use sequential `001/002` numbering for new runs
+- invent branch names from the run ID
+- run smoke mutations in the baseline project repository
+- create a new smoke workspace manually with ad hoc Git commands
+
+If the helper fails, return:
 
 `SMOKE_BLOCKED`
 
-with the exact repository action required.
+with the exact helper error.
 
 ## Stage 5 — Allocate, persist, resume, or inspect smoke state
 
@@ -143,42 +161,26 @@ docs/verification/smoke/<run-id>.md
 
 This location is inside the Contract-v1 evidence exclusion set.
 
-### New-run ID generation
+### New-run allocation
 
-The `/smoke` orchestrator generates the Run ID automatically. The user never supplies or invents one for a new run.
+The `/smoke` orchestrator never invents or sequences run IDs itself.
 
-Canonical format:
+For a new run:
+
+1. call the deterministic smoke workspace helper from Stage 4
+2. require `ok: true`
+3. use the returned `run_id` exactly as supplied
+4. switch all subsequent repository operations to the returned `run_directory`
+5. before any substantive smoke stage or child-model invocation, create:
+   `docs/verification/smoke/<run-id>.md`
+   inside that run directory
+6. never reuse an existing run directory or run ID
+
+Canonical run IDs are collision-resistant identifiers such as:
 
 ```text
-SMOKE-<PROFILE>-<fixture-id>-<SEQ>
+SMOKE-FAST-fast-micro-library-20260926T201500Z-a1b2c3d4
 ```
-
-`<SEQ>` is a decimal sequence padded to at least three digits (`001`, `002`, …, `999`, `1000`, …).
-
-Examples:
-
-```text
-SMOKE-FAST-fast-micro-library-001
-SMOKE-FULL-full-minimal-api-001
-SMOKE-FULL-full-minimal-api-002
-```
-
-Generation algorithm:
-
-1. normalize profile to uppercase `FAST` or `FULL`
-2. use the exact selected fixture ID from the installed global `smoke/fixtures.json`
-3. inspect `docs/verification/smoke/` for existing records matching:
-   `SMOKE-<PROFILE>-<fixture-id>-*.md`
-4. also inspect local Git branch names matching both:
-   - canonical: `smoke/SMOKE-<PROFILE>-<fixture-id>-*`
-   - legacy Stable-v0.1 form: `smoke/<PROFILE>-<fixture-id>-*`
-   so previously preserved/aborted smoke runs remain part of the sequence even when their run records are not visible on the current branch
-5. parse only numeric suffixes containing at least three digits from the run-record filenames and both branch-name forms
-6. choose one greater than the highest existing suffix across all sources; use `001` only when none contains a valid suffix
-7. create/switch to the disposable branch named exactly:
-   `smoke/<run-id>`
-8. before any substantive smoke stage or child-model invocation, create the run record immediately
-9. if either the candidate branch or candidate filename already exists, increment and retry; never overwrite or reuse an existing run identifier
 
 Run IDs are identifiers, not chronology authority. The run record's explicit timestamps and repository evidence remain authoritative.
 
@@ -258,7 +260,7 @@ reconstruct state from the exact run record and current repository evidence.
 Before continuing:
 
 - validate profile and fixture from the run record
-- validate the target branch/worktree
+- locate the run workspace using `python <global-config>/scripts/smoke_workspace.py locate --source <baseline-project-path> --run-id <run-id>` and validate the returned run directory/branch
 - identify completed, pending, blocked, and invalidated scenarios
 - re-evaluate whether the recorded next stage is still correct
 - never trust chat history over repository state
@@ -295,7 +297,7 @@ State: <IN_PROGRESS|WAITING_FOR_USER|BLOCKED|PASS|PASS_WITH_ENVIRONMENT_LIMITATI
 Profile: <FAST|FULL>
 Fixture: <fixture-id>
 Release: <tag>@<configuration-sha>
-Target: <branch/worktree>
+Target: <isolated-run-directory>
 Baseline HEAD: <sha>
 
 Current Stage: <workflow-stage>
