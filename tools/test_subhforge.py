@@ -38,6 +38,17 @@ class SubhForgeBootstrapTests(unittest.TestCase):
             ok, detail = subhforge._same_tree(self.root / "template", project)
             self.assertTrue(ok, detail)
 
+    def test_project_comparison_ignores_git_metadata(self):
+        with tempfile.TemporaryDirectory() as temp:
+            project = Path(temp) / "sample"
+            subhforge.init_project(project, self.root, git_init=False)
+            (project / ".git").mkdir()
+            (project / ".git" / "HEAD").write_text("ref: refs/heads/main", encoding="utf-8")
+            ok, detail = subhforge._same_tree(
+                self.root / "template", project, ignore=(".git",)
+            )
+            self.assertTrue(ok, detail)
+
     def test_init_refuses_nonempty_directory_without_force(self):
         with tempfile.TemporaryDirectory() as temp:
             project = Path(temp) / "sample"
