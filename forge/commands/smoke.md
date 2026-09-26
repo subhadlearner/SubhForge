@@ -570,6 +570,28 @@ Update the smoke-run record after:
 
 This makes the smoke run restartable without chat history.
 
+## Stage 12.5 — Workspace retention and cleanup
+
+The disposable run clone is temporary execution state, not long-term evidence.
+
+Retention policy:
+
+- while a run is `IN_PROGRESS`, `WAITING_FOR_USER`, or `BLOCKED`: keep the workspace so `RESUME` and diagnosis remain possible
+- on `SMOKE_FAIL`: keep the workspace by default for diagnosis; destroy it only after the failure has been captured and the user explicitly abandons or archives the run
+- on `FAST_SMOKE_PASS`, `FAST_SMOKE_PASS_WITH_ENVIRONMENT_LIMITATION`, `FULL_SMOKE_PASS`, or `FULL_SMOKE_PASS_WITH_ENVIRONMENT_LIMITATION`: persist/export the final smoke run record and any required evidence first, then destroy the disposable workspace using:
+
+```text
+python <global-config>/scripts/smoke_workspace.py destroy --source <baseline-project-path> --run-id <run-id>
+```
+
+Cleanup must never delete the baseline repository.
+
+If automatic cleanup fails after a successful smoke result:
+
+- keep the PASS result
+- record `WORKSPACE_CLEANUP_FAILED`
+- report the exact run directory requiring manual cleanup
+
 ## Stage 13 — Completion
 
 For FAST, finish with exactly one of:
