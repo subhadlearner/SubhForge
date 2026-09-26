@@ -78,6 +78,9 @@ Claude-family adversaries require the same explicit approval rules as the global
 
 Smoke runs must use a disposable branch/worktree/clone.
 
+Before allocating a new run, inspect `git status --porcelain`. If the current branch is protected (`main`, `master`, `develop`, or `release`) and the working tree is not clean, return `SMOKE_BLOCKED`. Do not carry uncommitted artifacts from a previous smoke run into a new run.
+
+
 Do not:
 
 - mutate protected integration branches
@@ -85,6 +88,15 @@ Do not:
 - force-reset
 - clean a non-disposable working tree
 - create destructive test data outside the disposable fixture
+
+## Installed command/agent paths
+
+The installed SubhForge global configuration uses plural directories:
+
+- `commands/`
+- `agents/`
+
+Never probe `command/` or `agent/`. When loading a lifecycle contract, resolve it from the installed global `commands/<name>.md` path.
 
 ## Persistence
 
