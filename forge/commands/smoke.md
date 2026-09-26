@@ -84,6 +84,17 @@ If the user did not supply a fixture ID:
 
 Do not invent an unregistered fixture during an automated smoke run.
 
+### Fixture runtime constraints
+
+When a fixture declares a `runtime` constraint, that constraint is authoritative for the smoke run.
+
+- planning and architecture may choose implementation details only within that runtime
+- they must not substitute another language/runtime
+- validate generated architecture/ADR/spec artifacts against the fixture runtime before project initialization or implementation
+- if an artifact selects a conflicting runtime, treat it as a planning defect and reconcile it before proceeding
+- do not probe the machine for unrelated runtimes as a fallback
+
+
 Examples:
 
 ```text
