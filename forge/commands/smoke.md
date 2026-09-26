@@ -17,6 +17,7 @@ Supported invocation forms:
 /smoke FULL <fixture-id>
 /smoke RESUME <run-id>
 /smoke STATUS <run-id>
+/smoke ABANDON <run-id>
 ```
 
 Canonical profile names are:
@@ -336,6 +337,31 @@ Required Action: /smoke RESUME <run-id>
 ```
 
 Do not silently repair drift during `STATUS`.
+
+### ABANDON
+
+For:
+
+```text
+/smoke ABANDON <run-id>
+```
+
+perform a terminal cleanup of a failed, blocked, or intentionally discontinued smoke run.
+
+Before destroying the workspace:
+
+1. locate the run using the deterministic smoke workspace helper
+2. read the run record and current diagnostic/failure evidence
+3. update the run record to terminal state `ABANDONED`
+4. persist the final blocker/defect/diagnostic summary and last-updated timestamp
+5. export/copy the final smoke run record and any evidence required for long-term retention outside the disposable workspace
+6. invoke:
+   `python <global-config>/scripts/smoke_workspace.py destroy --source <baseline-project-path> --run-id <run-id>`
+7. confirm the run directory no longer exists
+
+Do not use `ABANDON` for a run that should be resumed.
+
+If evidence cannot be preserved safely, return `SMOKE_BLOCKED` and do not destroy the workspace.
 
 ### Missing/unusable run record
 
