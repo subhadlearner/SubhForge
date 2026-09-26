@@ -169,11 +169,12 @@ Generation algorithm:
 2. use the exact selected fixture ID from the installed global `smoke/fixtures.json`
 3. inspect `docs/verification/smoke/` for existing records matching:
    `SMOKE-<PROFILE>-<fixture-id>-*.md`
-4. also inspect local Git branch names matching:
-   `smoke/SMOKE-<PROFILE>-<fixture-id>-*`
+4. also inspect local Git branch names matching both:
+   - canonical: `smoke/SMOKE-<PROFILE>-<fixture-id>-*`
+   - legacy Stable-v0.1 form: `smoke/<PROFILE>-<fixture-id>-*`
    so previously preserved/aborted smoke runs remain part of the sequence even when their run records are not visible on the current branch
-5. parse only numeric suffixes containing at least three digits from both sources
-6. choose one greater than the highest existing suffix across both sources; use `001` only when neither source contains a valid suffix
+5. parse only numeric suffixes containing at least three digits from the run-record filenames and both branch-name forms
+6. choose one greater than the highest existing suffix across all sources; use `001` only when none contains a valid suffix
 7. create/switch to the disposable branch named exactly:
    `smoke/<run-id>`
 8. before any substantive smoke stage or child-model invocation, create the run record immediately
