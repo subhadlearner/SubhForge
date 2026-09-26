@@ -1,0 +1,114 @@
+{
+  "registry_version": "1",
+  "description": "Canonical safe failure-injection recipes for disposable Kilo smoke fixtures.",
+  "recipes": [
+    {
+      "id": "obvious-deterministic-defect",
+      "purpose": "Exercise NOT_DONE → /fix → /verify → /review with an obvious implementation defect.",
+      "injection": "Change one tiny deterministic production behavior so an existing focused unit test fails. Prefer an arithmetic/boolean/string transformation defect. Do not alter the test.",
+      "expected_route": [
+        "/verify: NOT_DONE",
+        "/fix",
+        "/verify: DONE + CLEAR + MATCH",
+        "/review"
+      ],
+      "safety": "No security, persistence, external service, or destructive behavior."
+    },
+    {
+      "id": "ambiguous-normalization-defect",
+      "purpose": "Exercise NOT_DONE → /diagnose → /fix → /verify → /review where the observed symptom does not establish root cause.",
+      "injection": "Introduce a small deterministic defect beneath an end-to-end normalization/formatting behavior so the high-level assertion fails but verification output alone cannot prove which internal transformation is responsible.",
+      "expected_route": [
+        "/verify: NOT_DONE",
+        "/diagnose: DIAGNOSIS_READY",
+        "/fix",
+        "/verify: DONE + CLEAR + MATCH",
+        "/review"
+      ],
+      "safety": "Keep the failure deterministic and local; do not use flaky timing or external dependencies."
+    },
+    {
+      "id": "ambiguous-persistence-defect",
+      "purpose": "Exercise diagnosis/fix routing in the optional local-persistence fixture.",
+      "injection": "Introduce a deterministic mismatch between the approved persistence behavior and the local repository/adapter behavior such that the focused integration test observes the failure but root cause requires inspecting the persistence path.",
+      "expected_route": [
+        "/verify: NOT_DONE",
+        "/diagnose: DIAGNOSIS_READY",
+        "/fix",
+        "/verify: DONE + CLEAR + MATCH",
+        "/review"
+      ],
+      "safety": "Use only embedded/local disposable data. No cloud/external database and no destructive migration."
+    },
+    {
+      "id": "trivial-documentation-or-waivable-quality-gate",
+      "purpose": "Exercise NOT_DONE → /waive → CLEAR_WITH_EXCEPTION → /review with a bounded low-risk failure.",
+      "injection": "Trigger one project-approved waivable non-runtime quality/documentation gate, such as intentionally omitting required public API documentation or a harmless explicitly-waivable lint/documentation condition while behavioral/security checks remain passing.",
+      "expected_route": [
+        "/verify: NOT_DONE",
+        "/waive: WAIVER_APPROVED after explicit human acceptance",
+        "CLEAR_WITH_EXCEPTION",
+        "/review"
+      ],
+      "safety": "Never use auth, authorization, secret scanning, vulnerability, data-integrity, destructive migration, reliability-invariant, or other non-waivable security/safety failures."
+    },
+    {
+      "id": "content-freshness-mismatch",
+      "purpose": "Prove implementation content changes invalidate reusable verification evidence before reviewers run.",
+      "injection": "After fresh verification, change one identity-bearing implementation byte without rerunning verification.",
+      "expected_route": [
+        "/review freshness gate: MISMATCH",
+        "reviewer calls: 0",
+        "fresh /verify required"
+      ],
+      "safety": "Disposable local implementation change only."
+    },
+    {
+      "id": "mode-type-mismatch-when-supported",
+      "purpose": "Prove effective Git mode/type is part of implementation identity.",
+      "injection": "After fresh verification, change only a reliably representable Git mode/type such as 100644 → 100755 without changing content.",
+      "expected_route": [
+        "/review freshness gate: MISMATCH, or UNRECONSTRUCTABLE when platform cannot represent/determine mode reliably",
+        "reviewer calls: 0"
+      ],
+      "safety": "Use a disposable tracked file. Do not fake unsupported Windows filesystem semantics; use WSL only when intentionally available."
+    },
+    {
+      "id": "verification-mutation",
+      "purpose": "Prove verification cannot CLEAR a repository state that changes during checks.",
+      "injection": "Configure or use a disposable verification-side behavior that changes one identity-bearing non-evidence path during verification while the required check itself can otherwise pass.",
+      "expected_route": [
+        "/verify checks may be DONE",
+        "Freshness: MISMATCH",
+        "Delivery Gate: BLOCKED",
+        "stabilize then rerun /verify"
+      ],
+      "safety": "Mutation must be local, deterministic, reversible, and restricted to the disposable fixture."
+    },
+    {
+      "id": "malformed-evidence",
+      "purpose": "Prove malformed or unreconstructable reusable evidence fails closed.",
+      "injection": "Use a disposable copied run/verification evidence case with one required reconstruction field missing/malformed, or make the recorded base unavailable in a controlled disposable environment.",
+      "expected_route": [
+        "freshness: UNRECONSTRUCTABLE",
+        "reviewer calls: 0",
+        "fresh /verify required"
+      ],
+      "safety": "Do not corrupt historical canonical evidence in a non-disposable repository."
+    },
+    {
+      "id": "pre-review-blocker",
+      "purpose": "Prove cheap pre-review blocks senior review and persists Senior Review: NOT_RUN.",
+      "injection": "Introduce one small genuine review-only maintainability/project-rule violation not already caught by deterministic verification, such as an explicitly prohibited duplicate implementation pattern or materially misleading API naming.",
+      "expected_route": [
+        "/verify: DONE + CLEAR + MATCH",
+        "/review pre-review: CHANGES_REQUIRED",
+        "Senior Review: NOT_RUN",
+        "/fix",
+        "/verify",
+        "/review"
+      ],
+      "safety": "Do not create a security defect or weaken deterministic checks merely to force a review finding."
+    }
+  ]
+}

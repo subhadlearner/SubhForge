@@ -1,0 +1,54 @@
+{
+  "registry_version": "1",
+  "profiles": {
+    "FAST": {
+      "description": "Low-cost validation for low-risk framework/configuration changes.",
+      "required_scenarios": [
+        "static-release-gate",
+        "project-init-contract-propagation",
+        "first-uncommitted-verify",
+        "review-before-commit",
+        "identical-commit-freshness",
+        "content-mutation-stale-evidence",
+        "direct-fix-loop",
+        "fail-closed-evidence",
+        "static-model-routing"
+      ],
+      "optional_scenarios": [
+        "mode-type-identity"
+      ]
+    },
+    "FULL": {
+      "description": "Complete milestone validation of lifecycle, recovery, evidence, review, and resume semantics.",
+      "required_scenarios": [
+        "static-release-gate",
+        "grill",
+        "prd",
+        "architect",
+        "project-init-contract-propagation",
+        "spec",
+        "implement",
+        "first-uncommitted-verify",
+        "review-before-commit",
+        "identical-commit-freshness",
+        "content-mutation-stale-evidence",
+        "mode-type-identity",
+        "verification-mutation",
+        "direct-fix-loop",
+        "diagnose-fix-loop",
+        "waive-review-loop",
+        "stale-waiver",
+        "malformed-evidence",
+        "evidence-exclusion",
+        "adversarial-reconcile-only",
+        "arbitrary-stage-resume",
+        "upstream-rerouting",
+        "pre-review-blocker",
+        "static-claude-routing"
+      ],
+      "optional_scenarios": [
+        "paid-claude-runtime"
+      ]
+    }
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "registry_version": "1",
+  "description": "Approved disposable project flavours for Kilo workflow smoke testing.",
+  "fixtures": [
+    {
+      "id": "fast-micro-library",
+      "display_name": "Micro Library",
+      "profiles": [
+        "FAST"
+      ],
+      "default_for": [
+        "FAST"
+      ],
+      "purpose": "Cheapest fixture for lifecycle, evidence freshness, review-before-commit, and fix-loop validation.",
+      "product_brief": "Build a tiny deterministic library with one public behavior and one boundary behavior. No UI, network, database, cloud, authentication, queues, containers, or external services.",
+      "test_budget": {
+        "unit_tests_target": "1-2",
+        "integration_tests": "NOT_APPLICABLE",
+        "e2e_tests": "NOT_APPLICABLE"
+      },
+      "allowed_failure_recipes": [
+        "obvious-deterministic-defect",
+        "content-freshness-mismatch",
+        "mode-type-mismatch-when-supported",
+        "malformed-evidence"
+      ],
+      "notes": "Default FAST_SMOKE fixture. Keep architecture intentionally local and infrastructure-free.",
+      "source_repository": "subhadlearner/production-ai-project"
+    },
+    {
+      "id": "full-minimal-api",
+      "display_name": "Minimal API",
+      "profiles": [
+        "FULL"
+      ],
+      "default_for": [
+        "FULL"
+      ],
+      "purpose": "Default FULL_SMOKE fixture for the complete workflow including planning, project-init, implementation, verification, diagnosis, waiver, review, and adversarial reconciliation.",
+      "product_brief": "Build a minimal HTTP API with one small deterministic endpoint and one validation/error path. Keep state in memory. No external database, cloud dependency, authentication, queue, container requirement, or paid service.",
+      "test_budget": {
+        "unit_tests_target": "1-2",
+        "integration_tests_target": "0-1 lightweight in-process API test",
+        "e2e_tests": "NOT_APPLICABLE"
+      },
+      "allowed_failure_recipes": [
+        "obvious-deterministic-defect",
+        "ambiguous-normalization-defect",
+        "trivial-documentation-or-waivable-quality-gate",
+        "content-freshness-mismatch",
+        "mode-type-mismatch-when-supported",
+        "verification-mutation",
+        "malformed-evidence",
+        "pre-review-blocker"
+      ],
+      "notes": "Default FULL_SMOKE fixture. Architecture still owns the language/framework choice.",
+      "source_repository": "subhadlearner/production-ai-project"
+    },
+    {
+      "id": "full-local-persistence-api",
+      "display_name": "Minimal API + Local Persistence",
+      "profiles": [
+        "FULL"
+      ],
+      "default_for": [],
+      "purpose": "Optional persistence-oriented FULL_SMOKE fixture when framework changes affect persistence, integration verification, project initialization, or database guidance.",
+      "product_brief": "Build a minimal API with one small persisted entity using an embedded/local relational store requiring no external service. Architecture selects the concrete local persistence technology consistent with this constraint. No cloud database, external network dependency, authentication, queue, container requirement, or paid service.",
+      "test_budget": {
+        "unit_tests_target": "1-2",
+        "integration_tests_target": "1 focused local persistence-backed test",
+        "e2e_tests": "NOT_APPLICABLE"
+      },
+      "allowed_failure_recipes": [
+        "obvious-deterministic-defect",
+        "ambiguous-persistence-defect",
+        "trivial-documentation-or-waivable-quality-gate",
+        "content-freshness-mismatch",
+        "verification-mutation",
+        "malformed-evidence"
+      ],
+      "notes": "Use only when persistence behavior is relevant. It is intentionally not the default because it costs more tokens and runtime. The fixture constrains persistence to an embedded/local relational capability but does not prescribe a specific database product.",
+      "source_repository": "subhadlearner/production-ai-project"
+    }
+  ]
+}
