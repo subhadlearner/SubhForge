@@ -37,7 +37,8 @@ Read:
 - installed global `smoke/profiles.json`
 - installed global `smoke/failure-recipes.json`
 - global `AGENTS.md`
-- the minimum command/agent files needed for the next smoke stage
+- global `.subhforge-install.json` when present; use it as installed-release provenance
+- the minimum command/agent files needed for the next smoke stage from the plural `commands/` and `agents/` directories
 
 The runbook is the smoke-test policy.
 
@@ -89,6 +90,16 @@ Examples:
 /smoke FAST DEFAULT
 /smoke FULL full-minimal-api
 ```
+
+### Installed release identity
+
+The global Kilo config is an installed file tree, not necessarily a Git checkout. Do not run `git rev-parse` or `git tag` inside the global config directory merely to discover release identity.
+
+When `.subhforge-install.json` exists, use its source repository, source commit, source branch and source tag fields as installation provenance.
+
+During pre-release validation, `source_tag` may be `UNTAGGED_RELEASE_CANDIDATE`. Record the exact source commit and continue. The stable tag is created only after required smoke validation passes.
+
+If no provenance manifest exists and release identity cannot be established from an explicitly supplied source checkout, stop with `SMOKE_BLOCKED` and request reinstall from a current SubhForge checkout.
 
 ## Stage 4 — Prepare disposable project safely
 
