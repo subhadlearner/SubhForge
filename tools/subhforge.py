@@ -13,6 +13,7 @@ from __future__ import print_function
 import argparse
 import datetime as _dt
 import filecmp
+import json
 import os
 from pathlib import Path
 import shutil
@@ -84,6 +85,44 @@ def _copy_tree_exact(source: Path, dest: Path) -> None:
     shutil.copytree(str(source), str(dest))
 
 
+def _git_value(root: Path, args: list[str]) -> Optional[str]:
+    git = shutil.which("git")
+    if not git:
+        return None
+    proc = subprocess.run(
+        [git] + args,
+        cwd=str(root),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if proc.returncode != 0:
+        return None
+    value = proc.stdout.strip()
+    return value or None
+
+
+def _write_install_manifest(config_dir: Path, root: Path) -> None:
+    source_commit = _git_value(root, ["rev-parse", "HEAD"]) or "UNKNOWN"
+    source_branch = _git_value(root, ["branch", "--show-current"]) or "UNKNOWN"
+    source_tag = _git_value(root, ["describe", "--tags", "--exact-match", "HEAD"])
+    if not source_tag:
+        source_tag = "UNTAGGED_RELEASE_CANDIDATE"
+
+    manifest = {
+        "schema_version": 1,
+        "source_repository": "subhadlearner/SubhForge",
+        "source_commit": source_commit,
+        "source_branch": source_branch,
+        "source_tag": source_tag,
+        "installed_at_utc": _dt.datetime.now(_dt.timezone.utc).isoformat(),
+    }
+    (config_dir / ".subhforge-install.json").write_text(
+        json.dumps(manifest, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
 def install_config(config_dir: Path, root: Optional[Path] = None) -> Optional[Path]:
     root = root or repo_root()
     forge, _ = _assert_source_layout(root)
@@ -96,6 +135,7 @@ def install_config(config_dir: Path, root: Optional[Path] = None) -> Optional[Pa
         shutil.copytree(str(config_dir), str(backup))
 
     _copy_tree_exact(forge, config_dir)
+    _write_install_manifest(config_dir, root)
     return backup
 
 
@@ -236,7 +276,11 @@ def doctor(
         forge = root / "forge"
         template = root / "template"
 
-    exact_config, config_detail = _same_tree(forge, config_dir.expanduser().resolve())
+    exact_config, config_detail = _same_tree(
+        forge,
+        config_dir.expanduser().resolve(),
+        ignore=(".subhforge-install.json",),
+    )
     checks.append(("Installed Kilo config", exact_config, config_detail))
 
     if project_dir is not None:
