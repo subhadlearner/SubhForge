@@ -121,6 +121,7 @@ The fixture-specific source repository is a template/baseline, not architecture 
 For a new run:
 
 - require a disposable branch/worktree/clone
+- when using a branch, name it exactly `smoke/<run-id>`; do not concatenate profile/fixture text around an already-complete run ID
 - never mutate protected `main`, `master`, `develop`, or `release`
 - never discard unrelated changes
 - never force-reset or clean a non-disposable repository
@@ -168,10 +169,15 @@ Generation algorithm:
 2. use the exact selected fixture ID from the installed global `smoke/fixtures.json`
 3. inspect `docs/verification/smoke/` for existing records matching:
    `SMOKE-<PROFILE>-<fixture-id>-*.md`
-4. parse only numeric suffixes containing at least three digits
-5. choose one greater than the highest existing suffix; use `001` when none exist
-6. before any substantive smoke stage or child-model invocation, create the run record immediately
-7. if the candidate filename already exists, increment and retry; never overwrite an existing run record
+4. also inspect local Git branch names matching:
+   `smoke/SMOKE-<PROFILE>-<fixture-id>-*`
+   so previously preserved/aborted smoke runs remain part of the sequence even when their run records are not visible on the current branch
+5. parse only numeric suffixes containing at least three digits from both sources
+6. choose one greater than the highest existing suffix across both sources; use `001` only when neither source contains a valid suffix
+7. create/switch to the disposable branch named exactly:
+   `smoke/<run-id>`
+8. before any substantive smoke stage or child-model invocation, create the run record immediately
+9. if either the candidate branch or candidate filename already exists, increment and retry; never overwrite or reuse an existing run identifier
 
 Run IDs are identifiers, not chronology authority. The run record's explicit timestamps and repository evidence remain authoritative.
 
