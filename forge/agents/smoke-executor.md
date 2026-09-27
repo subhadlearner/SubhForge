@@ -115,8 +115,19 @@ Read only:
 failure-recipe registries directly to validate that the requested mutation is
 registered and allowed.
 
-The parent must provide a compact `CONTEXT_PATHS` packet with exact paths for
-known inputs. Validate and use those paths directly.
+The parent must provide:
+
+- `SMOKE_RUN_DIRECTORY: <absolute-path>`
+- a compact `CONTEXT_PATHS` packet with exact paths for known inputs
+
+Treat `SMOKE_RUN_DIRECTORY` as the project repository root for the entire
+child invocation. Every project artifact read/write, source edit, test edit,
+verification report, diagnosis artifact, or workflow output MUST resolve under
+that directory. Do not use inherited parent-project-relative paths for project
+writes. If the run directory is missing/not absolute or a target path escapes
+it, return `SMOKE_WORKSPACE_BOUNDARY_REQUIRED` without writing.
+
+Validate and use the supplied context paths directly.
 
 When a supplied path validates successfully:
 
