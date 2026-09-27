@@ -100,11 +100,20 @@ Apply all normal:
 
 ## Smoke-specific constraints
 
-Also read:
+For normal `WORKFLOW:` requests, consume the compact smoke context already
+resolved by the parent. Do not independently reread `smoke/fixtures.json`,
+the full smoke runbook, or canonical smoke state merely to recover fixture,
+current-stage, or path information already present in the handoff.
 
-- canonical smoke state supplied by the parent
-- the selected fixture entry from installed global `smoke/fixtures.json`
-- only the minimum project artifacts required by the underlying workflow
+Read only:
+
+- the corresponding installed workflow command contract
+- the supplied compact smoke context / `CONTEXT_PATHS`
+- the minimum project artifacts required by the underlying workflow
+
+`ACTION: INJECT_FAILURE` is the exception: it must still read the fixture and
+failure-recipe registries directly to validate that the requested mutation is
+registered and allowed.
 
 The parent must provide a compact `CONTEXT_PATHS` packet with exact paths for
 known inputs. Validate and use those paths directly.
