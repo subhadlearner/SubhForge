@@ -73,7 +73,25 @@ Bounded discovery means searching only the smallest relevant scope first
 (e.g. the expected artifact directory or a specific filename pattern) before
 widening. Do not default to repository-wide `**/*` scans.
 
-When invoked by `/smoke`, obey the parent-supplied discovery policy:
+When invoked by `/smoke`, the parent MUST also supply
+`SMOKE_RUN_DIRECTORY: <absolute-path>`. Treat that absolute directory as the
+project repository root for the entire child invocation.
+
+For smoke invocations:
+
+- every project artifact path supplied in `CONTEXT_PATHS` MUST be absolute or
+  resolved against `SMOKE_RUN_DIRECTORY`
+- every project artifact read or write MUST remain under
+  `SMOKE_RUN_DIRECTORY`
+- when a workflow says to write a repository-relative path such as
+  `docs/prd/<name>.md`, resolve it beneath `SMOKE_RUN_DIRECTORY`; do not
+  write that relative path against the inherited parent project directory
+- do not create or edit project artifacts in the parent/source SubhForge
+  checkout
+- if the supplied run directory is missing, not absolute, or a target path
+  escapes it, return `SMOKE_WORKSPACE_BOUNDARY_REQUIRED` without writing
+
+Then obey the parent-supplied discovery policy:
 
 - `DISCOVERY_POLICY: EXACT_ONLY` — do not use repository-wide glob, grep, or
   search at all. Consume only the supplied exact paths plus explicitly loaded
