@@ -146,7 +146,7 @@ def create_workspace(source: Path, source_commit: str, profile: str, fixture: st
         "run_id": run_id,
         "profile": profile.upper(),
         "fixture": fixture,
-        "source_repository": str(source),
+        "source_checkout_path": str(source),
         "source_commit": source_commit,
         "baseline_branch": "main",
         "baseline_head": baseline_head,
@@ -164,7 +164,7 @@ def locate_workspace(source: Path, run_id: str) -> Dict[str, str]:
     branch = _run_git(target, "branch", "--show-current") or "DETACHED"
     return {
         "run_id": run_id,
-        "source_repository": str(source),
+        "source_checkout_path": str(source),
         "run_directory": str(target),
         "current_head": head,
         "run_branch": branch,
@@ -186,7 +186,7 @@ def destroy_workspace(source: Path, run_id: str) -> Dict[str, str]:
     if not target.exists():
         return {
             "run_id": run_id,
-            "source_repository": str(source),
+            "source_checkout_path": str(source),
             "run_directory": str(target),
             "destroyed": "false",
             "reason": "NOT_FOUND",
@@ -202,7 +202,7 @@ def destroy_workspace(source: Path, run_id: str) -> Dict[str, str]:
     shutil.rmtree(str(target), onerror=_remove_readonly)
     return {
         "run_id": run_id,
-        "source_repository": str(source),
+        "source_checkout_path": str(source),
         "run_directory": str(target),
         "destroyed": "true",
     }
