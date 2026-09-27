@@ -46,6 +46,33 @@ If no mode is supplied, return `WORKER_MODE_REQUIRED` instead of guessing.
 
 Use the normal workflow context needed to create the artifact.
 
+The parent SHOULD supply a compact context packet containing exact authoritative
+paths already known for this stage, for example:
+
+- discovery path
+- PRD path
+- architecture path
+- relevant ADR paths
+- current Spec path when applicable
+- project-level AGENTS/README paths
+- run/workflow state path when an orchestrated workflow owns one
+
+When exact paths are supplied:
+
+1. validate that each required path exists and is the expected artifact type
+2. read those paths directly
+3. do not perform broad repository discovery merely to rediscover them
+4. use bounded discovery only when a required path is missing, stale, ambiguous,
+   or the supplied artifact explicitly points to unresolved authority elsewhere
+
+Bounded discovery means searching only the smallest relevant scope first
+(e.g. the expected artifact directory or a specific filename pattern) before
+widening. Do not default to repository-wide `**/*` scans.
+
+This optimization changes discovery mechanics only. It does NOT weaken
+authority checks, reasoning depth, required artifact content, or escalation
+when upstream authority is incomplete or conflicting.
+
 You may read the approved upstream artifacts, repository policy, relevant rules/skills, and existing related artifacts.
 
 ### CONTINUE
