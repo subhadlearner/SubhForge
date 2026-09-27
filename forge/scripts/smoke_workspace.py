@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import os
 import shutil
 import stat
 import subprocess
@@ -50,24 +51,17 @@ def _new_run_id(profile: str, fixture: str) -> str:
     return "SMOKE-{}-{}-{}-{}".format(profile.upper(), fixture, stamp, suffix)
 
 
-def create_workspace(source: Path, profile: str, fixture: str) -> Dict[str, str]:
+def create_workspace(source: Path, source_commit: str, profile: str, fixture: str) -> Dict[str, str]:
+    """Provision a disposable project from SubhForge/template at an exact release commit."""
     source = source.resolve()
     if not source.is_dir():
-        raise SmokeWorkspaceError("Source repository does not exist: {}".format(source))
+        raise SmokeWorkspaceError("SubhForge source checkout does not exist: {}".format(source))
+    if _run_git(source, "rev-parse", "--is-inside-work-tree").lower() != "true":
+        raise SmokeWorkspaceError("SubhForge source path is not a Git work tree: {}".format(source))
 
-    inside = _run_git(source, "rev-parse", "--is-inside-work-tree")
-    if inside.lower() != "true":
-        raise SmokeWorkspaceError("Source path is not a Git work tree: {}".format(source))
-
-    dirty = _run_git(source, "status", "--porcelain")
-    if dirty:
-        raise SmokeWorkspaceError(
-            "Source repository must be clean before a smoke run. "
-            "Commit, stash, or remove unrelated changes first."
-        )
-
-    baseline_head = _run_git(source, "rev-parse", "HEAD")
-    baseline_branch = _run_git(source, "branch", "--show-current") or "DETACHED"
+    resolved_commit = _run_git(source, "rev-parse", "{}^{{commit}}".format(source_commit))
+    if resolved_commit != source_commit:
+        source_commit = resolved_commit
 
     root = _run_root(source)
     root.mkdir(parents=True, exist_ok=True)
@@ -82,37 +76,74 @@ def create_workspace(source: Path, profile: str, fixture: str) -> Dict[str, str]
 
     git = shutil.which("git")
     assert git is not None
-    clone = subprocess.run(
-        [git, "clone", "--no-hardlinks", "--local", str(source), str(target)],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-    if clone.returncode != 0:
-        detail = (clone.stderr or clone.stdout).strip()
-        raise SmokeWorkspaceError("git clone failed: {}".format(detail))
-
+    token = uuid.uuid4().hex[:8]
+    release_clone = root / (".release-" + token)
+    baseline = root / (".baseline-" + token)
     try:
-        _run_git(target, "switch", "-c", "smoke-run")
-    except Exception:
-        shutil.rmtree(str(target), ignore_errors=True)
-        raise
-
-    cloned_head = _run_git(target, "rev-parse", "HEAD")
-    if cloned_head != baseline_head:
-        shutil.rmtree(str(target), ignore_errors=True)
-        raise SmokeWorkspaceError(
-            "Disposable clone HEAD {} does not match baseline HEAD {}.".format(
-                cloned_head, baseline_head
-            )
+        clone_release = subprocess.run(
+            [git, "clone", "--no-hardlinks", "--local", "--no-checkout", str(source), str(release_clone)],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
         )
+        if clone_release.returncode != 0:
+            raise SmokeWorkspaceError("release clone failed: {}".format(
+                (clone_release.stderr or clone_release.stdout).strip()))
+        _run_git(release_clone, "checkout", "--detach", source_commit)
+
+        template = release_clone / "template"
+        if not template.is_dir():
+            raise SmokeWorkspaceError("template/ is missing at release commit {}".format(source_commit))
+        shutil.copytree(str(template), str(baseline))
+
+        init = subprocess.run([git, "init", "-b", "main"], cwd=str(baseline),
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if init.returncode != 0:
+            init = subprocess.run([git, "init"], cwd=str(baseline),
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if init.returncode != 0:
+            raise SmokeWorkspaceError("baseline git init failed: {}".format(
+                (init.stderr or init.stdout).strip()))
+        _run_git(baseline, "add", "-A")
+        env = os.environ.copy()
+        env["GIT_AUTHOR_DATE"] = "2000-01-01T00:00:00Z"
+        env["GIT_COMMITTER_DATE"] = "2000-01-01T00:00:00Z"
+        commit = subprocess.run(
+            [git, "-c", "user.name=SubhForge", "-c", "user.email=subhforge@local",
+             "commit", "-m", "Initialize smoke fixture from SubhForge template"],
+            cwd=str(baseline), env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+        if commit.returncode != 0:
+            raise SmokeWorkspaceError("baseline commit failed: {}".format(
+                (commit.stderr or commit.stdout).strip()))
+        baseline_head = _run_git(baseline, "rev-parse", "HEAD")
+
+        clone = subprocess.run(
+            [git, "clone", "--no-hardlinks", "--local", str(baseline), str(target)],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+        if clone.returncode != 0:
+            raise SmokeWorkspaceError("git clone failed: {}".format(
+                (clone.stderr or clone.stdout).strip()))
+        _run_git(target, "switch", "-c", "smoke-run")
+        cloned_head = _run_git(target, "rev-parse", "HEAD")
+        if cloned_head != baseline_head:
+            raise SmokeWorkspaceError(
+                "Disposable clone HEAD {} does not match generated baseline HEAD {}.".format(
+                    cloned_head, baseline_head))
+    except Exception:
+        if target.exists():
+            shutil.rmtree(str(target), ignore_errors=True)
+        raise
+    finally:
+        shutil.rmtree(str(release_clone), ignore_errors=True)
+        shutil.rmtree(str(baseline), ignore_errors=True)
 
     return {
         "run_id": run_id,
         "profile": profile.upper(),
         "fixture": fixture,
         "source_repository": str(source),
-        "baseline_branch": baseline_branch,
+        "source_commit": source_commit,
+        "baseline_branch": "main",
         "baseline_head": baseline_head,
         "run_directory": str(target),
         "run_branch": "smoke-run",
@@ -178,6 +209,7 @@ def _parser() -> argparse.ArgumentParser:
 
     create = sub.add_parser("create")
     create.add_argument("--source", required=True)
+    create.add_argument("--source-commit", required=True)
     create.add_argument("--profile", required=True, choices=["FAST", "FULL"])
     create.add_argument("--fixture", required=True)
 
@@ -196,7 +228,7 @@ def main() -> int:
     args = _parser().parse_args()
     try:
         if args.command == "create":
-            result = create_workspace(Path(args.source), args.profile, args.fixture)
+            result = create_workspace(Path(args.source), args.source_commit, args.profile, args.fixture)
         elif args.command == "locate":
             result = locate_workspace(Path(args.source), args.run_id)
         else:
