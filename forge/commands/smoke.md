@@ -494,6 +494,33 @@ ambiguous, or points to unresolved authority:
 - `CONTINUE`
 - `RECONCILE_ONLY`
 
+For smoke planning stages, the orchestrator owns smoke mechanics and MUST reduce
+them into a compact handoff. The planning child must not independently read
+`smoke/fixtures.json`, `smoke/profiles.json`, `smoke/failure-recipes.json`,
+the full smoke runbook, or canonical smoke state merely to recover information
+already present in the handoff.
+
+The handoff SHOULD contain only:
+
+- execution mode
+- discovery policy
+- exact authoritative artifact paths required by that planning stage
+- project-level AGENTS/README paths when materially relevant
+- fixture/runtime/acceptance constraints already resolved by the orchestrator
+- the specific expected output artifact/path for the stage
+
+Before and after the child invocation, record a stage metric in canonical smoke
+state containing at minimum:
+
+- stage ID
+- model
+- elapsed seconds
+- exact context paths supplied
+- discovery policy
+
+This telemetry is diagnostic only; it must not change workflow authority or
+completion semantics.
+
 For the default Stable-v0.1 smoke path, use GPT-5.6 Sol for these planning stages.
 
 The predefined smoke fixture product brief is required to be sufficient for
