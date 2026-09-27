@@ -76,7 +76,19 @@ def set_values(repo: Path, run_id: str, updates: dict[str, object]) -> dict[str,
     if overlap:
         raise SmokeStateError("Immutable smoke state fields cannot be changed: {}".format(
             ", ".join(sorted(overlap))))
+
     data.update(updates)
+
+    completed = data.get("completed_scenarios")
+    pending = data.get("pending_scenarios")
+    if not isinstance(completed, list) or not all(isinstance(item, str) for item in completed):
+        raise SmokeStateError("completed_scenarios must be a list of scenario IDs")
+    if not isinstance(pending, list) or not all(isinstance(item, str) for item in pending):
+        raise SmokeStateError("pending_scenarios must be a list of scenario IDs")
+
+    completed_set = set(completed)
+    data["pending_scenarios"] = [item for item in pending if item not in completed_set]
+
     _save(state_path(repo, run_id), data)
     return data
 
