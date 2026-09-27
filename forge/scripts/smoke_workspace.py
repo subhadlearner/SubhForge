@@ -102,6 +102,9 @@ def create_workspace(source: Path, source_commit: str, profile: str, fixture: st
         if init.returncode != 0:
             raise SmokeWorkspaceError("baseline git init failed: {}".format(
                 (init.stderr or init.stdout).strip()))
+        # Normalize the baseline branch name even when older Git required the
+        # fallback init path.
+        _run_git(baseline, "branch", "-M", "main")
         _run_git(baseline, "add", "-A")
         env = os.environ.copy()
         env["GIT_AUTHOR_DATE"] = "2000-01-01T00:00:00Z"
@@ -131,11 +134,13 @@ def create_workspace(source: Path, source_commit: str, profile: str, fixture: st
                     cloned_head, baseline_head))
     except Exception:
         if target.exists():
-            shutil.rmtree(str(target), ignore_errors=True)
+            shutil.rmtree(str(target), onerror=_remove_readonly)
         raise
     finally:
-        shutil.rmtree(str(release_clone), ignore_errors=True)
-        shutil.rmtree(str(baseline), ignore_errors=True)
+        if release_clone.exists():
+            shutil.rmtree(str(release_clone), onerror=_remove_readonly)
+        if baseline.exists():
+            shutil.rmtree(str(baseline), onerror=_remove_readonly)
 
     return {
         "run_id": run_id,
