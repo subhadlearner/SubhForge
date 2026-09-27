@@ -122,7 +122,7 @@ After new-run bootstrap, and after locating any RESUME workspace, invoke only:
 `scripts/smoke_handoff.py --repo <run-directory> --run-id <run-id> ensure`
 
 Run that shell-tool invocation with a per-command timeout of at least
-**2,400,000 ms (40 minutes)**. The timeout exists only to supervise the nested
+**3,600,000 ms (60 minutes)**. The timeout exists only to supervise the nested
 Kilo CLI process. It never replaces, resets, pauses, or extends the
 30-minute end-to-end `smoke_budget.py` release-qualification clock.
 
