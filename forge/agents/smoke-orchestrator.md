@@ -144,6 +144,16 @@ initialization, or a separate budget-start sequence. If bootstrap does not
 return `ok: true`, or canonical state/budget files are absent afterward,
 return `SMOKE_BLOCKED` before invoking any child model.
 
+Immediately after a successful bootstrap, call
+`scripts/smoke_static.py release-gate --config <global-config> --repo <run-directory> --run-id <run-id>`
+once. It validates Phase 0, persists the scenario transition and measured
+`stage_metrics[static-release-gate]`, and returns JSON. Require `ok: true`
+before delegating. On failure, report its failing check IDs and retain the
+blocked run. Do not reconstruct Phase 0 with shell expressions or separately
+persist its result with hand-built JSON. On RESUME, inspect canonical state:
+reuse a completed valid gate for the same installed release; invoke this helper
+only when `static-release-gate` is the current in-progress stage.
+
 Persist canonical machine state under:
 
 `docs/verification/smoke/<run-id>.state.json`

@@ -219,6 +219,20 @@ For a new run:
    manual state creation, or a separate budget-start sequence
 9. never reuse an existing run directory or run ID
 
+10. immediately after bootstrap, execute Phase 0 with exactly one call:
+
+   ```text
+   python <global-config>/scripts/smoke_static.py release-gate --config <global-config> --repo <run-directory> --run-id <run-id>
+   ```
+
+   The helper owns Phase 0 static checks, the canonical scenario transition,
+   and `stage_metrics[static-release-gate]`. Its elapsed time is measured from
+   the bootstrap budget start, including orchestration overhead. Require
+   `ok: true` before `/grill` or any other model stage. On failure, retain its
+   persisted `BLOCKED` state and report the failing check IDs. Do not rebuild
+   these checks with PowerShell, call `smoke_state.py set` for this transition,
+   or replace the measured interval with zero.
+
 Canonical run IDs are collision-resistant identifiers such as:
 
 ```text
