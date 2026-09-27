@@ -9,15 +9,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
-import stat
-import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import implementation_state
 
-EXCLUDED = ("docs/verification/", "docs/reviews/", "docs/diagnostics/")
 RECIPES = {
     "obvious-deterministic-defect",
     "ambiguous-normalization-defect",
@@ -29,48 +26,17 @@ RECIPES = {
     "pre-review-blocker",
 }
 
-
-class MechanicsError(RuntimeError):
-    pass
-
-
-def git(repo: Path, *args: str, input_bytes: Optional[bytes] = None) -> bytes:
-    result = subprocess.run(
-        ["git", *args], cwd=repo, input=input_bytes, stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    if result.returncode:
-        raise MechanicsError("git {} failed: {}".format(
-            " ".join(args), result.stderr.decode("utf-8", "replace").strip()))
-    return result.stdout
-
-
-def _name(raw: bytes) -> str:
-    try:
-        name = raw.decode("utf-8", "strict")
-    except UnicodeDecodeError as exc:
-        raise MechanicsError("Non-UTF-8 repository path") from exc
-    if not name or any(char in name for char in "\t\r\n"):
-        raise MechanicsError("Unrepresentable repository path")
-    return name
-
-
-def _excluded(name: str) -> bool:
-    return any(name.startswith(prefix) for prefix in EXCLUDED)
-
-
-def _root(repo: Path) -> Path:
-    root = Path(os.fsdecode(git(repo, "rev-parse", "--show-toplevel").strip())).resolve()
-    if root != repo.resolve():
-        raise MechanicsError("Use the disposable repository root")
-    return root
+MechanicsError = implementation_state.ImplementationStateError
+git = implementation_state.git
+canonical_manifest = implementation_state.canonical_manifest
+identity = implementation_state.identity
 
 
 def _target(repo: Path, name: str) -> Path:
     if not name or name.startswith("/") or "\\" in name or any(
         part in ("", ".", "..") for part in name.split("/")):
         raise MechanicsError("Invalid repository path")
-    if _excluded(name) or name.startswith(".git/") or name == ".git":
+    if implementation_state.excluded(name) or name.startswith(".git/") or name == ".git":
         raise MechanicsError("Refusing to mutate evidence or Git metadata")
     leaf = name.rsplit("/", 1)[-1].lower()
     if leaf == ".env" or leaf.startswith(".env.") or leaf.endswith((".pem", ".key")):
@@ -96,14 +62,14 @@ def _index(repo: Path) -> dict[str, str]:
 
 def canonical_manifest(repo: Path, base: str) -> bytes:
     """Contract v1 manifest, or fail closed when a mode/type is uncertain."""
-    repo = _root(repo)
+    repo = implementation_state.repo_root(repo)
     git(repo, "cat-file", "-e", "{}^{{commit}}".format(base))
     index = _index(repo)
     changed = {_name(p) for p in git(repo, "diff", "--name-only", "-z", base, "--").split(b"\0") if p}
     untracked = {_name(p) for p in git(repo, "ls-files", "--others", "--exclude-standard", "-z").split(b"\0") if p}
     entries = []
     for name in sorted(changed | untracked, key=lambda n: n.encode("utf-8")):
-        if _excluded(name):
+        if implementation_state.excluded(name):
             continue
         path = repo / name
         try:
