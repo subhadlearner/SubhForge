@@ -233,6 +233,12 @@ For a new run:
      ensure
    ```
 
+   Invoke this one shell-tool call with a per-command timeout of at least
+   **2,400,000 ms (40 minutes)**. Kilo's shell timeout is only transport
+   supervision for the nested CLI process; it is NOT the smoke qualification
+   budget and MUST NOT replace, reset, pause, or extend the 30-minute
+   `smoke_budget.py` clock.
+
    The helper validates that the target is the initialized `smoke-run`
    repository for this run. If the current Kilo project is not that repository,
    it launches a top-level continuation with the disposable repository as both
@@ -339,7 +345,7 @@ reconstruct state from the exact run record and current repository evidence.
 Before continuing:
 
 - locate the run workspace using `python <global-config>/scripts/smoke_workspace.py locate --source <source_checkout_path> --run-id <run-id>` and validate the returned run directory/branch
-- invoke `python <global-config>/scripts/smoke_handoff.py --repo <run-directory> --run-id <run-id> ensure` before any substantive child/model delegation
+- invoke `python <global-config>/scripts/smoke_handoff.py --repo <run-directory> --run-id <run-id> ensure` before any substantive child/model delegation, using a shell-tool timeout of at least 2,400,000 ms (40 minutes); this transport timeout does not alter the 30-minute smoke budget
 - if handoff returns `HANDOFF_COMPLETE`, stop the source-root invocation and
   relay the rooted continuation result; do not continue smoke orchestration in
   the source checkout
@@ -549,6 +555,15 @@ search was needed.
 
 When a required path is supplied and validates successfully, repository
 globbing to rediscover that same artifact or directory remains prohibited.
+
+The rooted continuation uses Kilo autonomous mode only so configured
+tool-permission prompts can execute non-interactively inside the validated
+disposable repository. That mode is **not human authorization**. It MUST NOT be
+treated as approval for a verification waiver, paid Claude invocation,
+security/risk acceptance, product decision, destructive action, or any other
+human-controlled gate. When such a gate lacks already-persisted explicit user
+authorization, persist the required state and return the normal user-input/
+blocked status instead of deciding autonomously.
 
 The child must not rediscover supplied paths unless one is missing, stale,
 ambiguous, or points to unresolved authority:
