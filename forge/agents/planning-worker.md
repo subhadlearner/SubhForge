@@ -61,9 +61,13 @@ When exact paths are supplied:
 
 1. validate that each required path exists and is the expected artifact type
 2. read those paths directly
-3. do not perform broad repository discovery merely to rediscover them
-4. use bounded discovery only when a required path is missing, stale, ambiguous,
+3. do not glob/search the corresponding artifact directory merely to
+   rediscover those supplied paths
+4. do not perform broad repository discovery merely to rediscover them
+5. use bounded discovery only when a required path is missing, stale, ambiguous,
    or the supplied artifact explicitly points to unresolved authority elsewhere
+6. when bounded discovery is required, state the unresolved item/reason in the
+   handoff so the parent can distinguish necessary discovery from wasted search
 
 Bounded discovery means searching only the smallest relevant scope first
 (e.g. the expected artifact directory or a specific filename pattern) before
