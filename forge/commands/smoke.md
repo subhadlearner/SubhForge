@@ -649,6 +649,39 @@ Do not replace the routing decision with a deterministic lookup table. Helpers
 may prepare/verify checkpoint state and freshness, but the workflow reasoning
 under test must choose the continuation stage.
 
+
+
+## Post-first-review FULL execution contract
+
+After `review-before-commit` succeeds, execute the remaining FULL scenarios
+according to the authoritative matrix in
+`smoke/STABLE-V0.1-SMOKE-TEST-PLAN.md §3.5`.
+
+For each remaining scenario, that matrix is authoritative for:
+
+- execution class: deterministic, single-owner, or bounded multi-agent
+- required starting checkpoint/state
+- permitted substantive model invocations
+- whether reviewers are permitted
+- restoration/completion behavior
+- exact-context expectations for recovery loops
+
+Do not silently add model calls beyond the listed sequence. Do not serialize
+independent deterministic probes through one another's mutated state. Verify
+and restore the declared checkpoint between independent probes.
+
+Negative freshness/evidence scenarios MUST terminate before pre-review or
+senior-review invocation.
+
+Recovery loops MUST use canonical `CONTEXT_PATHS` packets with exact Spec,
+failure evidence, source/test paths, diagnosis/review evidence where applicable,
+and mutation/checkpoint identity. Broad rediscovery is a defect when those
+inputs are valid.
+
+If the execution matrix cannot be followed because required checkpoint/context
+evidence is missing or drifted, return `SMOKE_BLOCKED` and persist the exact
+gap rather than expanding the workflow ad hoc.
+
 ## Stage 9 — Fixture budget enforcement
 
 Treat the selected fixture's test budget as the default maximum application-test surface.
