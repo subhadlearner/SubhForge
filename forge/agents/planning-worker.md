@@ -74,21 +74,23 @@ Bounded discovery means searching only the smallest relevant scope first
 widening. Do not default to repository-wide `**/*` scans.
 
 When invoked by `/smoke`, the parent MUST also supply
-`SMOKE_RUN_DIRECTORY: <absolute-path>`. Treat that absolute directory as the
-project repository root for the entire child invocation.
+`SMOKE_RUN_DIRECTORY: <absolute-path>`. The parent is responsible for
+re-rooting the top-level Kilo smoke session before using `task`; Kilo task
+children inherit that same project/worktree.
 
 For smoke invocations:
 
-- every project artifact path supplied in `CONTEXT_PATHS` MUST be absolute or
-  resolved against `SMOKE_RUN_DIRECTORY`
-- every project artifact read or write MUST remain under
-  `SMOKE_RUN_DIRECTORY`
+- treat `SMOKE_RUN_DIRECTORY` as an assertion of the current project root,
+  not as an external sibling directory to switch into
+- every project artifact path supplied in `CONTEXT_PATHS` MUST be inside that
+  already-rooted repository
+- every project artifact read or write MUST remain inside the current smoke
+  repository
 - when a workflow says to write a repository-relative path such as
-  `docs/prd/<name>.md`, resolve it beneath `SMOKE_RUN_DIRECTORY`; do not
-  write that relative path against the inherited parent project directory
-- do not create or edit project artifacts in the parent/source SubhForge
-  checkout
-- if the supplied run directory is missing, not absolute, or a target path
+  `docs/prd/<name>.md`, write it relative to the current smoke repository
+- never attempt to bridge from the SubhForge source checkout into a sibling
+  smoke clone through absolute-path edits
+- if the handoff is inconsistent with the current repository or a target path
   escapes it, return `SMOKE_WORKSPACE_BOUNDARY_REQUIRED` without writing
 
 Then obey the parent-supplied discovery policy:

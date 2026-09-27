@@ -126,6 +126,14 @@ repository from the recorded release commit, creates the isolated
 `smoke-run` clone, and removes the temporary provisioning repositories before
 returning control to the orchestrator.
 
+Provisioning the clone is not sufficient isolation for model-bearing stages:
+Kilo `task` subagents use the same project directory/worktree as their parent.
+Before any substantive smoke child is delegated, the installed
+`scripts/smoke_handoff.py` helper must establish a top-level Kilo continuation
+whose actual project root is the disposable `smoke-run` repository. The
+source-root smoke session may provision and bootstrap deterministic state, but
+must not delegate lifecycle/reviewer/adversarial task children.
+
 Do not mutate the SubhForge source checkout or its protected `main`.
 
 The implementation fixture should be deliberately small. The goal is to test the workflow, not application complexity.
@@ -266,7 +274,13 @@ The run record, not chat history, is the continuation authority.
 
 `/smoke STATUS <run-id>` is read-only and reports progress, latest verification/review state, model/cost ledger, blockers, and the exact next action without invoking lifecycle/reviewer models.
 
-`/smoke RESUME <run-id>` reconstructs continuation from the run record plus current repository evidence and resumes from the earliest still-required or invalidated stage.
+`/smoke RESUME <run-id>` first locates the disposable workspace and passes
+through the deterministic workspace-root handoff. Lifecycle continuation occurs
+only in a Kilo session actually rooted in that repository; a source-root
+session must not delegate smoke task children and merely point them at a sibling
+path. Once rooted, continuation is reconstructed from the run record plus
+current repository evidence and resumes from the earliest still-required or
+invalidated stage.
 
 ## 2.3 Fixture versus architecture authority
 

@@ -112,6 +112,26 @@ For new runs, invoke that helper and use the returned run directory. Do not manu
 Before allocating a new run, inspect `git status --porcelain`. If the current branch is protected (`main`, `master`, `develop`, or `release`) and the working tree is not clean, return `SMOKE_BLOCKED`. Do not carry uncommitted artifacts from a previous smoke run into a new run.
 
 
+Kilo `task` children inherit the parent session's project/worktree. Creating a
+sibling smoke clone therefore does **not** make that clone the task workspace.
+Never delegate a smoke child while this orchestrator is still rooted in the
+SubhForge source checkout.
+
+After new-run bootstrap, and after locating any RESUME workspace, invoke only:
+
+`scripts/smoke_handoff.py --repo <run-directory> --run-id <run-id> ensure`
+
+That helper validates the initialized `smoke-run` target and either:
+
+- returns `ALREADY_ROOTED` when this Kilo session is already running in the
+  disposable repository, or
+- launches a top-level `kilo run` continuation rooted in that repository and
+  returns `HANDOFF_COMPLETE` when the rooted continuation exits.
+
+On `HANDOFF_COMPLETE`, stop the source-root invocation. Do not execute a
+second lifecycle stage, update, or task child from the source session. Do not
+construct an ad-hoc `kilo run` command yourself.
+
 Do not:
 
 - run `git switch -c`, `git checkout -b`, or equivalent branch-creation commands for smoke workspace allocation
@@ -189,22 +209,26 @@ Do not delegate an unconstrained planning discovery request.
 
 Before every substantive child/model stage:
 
-1. load canonical state with `scripts/smoke_state.py ... get`
-2. derive the child's `CONTEXT_PATHS` only from that state plus the immediately
+1. require that `scripts/smoke_handoff.py ... ensure` has returned
+   `ALREADY_ROOTED` for the active run; task delegation from any other project
+   root is a smoke-framework defect
+2. load canonical state with `scripts/smoke_state.py ... get`
+3. derive the child's `CONTEXT_PATHS` only from that state plus the immediately
    preceding deterministic helper result
-3. validate those exact paths before delegation
-4. obtain a deterministic source-checkout fingerprint with
+4. validate those exact paths before delegation
+5. obtain a deterministic source-checkout fingerprint with
    `scripts/smoke_workspace.py source-guard --source <source_checkout_path>`
-   and retain it for this child invocation
-5. supply `SMOKE_RUN_DIRECTORY: <absolute run_directory>` to the child and
-   require all project reads/writes to resolve under that directory
-6. run `scripts/smoke_budget.py ... check --limit-minutes 30`; do not launch
+   and retain it for this child invocation as defense in depth
+6. supply `SMOKE_RUN_DIRECTORY: <absolute run_directory>` to the child as an
+   assertion of the actual current Kilo project root, not as an external path
+   the child must switch into
+7. run `scripts/smoke_budget.py ... check --limit-minutes 30`; do not launch
    the child when the end-to-end FULL budget is exhausted
-7. start deterministic invocation timing with
+8. start deterministic invocation timing with
    `scripts/smoke_budget.py ... stage-start --stage <stage> --model <model>`
    and retain the returned invocation ID
-8. do not launch the child if canonical state, source guard, budget state, or
-   timing start is absent or inconsistent
+9. do not launch the child if rooted-workspace validation, canonical state,
+   source guard, budget state, or timing start is absent or inconsistent
 
 Immediately after every child returns, before accepting any child-produced
 artifact or launching another stage:

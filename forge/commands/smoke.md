@@ -186,11 +186,11 @@ For a new run:
 1. call the deterministic smoke workspace helper from Stage 4
 2. require `ok: true`
 3. use the returned `run_id` exactly as supplied
-4. switch all subsequent repository operations to the returned `run_directory`
-5. before any substantive smoke stage or child-model invocation, create:
-   `docs/verification/smoke/<run-id>.md`
-   inside that run directory
-6. immediately execute the deterministic smoke bootstrap exactly once:
+4. do not delegate any substantive model/task child from the current session
+   yet. Provisioning a sibling clone does not change Kilo's current project
+   root. Until workspace handoff is proven, only deterministic helpers may
+   target the returned `run_directory` through explicit path arguments.
+5. immediately execute the deterministic smoke bootstrap exactly once:
 
    ```text
    python <global-config>/scripts/smoke_bootstrap.py \
@@ -216,17 +216,42 @@ For a new run:
    `smoke_static.py release-gate` separately, probe either helper with
    `--help`, or infer whether `<global-config>` means a directory or a file.
 
-7. require bootstrap `ok: true`, require both `<run-id>.state.json` and
+6. require bootstrap `ok: true`, require both `<run-id>.state.json` and
    `<run-id>.budget.json` to exist, require
    `completed_scenarios` to contain `static-release-gate`, and require the
    canonical next stage to be `grill` for FULL or `project-init` for FAST
    before launching any planning/execution model
-8. if bootstrap reports the static release gate blocked, retain its persisted
+7. if bootstrap reports the static release gate blocked, retain its persisted
    `BLOCKED` state and report the failing check IDs
-9. never replace bootstrap with ad-hoc PowerShell/Python equality checks,
-   manual state creation, a separate budget-start sequence, or a second static
-   release-gate invocation
-10. never reuse an existing run directory or run ID
+8. before any substantive model/task delegation, invoke the deterministic
+   workspace-root handoff:
+
+   ```text
+   python <global-config>/scripts/smoke_handoff.py \
+     --repo <run-directory> \
+     --run-id <run-id> \
+     ensure
+   ```
+
+   The helper validates that the target is the initialized `smoke-run`
+   repository for this run. If the current Kilo project is not that repository,
+   it launches a top-level continuation with the disposable repository as both
+   process working directory and Kilo `--dir`.
+
+   - `ALREADY_ROOTED` — continue in this session
+   - `HANDOFF_COMPLETE` — the rooted continuation owned smoke execution; the
+     source-root invocation MUST stop and relay its result rather than execute
+     another smoke stage
+   - helper failure — return `SMOKE_BLOCKED`; do not delegate a child model
+
+9. only in an `ALREADY_ROOTED` session, ensure the human-readable
+   `docs/verification/smoke/<run-id>.md` projection exists before the first
+   substantive child/model stage
+10. never replace bootstrap or workspace handoff with ad-hoc PowerShell/Python
+    equality checks, manual state creation, a separate budget-start sequence,
+    a second static release-gate invocation, direct `kilo run` construction,
+    or prompt-only instructions to write into a sibling repository
+11. never reuse an existing run directory or run ID
 
 Canonical run IDs are collision-resistant identifiers such as:
 
@@ -313,8 +338,15 @@ reconstruct state from the exact run record and current repository evidence.
 
 Before continuing:
 
-- validate profile and fixture from the run record
 - locate the run workspace using `python <global-config>/scripts/smoke_workspace.py locate --source <source_checkout_path> --run-id <run-id>` and validate the returned run directory/branch
+- invoke `python <global-config>/scripts/smoke_handoff.py --repo <run-directory> --run-id <run-id> ensure` before any substantive child/model delegation
+- if handoff returns `HANDOFF_COMPLETE`, stop the source-root invocation and
+  relay the rooted continuation result; do not continue smoke orchestration in
+  the source checkout
+- require `ALREADY_ROOTED` before continuing lifecycle orchestration
+- ensure `docs/verification/smoke/<run-id>.md` exists in the rooted repository
+  before the next substantive child/model stage
+- validate profile and fixture from the run record
 - identify completed, pending, blocked, and invalidated scenarios
 - run the end-to-end budget guard before any lifecycle/model continuation
 - if the run is already `PERFORMANCE_BUDGET_EXCEEDED`, do not launch another
@@ -488,9 +520,12 @@ The packet MUST include:
 - exact project paths under a `CONTEXT_PATHS` section
 - one smoke discovery policy
 
-All project artifact paths in a smoke child handoff must resolve under that
-absolute run directory. The child must not use the source checkout or inherited
-parent project directory for project-relative writes.
+`SMOKE_RUN_DIRECTORY` is an assertion of the already-established Kilo project
+root, not a request for a child to operate on an external sibling directory.
+The orchestrator MUST have received `ALREADY_ROOTED` from
+`smoke_handoff.py` before any `task` delegation. All project artifact paths
+must resolve inside that actual rooted repository. A smoke child must never be
+used to bridge from the SubhForge source checkout into a sibling clone.
 
 The smoke orchestrator must fingerprint the source checkout with
 `smoke_workspace.py source-guard` immediately before every substantive child

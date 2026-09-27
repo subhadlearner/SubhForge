@@ -120,12 +120,16 @@ The parent must provide:
 - `SMOKE_RUN_DIRECTORY: <absolute-path>`
 - a compact `CONTEXT_PATHS` packet with exact paths for known inputs
 
-Treat `SMOKE_RUN_DIRECTORY` as the project repository root for the entire
-child invocation. Every project artifact read/write, source edit, test edit,
-verification report, diagnosis artifact, or workflow output MUST resolve under
-that directory. Do not use inherited parent-project-relative paths for project
-writes. If the run directory is missing/not absolute or a target path escapes
-it, return `SMOKE_WORKSPACE_BOUNDARY_REQUIRED` without writing.
+The parent must have re-rooted the top-level Kilo smoke session before
+delegation; Kilo task children inherit that same project/worktree. Treat
+`SMOKE_RUN_DIRECTORY` as an assertion of the current repository root, not as
+an external sibling directory to switch into. Every project artifact
+read/write, source edit, test edit, verification report, diagnosis artifact,
+or workflow output MUST remain inside the current smoke repository. Never
+bridge from the SubhForge source checkout into a sibling clone through
+absolute-path edits. If the handoff is inconsistent with the current
+repository or a target path escapes it, return
+`SMOKE_WORKSPACE_BOUNDARY_REQUIRED` without writing.
 
 Validate and use the supplied context paths directly.
 
