@@ -160,13 +160,22 @@ with the exact helper error.
 
 ## Stage 5 — Allocate, persist, resume, or inspect smoke state
 
-Smoke progress belongs in the target disposable project under:
+Smoke progress has two persisted representations in the target disposable project:
 
 ```text
+docs/verification/smoke/<run-id>.state.json
 docs/verification/smoke/<run-id>.md
 ```
 
-This location is inside the Contract-v1 evidence exclusion set.
+The JSON state is the canonical machine-readable orchestration state.
+The Markdown record is the human-readable execution/evidence projection.
+
+Both locations are inside the Contract-v1 evidence exclusion set.
+
+Do not update orchestration state by matching and replacing large prose blocks
+inside the Markdown record. Use `scripts/smoke_state.py set` for targeted
+machine-state changes, then update the Markdown summary from that state when a
+human-readable transition record is required.
 
 ### New-run allocation
 
@@ -181,9 +190,11 @@ For a new run:
 5. before any substantive smoke stage or child-model invocation, create:
    `docs/verification/smoke/<run-id>.md`
    inside that run directory
-6. immediately initialize the executable elapsed-time guard:
+6. immediately initialize canonical machine-readable smoke state:
+   `python <global-config>/scripts/smoke_state.py --repo <run-directory> --run-id <run-id> init --profile <FAST|FULL> --fixture <fixture-id> --source-commit <source_commit> --baseline-head <baseline_head>`
+7. immediately initialize the executable elapsed-time guard:
    `python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <run-id> start`
-7. never reuse an existing run directory or run ID
+8. never reuse an existing run directory or run ID
 
 Canonical run IDs are collision-resistant identifiers such as:
 
@@ -276,10 +287,11 @@ Before continuing:
 - re-evaluate whether the recorded next stage is still correct
 - never trust chat history over repository state
 
-Use the persisted context index to open exact paths. Validate the relevant
-artifact and repository identity before reuse; do not repeatedly glob the
-repository or reread unchanged planning documents for each scenario. Refresh
-the index when an upstream authority or implementation identity changes.
+Read the canonical JSON smoke state first. Use its persisted context index to
+open exact paths. Validate the relevant artifact and repository identity before
+reuse; do not repeatedly glob the repository or reread unchanged planning
+documents for each scenario. Refresh the index when an upstream authority or
+implementation identity changes.
 
 Then continue from the earliest required incomplete/invalidated stage.
 
@@ -430,7 +442,10 @@ For:
 - `/architect`
 - `/spec`
 
-delegate to `planning-worker` with the workflow's normal model and an explicit execution mode:
+delegate to `planning-worker` with the workflow's normal model, an explicit
+execution mode, and a compact context packet containing the exact authoritative
+paths needed by that stage. The child must not rediscover supplied paths unless
+one is missing, stale, ambiguous, or points to unresolved authority:
 
 - `AUTHOR`
 - `CONTINUE`
@@ -467,6 +482,11 @@ Delegate to `smoke-executor` for exactly one of:
 - `/diagnose`
 
 The executor must read and obey the corresponding command contract.
+
+For each execution stage, supply a compact context packet from canonical smoke
+state containing only the exact paths/identity needed by that workflow. The
+executor should perform bounded discovery only when those supplied inputs are
+invalid or insufficient; it must not default to repository-wide rediscovery.
 
 ### Waiver
 
@@ -666,7 +686,7 @@ Record every substantive model invocation in the run ledger.
 
 ## Stage 12 — Persist after every meaningful transition
 
-Update the smoke-run record after:
+Update canonical smoke state after:
 
 - stage completion
 - blocker
@@ -679,7 +699,14 @@ Update the smoke-run record after:
 - checkpoint/restoration
 - defect classification
 
-This makes the smoke run restartable without chat history.
+Use `scripts/smoke_state.py set` with narrowly scoped JSON field updates.
+Do not patch long expected prose blocks in the Markdown record.
+
+After the machine-state update succeeds, update the human-readable Markdown
+record only with the concise transition/evidence summary needed for audit.
+
+This makes the smoke run restartable without chat history while avoiding
+formatting-drift failures.
 
 ## Stage 12.5 — Workspace retention and cleanup
 
