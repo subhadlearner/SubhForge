@@ -29,23 +29,6 @@ Treat user phrases `FAST_SMOKE` and `FULL_SMOKE` as aliases when they occur insi
 
 Do not treat free-form text outside this command as an executable smoke run.
 
-## Static Contract-v1 parity
-
-For the static release gate, do not construct ad-hoc multi-path equality
-booleans. Use:
-
-```text
-python <global-config>/scripts/smoke_static.py contract-parity \
-  --required <global-config>/contracts/implementation-state-evidence-v1.md \
-  --required <run-directory>/docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md \
-  --optional <run-directory>/kilo/contracts/implementation-state-evidence-v1.md
-```
-
-Only required canonical paths determine `contract_equal`. Missing optional
-paths are reported separately as diagnostics and must not turn an otherwise
-valid parity result into failure. A missing required path or differing required
-content fails closed.
-
 ## Stage 1 — Load smoke contracts
 
 Read:
@@ -207,11 +190,34 @@ For a new run:
 5. before any substantive smoke stage or child-model invocation, create:
    `docs/verification/smoke/<run-id>.md`
    inside that run directory
-6. immediately initialize canonical machine-readable smoke state:
-   `python <global-config>/scripts/smoke_state.py --repo <run-directory> --run-id <run-id> init --profile <FAST|FULL> --fixture <fixture-id> --source-commit <source_commit> --baseline-head <baseline_head>`
-7. immediately initialize the executable elapsed-time guard:
-   `python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <run-id> start`
-8. never reuse an existing run directory or run ID
+6. immediately execute the deterministic smoke bootstrap exactly once:
+
+   ```text
+   python <global-config>/scripts/smoke_bootstrap.py \
+     --repo <run-directory> \
+     --run-id <run-id> \
+     --profile <FAST|FULL> \
+     --fixture <fixture-id> \
+     --source-commit <source_commit> \
+     --baseline-head <baseline_head> \
+     --required-contract <global-config>/contracts/implementation-state-evidence-v1.md \
+     --required-contract <run-directory>/docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md \
+     --optional-contract <run-directory>/kilo/contracts/implementation-state-evidence-v1.md
+   ```
+
+   This single helper is authoritative for:
+   - path-aware Contract-v1 parity
+   - canonical `<run-id>.state.json` initialization
+   - elapsed-time budget initialization
+   - persistence of parity/budget bootstrap evidence into canonical state
+
+7. require bootstrap `ok: true`, require both `<run-id>.state.json` and
+   `<run-id>.budget.json` to exist, and require canonical state to identify
+   the same run/profile/fixture/source commit/baseline before launching any
+   planning or execution model
+8. never replace bootstrap with ad-hoc PowerShell/Python equality checks,
+   manual state creation, or a separate budget-start sequence
+9. never reuse an existing run directory or run ID
 
 Canonical run IDs are collision-resistant identifiers such as:
 
@@ -461,8 +467,17 @@ For:
 
 delegate to `planning-worker` with the workflow's normal model, an explicit
 execution mode, and a compact context packet containing the exact authoritative
-paths needed by that stage. The child must not rediscover supplied paths unless
-one is missing, stale, ambiguous, or points to unresolved authority:
+paths needed by that stage.
+
+The packet MUST enumerate exact paths under a `CONTEXT_PATHS` section. When a
+required path is supplied and validates successfully, repository globbing to
+rediscover that same artifact or directory is prohibited. If a supplied path is
+missing, stale, ambiguous, or insufficient, the child may perform bounded
+discovery only for that unresolved item and must report why discovery was
+needed.
+
+The child must not rediscover supplied paths unless one is missing, stale,
+ambiguous, or points to unresolved authority:
 
 - `AUTHOR`
 - `CONTINUE`
@@ -511,10 +526,13 @@ Delegate to `smoke-executor` for exactly one of:
 
 The executor must read and obey the corresponding command contract.
 
-For each execution stage, supply a compact context packet from canonical smoke
-state containing only the exact paths/identity needed by that workflow. The
-executor should perform bounded discovery only when those supplied inputs are
-invalid or insufficient; it must not default to repository-wide rediscovery.
+For each execution stage, supply a compact `CONTEXT_PATHS` packet from
+canonical smoke state containing only the exact paths/identity needed by that
+workflow. Valid supplied paths MUST be consumed directly. Globbing to
+rediscover a supplied Spec, Architecture, ADR, AGENTS, verification report,
+manifest, source, test, or fixture path is prohibited. Bounded discovery is
+allowed only for an explicitly missing/stale/ambiguous dependency and the
+executor must state that reason in its handoff.
 
 ### Waiver
 
