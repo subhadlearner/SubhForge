@@ -68,6 +68,12 @@ def validate_workspace(repo: Path, run_id: str) -> dict[str, str]:
     except smoke_state.SmokeStateError as exc:
         raise SmokeHandoffError("Canonical smoke state is unavailable: {}".format(exc)) from exc
 
+    completed = state.get("completed_scenarios")
+    if not isinstance(completed, list) or "static-release-gate" not in completed:
+        raise SmokeHandoffError(
+            "Smoke workspace handoff requires completed static-release-gate bootstrap"
+        )
+
     return {
         "run_directory": str(repo),
         "run_id": run_id,
