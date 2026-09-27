@@ -106,6 +106,40 @@ Also read:
 - the selected fixture entry from installed global `smoke/fixtures.json`
 - only the minimum project artifacts required by the underlying workflow
 
+### Deterministic smoke verification path
+
+For `WORKFLOW: /verify` inside a smoke run, the normal `/verify` contract remains
+authoritative for checks, acceptance criteria, security evidence, verdicts, and
+report contents. However, deterministic repository-identity mechanics MUST be
+delegated to the installed helper instead of being reimplemented by the model.
+
+Before verification checks:
+
+1. obtain the verification base HEAD from the smoke-run context
+2. run exactly:
+   `python <global-config>/scripts/smoke_mechanics.py --repo <run-directory> --run-id <run-id> manifest --base <verification-base-HEAD>`
+3. persist the returned canonical manifest and fingerprint as the pre-check identity
+
+After the required checks:
+
+1. run the same `manifest --base <verification-base-HEAD>` command again
+2. compare the returned manifest bytes with the persisted pre-check manifest
+3. classify freshness according to the normal `/verify` contract
+
+The executor MUST NOT create temporary repository-identity or report-generation
+programs such as `build_manifest.py`, `contract_manifest.py`, `gen_report.py`,
+or equivalent scripts. Write the verification report directly as the workflow
+artifact after the evidence has been collected.
+
+Do not reconstruct Contract-v1 identity by hand with shell pipelines when
+`smoke_mechanics.py manifest` is available.
+
+For smoke verification context, read the active Spec and implementation/test
+files required to execute its verification commands. Do not reread Discovery,
+PRD, Architecture, or ADR artifacts unless the Spec explicitly leaves a
+verification-relevant authority question unresolved and the smoke-run context
+index does not already answer it.
+
 The fixture's test budget is a maximum smoke-fixture design target, not permission to skip a project-required check.
 
 Do not introduce integration/E2E/cloud/database infrastructure unless:
