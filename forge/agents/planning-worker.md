@@ -73,6 +73,17 @@ Bounded discovery means searching only the smallest relevant scope first
 (e.g. the expected artifact directory or a specific filename pattern) before
 widening. Do not default to repository-wide `**/*` scans.
 
+When invoked by `/smoke`, obey the parent-supplied discovery policy:
+
+- `DISCOVERY_POLICY: EXACT_ONLY` — do not use repository-wide glob, grep, or
+  search at all. Consume only the supplied exact paths plus explicitly loaded
+  workflow/skill files. If context is insufficient, return the missing/stale/
+  ambiguous item to the parent.
+- `DISCOVERY_POLICY: BOUNDED` — search only the explicit smallest scope named
+  by the parent for the named unresolved item. Do not widen beyond that scope.
+
+A smoke child must not silently downgrade `EXACT_ONLY` to discovery.
+
 This optimization changes discovery mechanics only. It does NOT weaken
 authority checks, reasoning depth, required artifact content, or escalation
 when upstream authority is incomplete or conflicting.
