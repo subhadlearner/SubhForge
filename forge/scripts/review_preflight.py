@@ -24,13 +24,12 @@ def review_preflight(repo: Path, base_head: str, persisted_manifest: Path) -> di
 
     expected = persisted_manifest.read_bytes()
     current = implementation_state.canonical_manifest(repo, base_head)
-    current_identity = implementation_state.identity(repo, base_head)
 
     return {
         "base_head": base_head,
         "freshness": "MATCH" if current == expected else "MISMATCH",
         "canonical_manifest_equal": current == expected,
-        "current_fingerprint": current_identity["fingerprint"],
+        "current_fingerprint": implementation_state.fingerprint(repo, current),
         "persisted_manifest_path": str(persisted_manifest),
     }
 
