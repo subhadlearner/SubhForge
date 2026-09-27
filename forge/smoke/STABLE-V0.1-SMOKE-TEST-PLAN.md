@@ -3098,13 +3098,11 @@ report-generator scripts such as `build_manifest.py` or `gen_report.py`.
 
 ## Open Stable-v0.1 smoke hardening TODOs
 
-- [ ] **Make the static Contract-v1 parity check path-aware and non-brittle.**
-  The current FULL static gate can initially report `contract_equal=false` when
-  it includes an optional/non-existent template contract path in the combined
-  boolean, even though the installed global contract and generated project
-  contract are byte-identical. Replace the literal multi-path boolean with a
-  deterministic check over only required, existing canonical contract copies,
-  and report missing optional paths separately from parity failure.
+- [x] **Make the static Contract-v1 parity check path-aware and non-brittle.**
+  Implemented with `scripts/smoke_static.py contract-parity`. Only required
+  canonical contract paths determine `contract_equal`; missing optional paths
+  are reported separately as diagnostics. Missing required paths and required
+  content mismatches fail closed.
 
 
 - [x] **Add a repository-level `.gitignore`.**
