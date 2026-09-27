@@ -29,6 +29,23 @@ Treat user phrases `FAST_SMOKE` and `FULL_SMOKE` as aliases when they occur insi
 
 Do not treat free-form text outside this command as an executable smoke run.
 
+## Static Contract-v1 parity
+
+For the static release gate, do not construct ad-hoc multi-path equality
+booleans. Use:
+
+```text
+python <global-config>/scripts/smoke_static.py contract-parity \
+  --required <global-config>/contracts/implementation-state-evidence-v1.md \
+  --required <run-directory>/docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md \
+  --optional <run-directory>/kilo/contracts/implementation-state-evidence-v1.md
+```
+
+Only required canonical paths determine `contract_equal`. Missing optional
+paths are reported separately as diagnostics and must not turn an otherwise
+valid parity result into failure. A missing required path or differing required
+content fails closed.
+
 ## Stage 1 — Load smoke contracts
 
 Read:
