@@ -590,6 +590,22 @@ Use branches/commits/worktrees appropriate to the disposable environment to rest
 
 Do not ask an LLM to reconstruct a prior fixture when Git can restore it deterministically.
 
+For the default tiny FULL fixture, persist a canonical verified implementation
+checkpoint and reuse it for independent probes. Record the exact verification
+base HEAD, full Contract-v1 manifest, fingerprint, applicable report path,
+and the checkpoint label. Use installed `scripts/smoke_mechanics.py` to
+construct/compare manifests and to apply/restore exact anchored text mutations
+in the disposable project. The excluded mechanics ledger is operational
+state, never verification or review authority. Reuse the applicable normal
+workflow evidence only while its scope, branch, and full manifest still match.
+Preserve separate history artifacts for actual reruns. Stop if restoration
+does not reproduce the checkpoint.
+
+The orchestrator keeps one compact path/identity index in the run record and
+passes exact relevant paths to each workflow owner. Reopen upstream Markdown
+only when its authority changed or the next stage needs a section not yet
+read. Do not re-glob unchanged artifact directories on each transition.
+
 Do not use destructive cleanup on a non-disposable repository.
 
 ### Principle H — negative freshness tests should consume zero reviewer tokens
@@ -785,6 +801,11 @@ For a full end-to-end run from `/grill`, target approximately this number of sub
 | Claude runtime calls | **0** |
 
 This table is a target, not a mandate.
+
+The default tiny FULL run targets completion within 25 minutes. At 30 minutes,
+persist `PERFORMANCE_BUDGET_EXCEEDED`, stop launching new model stages, and
+return a resumable blocked state with the workspace and evidence intact.
+Elapsed-time overrun is not evidence of a functional failure or a PASS.
 
 If a valid artifact already exists because the smoke run resumes mid-workflow, subtract the corresponding completed stages.
 

@@ -72,10 +72,14 @@ For `ACTION: INJECT_FAILURE`:
 - read the persisted smoke-run checkpoint/context
 - follow the canonical recipe's `injection`, `expected_route`, and `safety` fields
 - make the smallest deterministic disposable-project mutation that creates the documented condition
+- for exact text mutations, use `scripts/smoke_mechanics.py mutate` against a
+  recorded matching checkpoint; report its mutation ID and exact path
 - do not change upstream PRD/architecture/spec authority
 - do not weaken existing tests or security gates
 - never inject security, auth, data-integrity, destructive, secret, or vulnerability failures for a trivial waiver scenario
 - report exact changed files and the expected next workflow
+- do not restore a defect on a scenario whose required route is `/fix`; the
+  workflow owner must repair it and `/verify` must establish the result
 - do not claim verification failure until `/verify` actually establishes it
 
 ## Contract authority

@@ -212,6 +212,8 @@ A smoke-run record must contain:
 - pending scenarios
 - skipped scenarios with reason
 - current authoritative artifact paths
+- one compact context index (release SHA, baseline HEAD, fixture, current spec,
+  verification base/report, review/waiver paths, and checkpoint labels)
 - current applicable verification/review/diagnosis/waiver evidence
 - latest verification result, delivery gate, and freshness when available
 - latest review result when available
@@ -265,6 +267,11 @@ Before continuing:
 - identify completed, pending, blocked, and invalidated scenarios
 - re-evaluate whether the recorded next stage is still correct
 - never trust chat history over repository state
+
+Use the persisted context index to open exact paths. Validate the relevant
+artifact and repository identity before reuse; do not repeatedly glob the
+repository or reread unchanged planning documents for each scenario. Refresh
+the index when an upstream authority or implementation identity changes.
 
 Then continue from the earliest required incomplete/invalidated stage.
 
@@ -386,6 +393,16 @@ When prior valid artifacts exist:
 - reuse them
 - record them in the smoke-run file
 - do not regenerate them merely to spend a model call
+
+For FULL, establish one canonical verified implementation checkpoint after the
+first successful uncommitted `/verify`. Fan out independent freshness, mode,
+evidence, waiver-staleness, and review-blocker probes from that checkpoint
+where their prerequisites fit. Record each probe's checkpoint, evidence path,
+mutation ID, and outcome. Restore only disposable smoke mutations with an
+exact checkpoint comparison; if the state drifts, stop and diagnose. A probe
+must not overwrite historical verification/review evidence. Repair loops still
+execute the real `/fix`, `/diagnose`, `/verify`, and `/review` contracts when
+their scenario requires them.
 
 When upstream authority changed:
 
@@ -540,7 +557,8 @@ Use only the failure recipes permitted by the selected fixture registry entry.
 
 The Luna smoke orchestrator must not directly author implementation defects.
 
-Delegate failure injection and any smoke-only fixture mutation to `smoke-executor` using:
+Delegate the selection of a safe fixture-specific anchor and the required
+workflow route to `smoke-executor` using:
 
 ```text
 ACTION: INJECT_FAILURE
@@ -555,6 +573,34 @@ Before injection:
 - load that exact recipe definition from installed global `smoke/failure-recipes.json`
 - require a unique matching recipe definition
 - change only what is necessary for that scenario
+
+For an exact single-file text change, use the installed
+`scripts/smoke_mechanics.py` helper after recording a checkpoint. Give it the
+registered recipe ID, repository-relative file path, exact old and new UTF-8
+text, and a unique mutation ID. It requires an exact single anchor, rejects
+evidence/Git paths, and records hashes in the excluded smoke ledger. The
+executor must still establish the intended failure through `/verify` or the
+appropriate gate; the helper's successful mutation is not a verification
+result. For scenarios the helper cannot represent (such as a Git mode change
+or verification-time mutation), use a bounded deterministic command and record
+its exact before/after identity. Restore a helper mutation only when that
+scenario is finished and a real `/fix` is not the required route.
+
+Example (arguments abbreviated; quote text for the active shell):
+
+```text
+python <global-config>/scripts/smoke_mechanics.py --repo <run-directory> --run-id <run-id> checkpoint --label verified-clean
+python <global-config>/scripts/smoke_mechanics.py --repo <run-directory> --run-id <run-id> mutate --mutation-id freshness-1 --checkpoint verified-clean --recipe content-freshness-mismatch --path app.py --old <exact-old> --new <exact-new>
+python <global-config>/scripts/smoke_mechanics.py --repo <run-directory> --run-id <run-id> restore --mutation-id freshness-1
+python <global-config>/scripts/smoke_mechanics.py --repo <run-directory> --run-id <run-id> check-checkpoint --label verified-clean
+```
+
+`manifest --base <verification-base-HEAD>` produces a Contract-v1 canonical
+manifest and fingerprint for deterministic freshness preflight. Compare the
+full manifest bytes with the persisted verification manifest; fingerprint
+equality alone does not establish `MATCH`. A missing/malformed report,
+unsupported file type, or uncertain Git state fails closed. The authoritative
+`/verify` report and `/review` gate remain responsible for their verdicts.
 
 Never use a security, auth, data-integrity, destructive, or vulnerability failure as the trivial waiver recipe.
 
@@ -576,6 +622,11 @@ Enforce the runbook's token/cost rules:
 - one bounded default adversarial challenge
 - stop after two materially identical failed attempts
 - Claude invocation count target: zero
+
+For the tiny FULL fixture, target 25 minutes. At 30 minutes stop launching
+new lifecycle/model stages, persist elapsed time, stage, ledger, and blocker,
+and return `SMOKE_BLOCKED` with `PERFORMANCE_BUDGET_EXCEEDED`. Keep the
+workspace for diagnosis/resume; do not call this a functional `SMOKE_FAIL`.
 
 Record every substantive model invocation in the run ledger.
 

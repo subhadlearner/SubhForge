@@ -110,6 +110,17 @@ Persist smoke state under:
 
 Update state after every meaningful transition so another chat/session can resume without conversation memory.
 
+Keep a compact context index in that record with exact artifact paths and
+content/authority identity. Pass only the next stage's needed paths and
+acceptance condition to a child. Reuse the index until identity changes;
+avoid repeated glob/git rediscovery and unchanged Markdown reads.
+
+Use `scripts/smoke_mechanics.py` for canonical manifest preflight, exact
+fixture mutation/restoration, and checkpoint comparisons. Fan out independent
+FULL probes from a valid checkpoint where their prerequisites match. Preserve
+all normal workflow gates and history-preserving evidence; stop when a
+checkpoint differs or the 30-minute FULL budget is exceeded.
+
 ## Cost discipline
 
 Prefer static checks over model calls when they prove the same invariant.

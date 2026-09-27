@@ -22,14 +22,17 @@ class SubhForgeBootstrapTests(unittest.TestCase):
             config = Path(temp) / "kilo"
             backup = subhforge.install_config(config, self.root)
             self.assertIsNone(backup)
-            ok, detail = subhforge._same_tree(self.root / "forge", config)
+            self.assertTrue((config / ".subhforge-install.json").is_file())
+            ok, detail = subhforge._same_tree(
+                self.root / "forge", config, ignore=(".subhforge-install.json",))
             self.assertTrue(ok, detail)
 
             (config / "local-change.txt").write_text("changed", encoding="utf-8")
             backup = subhforge.install_config(config, self.root)
             self.assertIsNotNone(backup)
             self.assertTrue((backup / "local-change.txt").is_file())
-            ok, detail = subhforge._same_tree(self.root / "forge", config)
+            ok, detail = subhforge._same_tree(
+                self.root / "forge", config, ignore=(".subhforge-install.json",))
             self.assertTrue(ok, detail)
 
     def test_init_is_exact_template_copy(self):
