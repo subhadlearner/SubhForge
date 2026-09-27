@@ -3338,6 +3338,24 @@ report-generator scripts such as `build_manifest.py` or `gen_report.py`.
   OS, build, temporary, IaC, and local Kilo scratch artifacts without excluding
   SubhForge workflow evidence, design documents, or source files.
 
+- [ ] **Add design-time workflow contract validation and a dry orchestration simulator.**
+  SubhForge should catch obvious orchestration defects before spending real
+  model/runtime budget in FAST/FULL smoke. Add a cheap deterministic validation
+  layer between Python unit tests and agentic smoke execution that can inspect
+  command/agent contracts and simulate the expected orchestration skeleton
+  without simulating model reasoning. It should validate, at minimum, stage
+  ownership/model routing, required handoff fields, exact-context/discovery
+  policy, state-transition invariants, scenario class/checkpoint/model budgets,
+  zero-reviewer negative-freshness rules, referenced helper existence/test
+  coverage, and contradictory/duplicated orchestration instructions. A dry
+  FULL plan should be able to emit the expected stage sequence, context packet
+  shape, state transition, checkpoint, and allowed model sequence for each
+  scenario. FULL smoke should then focus on emergent agent behavior and true
+  integration failures rather than discovering static contract mistakes.
+  Preserve the existing principle: deterministic infrastructure, probabilistic
+  agents; this simulator must not replace or predetermine planning,
+  implementation, verification, review, adversarial, or routing judgments.
+
 - [ ] **Design an approved ceremony-bypass path for existing upstream authority.**
   Stable-v0.1.0 should support starting from a later lifecycle stage such as
   `/spec` when valid upstream authority already exists, for example an
