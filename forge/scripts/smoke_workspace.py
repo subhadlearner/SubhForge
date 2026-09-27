@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import json
 import os
 import shutil
@@ -35,6 +36,62 @@ def _run_git(repo: Path, *args: str) -> str:
         detail = (proc.stderr or proc.stdout).strip()
         raise SmokeWorkspaceError("git {} failed: {}".format(" ".join(args), detail))
     return proc.stdout.strip()
+
+
+def source_guard(source: Path) -> Dict[str, str]:
+    """Fingerprint the source checkout so smoke stages can prove they did not mutate it."""
+    source = source.resolve()
+    if not source.is_dir():
+        raise SmokeWorkspaceError("SubhForge source checkout does not exist: {}".format(source))
+    if _run_git(source, "rev-parse", "--is-inside-work-tree").lower() != "true":
+        raise SmokeWorkspaceError("SubhForge source path is not a Git work tree: {}".format(source))
+
+    git = shutil.which("git")
+    assert git is not None
+    proc = subprocess.run(
+        [git, "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+        cwd=str(source),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if proc.returncode != 0:
+        raise SmokeWorkspaceError("git ls-files failed: {}".format(
+            proc.stderr.decode("utf-8", errors="replace").strip()))
+
+    digest = hashlib.sha256()
+    digest.update(_run_git(source, "rev-parse", "HEAD").encode("ascii"))
+    digest.update(b"\0")
+    digest.update((_run_git(source, "branch", "--show-current") or "DETACHED").encode("utf-8"))
+    digest.update(b"\0")
+
+    raw_paths = [item for item in proc.stdout.split(b"\0") if item]
+    for raw in sorted(raw_paths):
+        rel = raw.decode("utf-8", errors="surrogateescape")
+        path = source / rel
+        digest.update(raw)
+        digest.update(b"\0")
+        if path.is_symlink():
+            digest.update(b"SYMLINK\0")
+            digest.update(os.readlink(path).encode("utf-8", errors="surrogateescape"))
+        elif path.is_file():
+            digest.update(b"FILE\0")
+            digest.update(hashlib.sha256(path.read_bytes()).digest())
+        elif path.exists():
+            digest.update(b"OTHER\0")
+        else:
+            digest.update(b"MISSING\0")
+        digest.update(b"\0")
+
+    return {
+        "source_checkout_path": str(source),
+        "fingerprint": digest.hexdigest(),
+    }
+
+
+def verify_source_guard(source: Path, expected: str) -> Dict[str, str]:
+    current = source_guard(source)
+    result = "MATCH" if current["fingerprint"] == expected else "MISMATCH"
+    return {**current, "expected_fingerprint": expected, "result": result}
 
 
 def _repo_name(source: Path) -> str:
@@ -226,6 +283,10 @@ def _parser() -> argparse.ArgumentParser:
     destroy.add_argument("--source", required=True)
     destroy.add_argument("--run-id", required=True)
 
+    guard = sub.add_parser("source-guard")
+    guard.add_argument("--source", required=True)
+    guard.add_argument("--expected")
+
     return parser
 
 
@@ -236,8 +297,15 @@ def main() -> int:
             result = create_workspace(Path(args.source), args.source_commit, args.profile, args.fixture)
         elif args.command == "locate":
             result = locate_workspace(Path(args.source), args.run_id)
-        else:
+        elif args.command == "destroy":
             result = destroy_workspace(Path(args.source), args.run_id)
+        elif args.expected:
+            result = verify_source_guard(Path(args.source), args.expected)
+            if result["result"] != "MATCH":
+                print(json.dumps({"ok": False, **result}))
+                return 3
+        else:
+            result = source_guard(Path(args.source))
     except SmokeWorkspaceError as exc:
         print(json.dumps({"ok": False, "error": str(exc)}))
         return 2
