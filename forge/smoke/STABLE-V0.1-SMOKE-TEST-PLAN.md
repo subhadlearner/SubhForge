@@ -3133,3 +3133,26 @@ report-generator scripts such as `build_manifest.py` or `gen_report.py`.
   documentation, and the PowerShell wrapper. New helper code uses modern Python
   typing accordingly. This requirement applies to the SubhForge harness only;
   runtimes for generated projects remain architecture decisions.
+
+
+- [ ] **Enforce use of deterministic static Contract-v1 parity helper in /smoke.**
+  The current FULL run still hand-rolls contract equality using PowerShell
+  `Get-FileHash` / `Get-Content` instead of invoking
+  `scripts/smoke_static.py contract-parity`. Treat this as an orchestration
+  compliance defect: the helper exists and is authoritative, so the smoke
+  orchestrator must call it rather than reimplement the same static check.
+
+- [ ] **Enforce canonical structured smoke state during real runs.**
+  The current FULL run does not visibly initialize
+  `scripts/smoke_state.py ... init` and still appears to maintain the Markdown
+  record directly. Treat `<run-id>.state.json` as the machine-readable source
+  of truth in execution, use targeted `smoke_state.py set` updates for
+  transitions, and keep Markdown as the human-readable projection only.
+
+- [ ] **Eliminate avoidable rediscovery when exact context paths are already known.**
+  Planning stages are improved but the current FULL run still performs bounded
+  globs such as `**/*fixture*`, `docs/architecture/**`, `docs/adr/**`, and
+  `docs/discovery/**` even when the orchestrator already knows the exact
+  authoritative paths. Tighten stage delegation so valid supplied paths are
+  consumed directly and discovery occurs only for missing, stale, ambiguous,
+  or genuinely unresolved context.
