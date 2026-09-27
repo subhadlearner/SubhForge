@@ -24,6 +24,31 @@ Do not perform the code review yourself.
 
 Read and apply `kilo/contracts/implementation-state-evidence-v1.md` as the normative freshness contract.
 
+When a persisted verification report supplies its verification base HEAD and
+canonical manifest path, validate review freshness with the deterministic
+installed helper before invoking any reviewer:
+
+```text
+python <global-config>/scripts/review_preflight.py \
+  --repo <project-root> \
+  --base <verification-base-HEAD> \
+  --manifest <persisted-verification-manifest>
+```
+
+Treat the helper result as the authoritative Contract-v1 reconstruction for
+this review attempt:
+
+- `MATCH` permits reviewer invocation subject to the remaining verification/
+  waiver gates below
+- `MISMATCH` stops review and requires fresh verification
+- `UNRECONSTRUCTABLE` stops review and requires fresh verification/diagnosis
+
+Do not ask either reviewer to independently rebuild the canonical manifest or
+repeat Git identity/fingerprint reconstruction already proven by this preflight.
+The reviewers still independently judge code quality, correctness, security,
+architecture compliance, tests, and production risk.
+
+
 Identify:
 
 - the intended scope of the change
