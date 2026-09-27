@@ -111,31 +111,37 @@ When `.subhforge-install.json` exists, use its source repository, source commit,
 
 During pre-release validation, `source_tag` may be `UNTAGGED_RELEASE_CANDIDATE`. Record the exact source commit and continue. The stable tag is created only after required smoke validation passes.
 
-If no provenance manifest exists and release identity cannot be established from an explicitly supplied source checkout, stop with `SMOKE_BLOCKED` and request reinstall from a current SubhForge checkout.
+If the provenance manifest is missing `source_checkout_path` or `source_commit`, or the recorded checkout/commit cannot be resolved, stop with `SMOKE_BLOCKED` and request reinstall from the exact SubhForge checkout under test.
 
 ## Stage 4 — Prepare disposable project safely
 
-Use the selected registry fixture, its `source_repository`, and its product brief.
+Use the selected registry fixture, its `source_template`, and its product brief.
 
-The fixture-specific source repository is a template/baseline, not architecture authority.
+Smoke fixtures are internal SubhForge release assets. The user must never be
+required to navigate to, clean, or maintain a separate fixture repository.
 
-For every new run, use the deterministic installed helper:
+Require `.subhforge-install.json` to contain the exact installed
+`source_checkout_path` and `source_commit`. For every new run, use the
+deterministic installed helper:
 
 ```text
-python <global-config>/scripts/smoke_workspace.py create --source <baseline-project-path> --profile <FAST|FULL> --fixture <fixture-id>
+python <global-config>/scripts/smoke_workspace.py create --source <source_checkout_path> --source-commit <source_commit> --profile <FAST|FULL> --fixture <fixture-id>
 ```
 
-The helper is the only supported mechanism for allocating a new smoke workspace.
+The helper is the only supported mechanism for provisioning and allocating a
+new smoke workspace.
 
 It must:
 
-- require the baseline project repository to be clean
-- record the exact baseline HEAD and baseline branch
+- materialize `template/` from the exact recorded SubhForge commit
+- create an internal temporary baseline Git repository automatically
 - generate a globally unique run ID using UTC timestamp plus random suffix
-- create a physically separate local clone under a sibling `<project>-smoke-runs/<run-id>/` directory
-- create exactly one fixed local branch named `smoke-run` inside the clone
-- return machine-readable JSON containing run ID, run directory, baseline HEAD, baseline branch, profile, fixture, and branch
-- never switch, branch, commit, reset, clean, or otherwise mutate the baseline project repository
+- create a physically separate local clone under a sibling `SubhForge-smoke-runs/<run-id>/` directory
+- delete temporary provisioning repositories before returning
+- create exactly one fixed local branch named `smoke-run` inside the run clone
+- return machine-readable JSON containing run ID, run directory, generated baseline HEAD, source commit, profile, fixture, and branch
+- never require or mutate `production-ai-project` or another user-maintained fixture repository
+- never require the SubhForge checkout working tree to be clean; provisioning comes from the recorded commit
 
 Do not:
 
@@ -198,7 +204,7 @@ A smoke-run record must contain:
 - run ID
 - profile
 - fixture ID
-- source/template repository
+- source template and exact SubhForge source commit
 - release/tag and exact configuration SHA
 - target project branch/worktree
 - baseline HEAD
@@ -263,7 +269,7 @@ reconstruct state from the exact run record and current repository evidence.
 Before continuing:
 
 - validate profile and fixture from the run record
-- locate the run workspace using `python <global-config>/scripts/smoke_workspace.py locate --source <baseline-project-path> --run-id <run-id>` and validate the returned run directory/branch
+- locate the run workspace using `python <global-config>/scripts/smoke_workspace.py locate --source <source_checkout_path> --run-id <run-id>` and validate the returned run directory/branch
 - identify completed, pending, blocked, and invalidated scenarios
 - re-evaluate whether the recorded next stage is still correct
 - never trust chat history over repository state
@@ -363,7 +369,7 @@ Before destroying the workspace:
 4. persist the final blocker/defect/diagnostic summary and last-updated timestamp
 5. export/copy the final smoke run record and any evidence required for long-term retention outside the disposable workspace
 6. invoke:
-   `python <global-config>/scripts/smoke_workspace.py destroy --source <baseline-project-path> --run-id <run-id>`
+   `python <global-config>/scripts/smoke_workspace.py destroy --source <source_checkout_path> --run-id <run-id>`
 7. confirm the run directory no longer exists
 
 Do not use `ABANDON` for a run that should be resumed.
@@ -658,7 +664,7 @@ Retention policy:
 - on `FAST_SMOKE_PASS`, `FAST_SMOKE_PASS_WITH_ENVIRONMENT_LIMITATION`, `FULL_SMOKE_PASS`, or `FULL_SMOKE_PASS_WITH_ENVIRONMENT_LIMITATION`: persist/export the final smoke run record and any required evidence first, then destroy the disposable workspace using:
 
 ```text
-python <global-config>/scripts/smoke_workspace.py destroy --source <baseline-project-path> --run-id <run-id>
+python <global-config>/scripts/smoke_workspace.py destroy --source <source_checkout_path> --run-id <run-id>
 ```
 
 Cleanup must never delete the baseline repository.
