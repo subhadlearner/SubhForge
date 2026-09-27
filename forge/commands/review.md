@@ -58,7 +58,7 @@ Identify:
 - any waiver under `docs/verification/waivers/` that explicitly references that exact verification report and implementation-state fingerprint
 - current branch
 - current HEAD commit SHA as provenance
-- the current implementation-state manifest reconstructed relative to the verification report's base HEAD
+- the deterministic review-preflight result for the verification report's base HEAD
 
 Do not load unrelated project documentation.
 
@@ -75,9 +75,12 @@ A verification report is fresh for review only when all of these are true:
 - the current canonical implementation-state manifest can be reconstructed under Contract v1
 - reconstruction outcome is `MATCH`
 
-Reconstruct the current manifest using the exact Contract v1 rules, including effective Git mode/type for every identity-bearing path. Compare the reconstructed canonical manifest byte-for-byte with the persisted canonical manifest.
+Use the deterministic review-preflight helper's canonical-manifest comparison.
+Do not reconstruct the manifest again in the parent or reviewer agents.
 
-The persisted fingerprint is a compact checksum/identifier and should be checked for internal consistency when practical, but fingerprint equality never substitutes for canonical-manifest equality.
+The persisted fingerprint is a compact checksum/identifier. The preflight's
+canonical-manifest equality result is authoritative; fingerprint equality alone
+never substitutes for canonical-manifest equality.
 
 The current HEAD SHA may differ from the verification-time HEAD when the verified working-tree contents were committed after verification. A HEAD change alone does **not** make evidence stale if the reconstructed effective-content fingerprint is identical.
 
