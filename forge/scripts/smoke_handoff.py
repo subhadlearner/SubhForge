@@ -105,6 +105,8 @@ def build_kilo_command(kilo: str, repo: Path, run_id: str) -> list[str]:
         str(repo.resolve()),
         "--agent",
         "smoke-orchestrator",
+        "--model",
+        "openai/gpt-5.6-luna",
         "--command",
         "smoke",
         "--auto",
