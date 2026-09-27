@@ -1,0 +1,47 @@
+# Python generated artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# IDE / editor
+.vscode/
+.idea/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Logs / temporary files
+*.log
+*.tmp
+tmp/
+temp/
+
+# Node / frontend build artifacts
+node_modules/
+dist/
+build/
+coverage/
+.next/
+out/
+
+# .NET build artifacts
+bin/
+obj/
+TestResults/
+*.user
+*.suo
+
+# IaC / deployment generated state
+.terraform/
+terraform.tfstate
+terraform.tfstate.*
+.aws-sam/
+.serverless/
+
+# Local SubhForge/Kilo execution scratch
+.kilo/worktrees/
