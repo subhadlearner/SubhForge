@@ -106,11 +106,19 @@ Also read:
 - the selected fixture entry from installed global `smoke/fixtures.json`
 - only the minimum project artifacts required by the underlying workflow
 
-The parent must provide a compact context packet with exact paths for known
-inputs. Validate and use those paths directly. Do not start with broad
-repository listing/globbing. Perform bounded discovery only when a supplied
-path is missing, stale, ambiguous, or the underlying workflow needs an unknown
-existing-code dependency.
+The parent must provide a compact `CONTEXT_PATHS` packet with exact paths for
+known inputs. Validate and use those paths directly.
+
+When a supplied path validates successfully:
+
+- do not glob its containing directory to rediscover it
+- do not repository-list merely to find the same source/test/authority file
+- do not reread unchanged upstream authority that the active Spec already
+  resolves unless a concrete implementation/verification question requires it
+
+Perform bounded discovery only when a supplied path is missing, stale,
+ambiguous, or the underlying workflow needs an unknown existing-code
+dependency. Report the exact reason whenever that fallback is used.
 
 ### Deterministic smoke verification path
 
