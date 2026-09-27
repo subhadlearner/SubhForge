@@ -18,6 +18,11 @@ class SmokeBootstrapError(RuntimeError):
     pass
 
 
+def _installed_config_root() -> Path:
+    """Resolve <global-config> from this installed helper's own location."""
+    return Path(__file__).resolve().parent.parent
+
+
 def bootstrap(
     repo: Path,
     run_id: str,
@@ -27,6 +32,7 @@ def bootstrap(
     baseline_head: str,
     required_contracts: list[Path],
     optional_contracts: list[Path],
+    config_root: Path | None = None,
 ) -> dict[str, object]:
     repo = repo.resolve()
 
@@ -47,12 +53,20 @@ def bootstrap(
     context = dict(state.get("context_index") or {})
     context["contract_parity"] = parity
     context["budget_started_at_utc"] = budget["started_at_utc"]
-    state = smoke_state.set_values(repo, run_id, {"context_index": context})
+    smoke_state.set_values(repo, run_id, {"context_index": context})
+
+    gate = smoke_static.release_gate(
+        (config_root or _installed_config_root()).resolve(),
+        repo,
+        run_id,
+    )
+    state = smoke_state.load(repo, run_id)
 
     return {
         "state_path": str(smoke_state.state_path(repo, run_id)),
         "budget_started_at_utc": budget["started_at_utc"],
         "contract_parity": parity,
+        "release_gate": gate,
         "state": state,
     }
 
@@ -80,8 +94,9 @@ def main() -> int:
             args.required_contract,
             args.optional_contract,
         )
-        print(json.dumps({"ok": True, **result}))
-        return 0
+        ok = bool(result["release_gate"]["ok"])
+        print(json.dumps({"ok": ok, **result}))
+        return 0 if ok else 3
     except (
         SmokeBootstrapError,
         smoke_state.SmokeStateError,
@@ -89,6 +104,7 @@ def main() -> int:
         smoke_static.StaticGateError,
         OSError,
         ValueError,
+        KeyError,
     ) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}))
         return 2
