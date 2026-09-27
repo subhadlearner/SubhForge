@@ -482,8 +482,23 @@ delegate to `planning-worker` with the workflow's normal model, an explicit
 execution mode, and a compact context packet containing the exact authoritative
 paths needed by that stage.
 
-The packet MUST enumerate exact paths under a `CONTEXT_PATHS` section and
-MUST also declare one smoke discovery policy:
+The packet MUST include:
+
+- `SMOKE_RUN_DIRECTORY: <absolute run_directory>`
+- exact project paths under a `CONTEXT_PATHS` section
+- one smoke discovery policy
+
+All project artifact paths in a smoke child handoff must resolve under that
+absolute run directory. The child must not use the source checkout or inherited
+parent project directory for project-relative writes.
+
+The smoke orchestrator must fingerprint the source checkout with
+`smoke_workspace.py source-guard` immediately before every substantive child
+invocation and verify the same fingerprint immediately after it returns. A
+mismatch is `SMOKE_BLOCKED / SOURCE_CHECKOUT_MUTATED`; do not accept the
+child's stage result.
+
+The discovery policy MUST be one of:
 
 - `DISCOVERY_POLICY: EXACT_ONLY` when all required context for the stage is known
 - `DISCOVERY_POLICY: BOUNDED` only when the parent can name a concrete unresolved item
