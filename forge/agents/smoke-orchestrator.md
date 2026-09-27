@@ -193,28 +193,38 @@ Before every substantive child/model stage:
 2. derive the child's `CONTEXT_PATHS` only from that state plus the immediately
    preceding deterministic helper result
 3. validate those exact paths before delegation
-4. run `scripts/smoke_budget.py ... check --limit-minutes 30`; do not launch
+4. obtain a deterministic source-checkout fingerprint with
+   `scripts/smoke_workspace.py source-guard --source <source_checkout_path>`
+   and retain it for this child invocation
+5. supply `SMOKE_RUN_DIRECTORY: <absolute run_directory>` to the child and
+   require all project reads/writes to resolve under that directory
+6. run `scripts/smoke_budget.py ... check --limit-minutes 30`; do not launch
    the child when the end-to-end FULL budget is exhausted
-5. start deterministic invocation timing with
+7. start deterministic invocation timing with
    `scripts/smoke_budget.py ... stage-start --stage <stage> --model <model>`
    and retain the returned invocation ID
-6. do not launch the child if canonical state, budget state, or timing start is
-   absent or inconsistent
+8. do not launch the child if canonical state, source guard, budget state, or
+   timing start is absent or inconsistent
 
-Immediately after every child returns, before launching another stage:
+Immediately after every child returns, before accepting any child-produced
+artifact or launching another stage:
 
-1. end deterministic invocation timing with
+1. verify the retained source fingerprint with
+   `scripts/smoke_workspace.py source-guard --source <source_checkout_path> --expected <fingerprint>`;
+   on `MISMATCH`, stop with `SMOKE_BLOCKED` / `SOURCE_CHECKOUT_MUTATED`
+   and do not treat the child's stage as complete
+2. end deterministic invocation timing with
    `scripts/smoke_budget.py ... stage-end --invocation-id <id>`
-2. persist stage/scenario/artifact/evidence changes with
+3. persist stage/scenario/artifact/evidence changes with
    `scripts/smoke_state.py ... set --json <targeted-update>`; for
    `context_index` and `stage_metrics`, send only the key(s) changed in this
    transition because the helper merges those maps by key
-3. persist/update only `stage_metrics[<stage>]` using the deterministic elapsed
+4. persist/update only `stage_metrics[<stage>]` using the deterministic elapsed
    seconds plus the child model, exact context paths supplied, and discovery
    policy; do not reconstruct or resend prior stage metrics
-4. verify the update with `smoke_state.py ... get`
-5. update the human-readable Markdown audit projection
-6. run the budget guard
+5. verify the update with `smoke_state.py ... get`
+6. update the human-readable Markdown audit projection
+7. run the budget guard
 
 A transition is not complete until the canonical state update succeeds.
 
