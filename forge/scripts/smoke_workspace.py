@@ -194,7 +194,7 @@ def destroy_workspace(source: Path, run_id: str) -> Dict[str, str]:
             "Refusing to delete workspace whose current branch is not smoke-run: {}".format(branch)
         )
 
-    shutil.rmtree(str(target), onexc=_remove_readonly)
+    shutil.rmtree(str(target), onerror=_remove_readonly)
     return {
         "run_id": run_id,
         "source_repository": str(source),
