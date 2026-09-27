@@ -3265,3 +3265,13 @@ report-generator scripts such as `build_manifest.py` or `gen_report.py`.
   judgment, security analysis, architecture checks, and independent production
   assessment remain unchanged. **Runtime revalidation is required in the next
   fresh FULL run.**
+
+
+- [x] **Make arbitrary-stage resume validation routing-focused instead of replaying seven downstream lifecycles.**
+  The FULL resume scenario now uses seven isolated persisted-state probes: six
+  stop after the workflow independently chooses and persists the correct next
+  stage, while the approved-Spec case additionally crosses into a real
+  `/implement` handoff to prove executability. Expected-stage answers remain
+  harness-owned and are not exposed to the routing context. Normal SubhForge
+  resume behavior outside smoke remains unchanged. **Runtime revalidation is
+  required in the next fresh FULL run.**
