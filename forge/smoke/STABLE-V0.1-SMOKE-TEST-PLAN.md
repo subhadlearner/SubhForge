@@ -114,23 +114,20 @@ If the tag is intentionally moved after documentation-only additions, record the
 
 # 2. Smoke-Test Repository and Fixture Selection
 
-Use a disposable branch, clone, or worktree based on the reusable project template.
+Smoke fixtures are provisioned internally from the exact `template/` tree at
+the installed SubhForge release commit. A fixture declares `source_template`
+in `smoke/fixtures.json`; it does not depend on a separate product repository.
 
-Each fixture declares its own `source_repository` in `smoke/fixtures.json`.
+The user must not be asked to open, clean, switch, or maintain
+`production-ai-project` (or any other external fixture repository) in order
+to run framework smoke tests.
 
-The current Stable-v0.1 fixtures all use:
+The deterministic smoke workspace helper materializes a temporary baseline Git
+repository from the recorded release commit, creates the isolated
+`smoke-run` clone, and removes the temporary provisioning repositories before
+returning control to the orchestrator.
 
-`subhadlearner/production-ai-project`
-
-Do not assume future fixtures use the same repository.
-
-Recommended branch pattern:
-
-```text
-smoke/<profile>-<fixture>-<run-id>
-```
-
-Do not mutate protected `main`.
+Do not mutate the SubhForge source checkout or its protected `main`.
 
 The implementation fixture should be deliberately small. The goal is to test the workflow, not application complexity.
 
