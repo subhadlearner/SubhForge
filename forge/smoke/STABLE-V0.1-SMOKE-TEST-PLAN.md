@@ -860,6 +860,135 @@ because Stable v0.1 establishes the baseline framework behavior.
 
 ---
 
+## 3.5 Authoritative post-first-review execution matrix
+
+After the first successful `review-before-commit`, do not execute the remaining
+FULL scenarios as one long mutable chain. Treat the table below as the
+authoritative orchestration plan for the remaining required scenarios.
+
+### Canonical checkpoints
+
+Use these logical checkpoint identities:
+
+- `CP-VERIFIED` — first implementation is `DONE + CLEAR + MATCH`, still
+  uncommitted
+- `CP-REVIEWED` — same implementation identity as `CP-VERIFIED`, with the
+  successful pre-review/senior-review evidence persisted
+- `CP-COMMITTED` — the byte-identical verified implementation has been
+  committed and freshness is still `MATCH`
+- `CP-REPAIRED` — a recovery loop has produced a fresh
+  `DONE + CLEAR + MATCH` state after repair
+
+Checkpoint labels persisted internally must not reveal expected answers to
+fresh routing probes.
+
+### Execution classes
+
+- **D — deterministic probe:** no substantive model invocation is permitted.
+- **S — single-owner agent probe:** exactly the named workflow owner may run;
+  no other model is permitted unless the scenario explicitly transitions to a
+  different class below.
+- **M — bounded multi-agent workflow:** only the listed workflow/model sequence
+  is permitted. Do not add planning/review/adversarial calls that are not listed.
+
+| Remaining scenario | Class | Start checkpoint/state | Permitted substantive model invocations | Completion/restoration rule |
+| --- | --- | --- | --- | --- |
+| `identical-commit-freshness` | D | `CP-REVIEWED` | none | Commit byte-identical implementation deterministically, prove `MATCH`, record `CP-COMMITTED`; do not review again |
+| `content-mutation-stale-evidence` | D | `CP-REVIEWED` | none | Apply registered deterministic content mutation, run freshness preflight, require `MISMATCH`, zero reviewers, restore exact checkpoint |
+| `mode-type-identity` | D | `CP-REVIEWED` | none | Apply bounded deterministic mode/type mutation when representable, require `MISMATCH` or valid platform `UNRECONSTRUCTABLE`, zero reviewers, restore |
+| `verification-mutation` | S | `CP-REVIEWED` implementation identity | DeepSeek `/verify` only | Inject the registered verification-time mutation through deterministic smoke mechanics/hook, require delivery block; no reviewers; restore |
+| `direct-fix-loop` | M | `CP-REVIEWED` | DeepSeek `/verify` → DeepSeek `/fix` → DeepSeek `/verify` → DeepSeek pre-review → GPT-5.6 Sol senior review only if pre-review is ready | Use one deterministic obvious defect; persist failed and repaired evidence; after successful review record/update `CP-REPAIRED` |
+| `diagnose-fix-loop` | M | clean reviewed/repaired checkpoint | DeepSeek `/verify` → DeepSeek `/diagnose` → DeepSeek `/fix` → DeepSeek `/verify` → DeepSeek pre-review → GPT-5.6 Sol senior review only if ready | Use one genuinely ambiguous deterministic symptom; no extra planning models; restore/use repaired clean state after evidence is persisted |
+| `waive-review-loop` | M | clean reviewed/repaired checkpoint | DeepSeek `/verify` → GPT-5.6 Luna `/waive` after explicit smoke authorization → DeepSeek pre-review → GPT-5.6 Sol senior review only if ready | Preserve factual `NOT_DONE`; prove `CLEAR_WITH_EXCEPTION`; persist review/waiver evidence |
+| `stale-waiver` | D | exact state from `waive-review-loop` | none | Mutate identity deterministically, require freshness failure before reviewers, restore/remediate after evidence |
+| `malformed-evidence` | D | clean checkpoint + copied disposable evidence | none | Corrupt only copied evidence, require `UNRECONSTRUCTABLE`, zero reviewers, discard copied corruption |
+| `evidence-exclusion` | D | `CP-REVIEWED` or `CP-REPAIRED` | none | Evidence-only mutation must preserve `MATCH`; identity-bearing mutation must produce `MISMATCH`; restore exact checkpoint |
+| `adversarial-reconcile-only` | M | approved architecture/spec checkpoint appropriate to challenged decision | DeepSeek adversary once; GPT-5.6 Sol planning-worker in `RECONCILE_ONLY` only when finding is material; at most one additional DeepSeek adversarial recheck if reconciliation materially changed the decision | No AUTHOR restart; persist finding/reconciliation evidence; restore/advance only according to authority result |
+| `arbitrary-stage-resume` | M (bounded routing probes) | seven deterministic persisted-state probes | seven bounded GPT-5.6 Luna routing decisions; Scenario C additionally permits one DeepSeek `/implement` handoff only | Six stop after correct routing decision; Scenario C stops after real handoff acceptance; no repeated downstream lifecycle |
+| `upstream-rerouting` | M (routing-focused) | deterministic blocked states representing PRD/architecture/project-init/spec/repository authority boundaries | only the owner needed to classify the active blocker: GPT-5.6 Sol planning-worker for planning authority cases, DeepSeek `/fix` for fix-origin cases; downstream owners are not invoked merely to prove routing | Persist correct authority destination. At least one representative case must prove the selected upstream handoff is executable; do not replay every downstream regeneration path for every subcase |
+| `pre-review-blocker` | S | clean verified checkpoint with one registered review-only blocker | DeepSeek pre-review only | Require `CHANGES_REQUIRED`; GPT-5.6 Sol senior-review invocation count MUST remain zero; restore blocker afterward |
+| `static-claude-routing` | D | installed release config | none | Validate routes/configuration statically; Claude runtime calls remain zero |
+
+The orchestrator MUST NOT exceed the permitted model sequence for a scenario.
+If extra model reasoning appears necessary, persist the reason and classify it
+as a smoke-framework defect or scenario-design defect rather than silently
+expanding the workflow.
+
+### 3.5.1 Exact failure-loop context packets
+
+For every model-bearing recovery loop, construct `CONTEXT_PATHS` from
+canonical smoke state before the call. Do not let the child rediscover these
+known inputs.
+
+Minimum packets:
+
+**`/verify` after injected failure**
+
+- exact active Spec
+- exact changed source/test/config paths
+- verification base HEAD/checkpoint identity
+- registered mutation ID/recipe
+- exact prior applicable verification path when relevant
+
+**`/fix`**
+
+- exact active Spec
+- exact failing verification report
+- exact diagnosis artifact when the scenario includes diagnosis
+- exact blocking review report when the fix is review-driven
+- exact changed source/test paths
+- registered mutation/failure context
+
+**`/diagnose`**
+
+- exact active Spec
+- exact failing verification report
+- exact failing source/test paths
+- exact symptom/mutation context
+- relevant architecture/ADR paths only when the failure crosses an architectural boundary
+
+**waiver/review path**
+
+- exact failed verification report
+- exact canonical verification manifest
+- exact waiver artifact
+- exact changed paths
+- deterministic freshness preflight result
+
+A child may widen context only when one of these supplied items is
+missing/stale/ambiguous and must record the reason.
+
+### 3.5.2 Fan-out and restoration rule
+
+Independent deterministic scenarios MUST fan out from the nearest valid clean
+checkpoint rather than inherit mutations from the previous probe.
+
+Default fan-out after first successful review:
+
+```text
+CP-REVIEWED
+  ├─ identical-commit-freshness → CP-COMMITTED
+  ├─ content-mutation-stale-evidence → restore CP-REVIEWED
+  ├─ mode-type-identity → restore CP-REVIEWED
+  ├─ verification-mutation → restore CP-REVIEWED
+  ├─ malformed-evidence → discard copied evidence / retain CP-REVIEWED
+  └─ evidence-exclusion → restore CP-REVIEWED
+```
+
+Recovery loops may create their own clean `CP-REPAIRED` state, but one loop's
+temporary mutation must never become another loop's accidental starting state.
+
+Before every fan-out probe:
+
+1. verify checkpoint identity deterministically
+2. persist the scenario/checkpoint association in canonical smoke state
+3. apply only the scenario's registered mutation
+4. run only the permitted mechanics/model sequence
+5. restore and re-check the checkpoint when the scenario is independent
+
+If restoration does not reproduce the checkpoint exactly, stop with
+`SMOKE_BLOCKED`; do not ask an LLM to repair checkpoint drift.
+
 # 4. Core Rule: Determine Where to Start
 
 Before running any workflow command, determine the current repository state.
