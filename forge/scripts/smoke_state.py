@@ -78,7 +78,19 @@ def set_values(repo: Path, run_id: str, updates: dict[str, object]) -> dict[str,
         raise SmokeStateError("Immutable smoke state fields cannot be changed: {}".format(
             ", ".join(sorted(overlap))))
 
-    data.update(updates)
+    merged_updates = dict(updates)
+    for field in ("context_index", "stage_metrics"):
+        if field not in merged_updates:
+            continue
+        incoming = merged_updates[field]
+        existing = data.get(field)
+        if not isinstance(incoming, dict):
+            raise SmokeStateError(f"{field} must be an object")
+        if not isinstance(existing, dict):
+            raise SmokeStateError(f"Existing {field} must be an object")
+        merged_updates[field] = {**existing, **incoming}
+
+    data.update(merged_updates)
 
     completed = data.get("completed_scenarios")
     pending = data.get("pending_scenarios")
