@@ -160,6 +160,12 @@ content/authority identity. Pass only the next stage's needed paths and
 acceptance condition to a child. Reuse the index until identity changes;
 avoid repeated glob/git rediscovery and unchanged Markdown reads.
 
+For smoke planning children, do not pass raw smoke orchestration files when
+their information has already been resolved into the handoff. In particular,
+the child should not need to read fixtures/profiles/failure recipes, the full
+smoke runbook, or canonical smoke state merely to recover fixture/runtime,
+current-stage, or artifact-path information the orchestrator already knows.
+
 When exact context paths are valid, children must consume them directly.
 Repository-wide discovery is a fallback for missing/stale/ambiguous context,
 not the default first step.
@@ -181,9 +187,11 @@ Immediately after every child returns, before launching another stage:
 
 1. persist stage/scenario/artifact/evidence changes with
    `scripts/smoke_state.py ... set --json <targeted-update>`
-2. verify the update with `smoke_state.py ... get`
-3. update the human-readable Markdown audit projection
-4. run the budget guard
+2. persist/update `stage_metrics[<stage>]` with the child model, elapsed
+   seconds, exact context paths supplied, and discovery policy
+3. verify the update with `smoke_state.py ... get`
+4. update the human-readable Markdown audit projection
+5. run the budget guard
 
 A transition is not complete until the canonical state update succeeds.
 
