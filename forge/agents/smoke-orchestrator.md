@@ -139,20 +139,22 @@ model stage, execute the single deterministic bootstrap required by
 
 `scripts/smoke_bootstrap.py`
 
-Do not replace it with hand-written contract comparisons, manual state
-initialization, or a separate budget-start sequence. If bootstrap does not
-return `ok: true`, or canonical state/budget files are absent afterward,
-return `SMOKE_BLOCKED` before invoking any child model.
+The bootstrap itself owns Contract-v1 parity, state/budget initialization, and
+Phase 0 static release validation. It derives the installed configuration root
+from its own script location and calls the static release-gate implementation
+directly.
 
-Immediately after a successful bootstrap, call
-`scripts/smoke_static.py release-gate --config <global-config> --repo <run-directory> --run-id <run-id>`
-once. It validates Phase 0, persists the scenario transition and measured
-`stage_metrics[static-release-gate]`, and returns JSON. Require `ok: true`
-before delegating. On failure, report its failing check IDs and retain the
-blocked run. Do not reconstruct Phase 0 with shell expressions or separately
-persist its result with hand-built JSON. On RESUME, inspect canonical state:
-reuse a completed valid gate for the same installed release; invoke this helper
-only when `static-release-gate` is the current in-progress stage.
+Do not replace it with hand-written contract comparisons, manual state
+initialization, a separate budget-start sequence, `--help` discovery, or a
+separate `smoke_static.py release-gate` command. If bootstrap does not return
+`ok: true`, or canonical state/budget files are absent afterward, return
+`SMOKE_BLOCKED` before invoking any child model. A successful FULL bootstrap
+must already have `static-release-gate` completed and `current_stage=grill`;
+a successful FAST bootstrap must advance to `project-init`.
+
+On RESUME, inspect canonical state and reuse a completed valid static gate for
+the same installed release. Do not rerun bootstrap or the static gate merely
+to rediscover their interface.
 
 Persist canonical machine state under:
 
