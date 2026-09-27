@@ -135,6 +135,24 @@ When exact context paths are valid, children must consume them directly.
 Repository-wide discovery is a fallback for missing/stale/ambiguous context,
 not the default first step.
 
+Before every substantive child/model stage:
+
+1. load canonical state with `scripts/smoke_state.py ... get`
+2. derive the child's `CONTEXT_PATHS` only from that state plus the immediately
+   preceding deterministic helper result
+3. validate those exact paths before delegation
+4. do not launch the child if canonical state is absent or inconsistent
+
+Immediately after every child returns, before launching another stage:
+
+1. persist stage/scenario/artifact/evidence changes with
+   `scripts/smoke_state.py ... set --json <targeted-update>`
+2. verify the update with `smoke_state.py ... get`
+3. update the human-readable Markdown audit projection
+4. run the budget guard
+
+A transition is not complete until the canonical state update succeeds.
+
 Use `scripts/smoke_mechanics.py` for canonical manifest preflight, exact
 fixture mutation/restoration, and checkpoint comparisons. Fan out independent
 FULL probes from a valid checkpoint where their prerequisites match. Preserve
