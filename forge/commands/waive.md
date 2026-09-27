@@ -6,7 +6,7 @@ model: openai/gpt-5.6-luna
 
 # Verification Waiver Workflow
 
-Apply `kilo/contracts/implementation-state-evidence-v1.md` whenever establishing waiver freshness.
+Apply the installed global `<global-config>/contracts/implementation-state-evidence-v1.md` whenever establishing waiver freshness.
 
 Create a governed exception for a specific failed verification result.
 

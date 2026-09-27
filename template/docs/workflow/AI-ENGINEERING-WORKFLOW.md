@@ -748,18 +748,15 @@ It stores only run-specific evidence and the normal lifecycle artifacts generate
 New smoke runs receive an automatically generated identifier:
 
 ```text
-SMOKE-<PROFILE>-<fixture-id>-<SEQ>
+SMOKE-<PROFILE>-<fixture-id>-<UTC timestamp>-<random suffix>
 ```
 
-The numeric sequence is padded to at least three digits:
+The smoke workspace helper allocates a unique ID without scanning prior runs:
 
 ```text
-SMOKE-FAST-fast-micro-library-001
-SMOKE-FULL-full-minimal-api-001
-SMOKE-FULL-full-minimal-api-002
+SMOKE-FAST-fast-micro-library-20260927T080854Z-a1b2c3d4
+SMOKE-FULL-full-minimal-api-20260927T080854Z-c033fcf5
 ```
-
-The sequence may continue past `999`.
 
 The active Run ID is shown in every smoke response.
 

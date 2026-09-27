@@ -89,16 +89,15 @@ The runbook validates:
 
 # 1. Release Under Test
 
-Validate the exact release/tag:
+Validate the exact candidate commit before creating the stable tag:
 
 ```text
-stable_v_0.1.0
+<SubhForge source commit SHA> (UNTAGGED_RELEASE_CANDIDATE)
 ```
 
 Before running any model workflow, record:
 
-- `kilo-configuration` tag
-- exact `kilo-configuration` commit SHA
+- SubhForge source commit SHA and installed configuration provenance
 - exact test-project baseline SHA
 - Kilo Code version
 - Git version
@@ -108,7 +107,7 @@ Before running any model workflow, record:
 
 Do not test an unrecorded moving branch.
 
-If the tag is intentionally moved after documentation-only additions, record the final SHA before testing.
+After a passing FULL run, merge and validate the exact merged content before tagging `stable_v_0.1.0`.
 
 ---
 
@@ -134,9 +133,9 @@ The implementation fixture should be deliberately small. The goal is to test the
 Approved fixture definitions and profile scenario registries are version-controlled in the source repository as:
 
 ```text
-kilo/smoke/fixtures.json
-kilo/smoke/profiles.json
-kilo/smoke/failure-recipes.json
+forge/smoke/fixtures.json
+forge/smoke/profiles.json
+forge/smoke/failure-recipes.json
 ```
 
 When installed as the global Kilo configuration, runtime lookups use:
@@ -148,7 +147,7 @@ smoke/failure-recipes.json
 smoke/STABLE-V0.1-SMOKE-TEST-PLAN.md
 ```
 
-Do not require the `kilo-configuration` repository checkout to exist at runtime.
+The installed provenance identifies the exact SubhForge source checkout and commit.
 
 Do not invent an additional fixture during an automated smoke run.
 
@@ -249,18 +248,17 @@ docs/verification/smoke/<run-id>.md
 The Run ID is allocated automatically before substantive smoke execution using:
 
 ```text
-SMOKE-<PROFILE>-<fixture-id>-<SEQ>
+SMOKE-<PROFILE>-<fixture-id>-<UTC timestamp>-<random suffix>
 ```
 
 Examples:
 
 ```text
-SMOKE-FAST-fast-micro-library-001
-SMOKE-FULL-full-minimal-api-001
-SMOKE-FULL-full-minimal-api-002
+SMOKE-FAST-fast-micro-library-20260927T080854Z-a1b2c3d4
+SMOKE-FULL-full-minimal-api-20260927T080854Z-c033fcf5
 ```
 
-The orchestrator scans existing run records for the selected profile/fixture, increments the highest valid three-digit suffix, creates the new run record immediately, and never overwrites an existing run.
+`smoke_workspace.py create` allocates the run ID and isolated workspace. The orchestrator uses its returned ID; it does not scan or sequence prior runs.
 
 Every smoke response must repeat the active Run ID near the top.
 
@@ -1207,7 +1205,7 @@ Confirm architecture still treats cloud/operating cost as first-class and evalua
 Confirm these are byte-for-byte identical:
 
 ```text
-kilo/contracts/implementation-state-evidence-v1.md
+<global-config>/contracts/implementation-state-evidence-v1.md
 
 docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md
 ```

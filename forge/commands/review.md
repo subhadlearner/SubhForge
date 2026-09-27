@@ -22,7 +22,7 @@ Do not perform the code review yourself.
 
 ## Stage 1 — Determine Review Context
 
-Read and apply `kilo/contracts/implementation-state-evidence-v1.md` as the normative freshness contract.
+Read and apply `<global-config>/contracts/implementation-state-evidence-v1.md` as the normative freshness contract.
 
 When a persisted verification report supplies its verification base HEAD and
 canonical manifest path, validate review freshness with the deterministic

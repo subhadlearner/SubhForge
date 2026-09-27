@@ -18,7 +18,7 @@ SubhForge/
 
 ## Branch model
 
-- `main` is the Stable v0.1 baseline.
+- `main` is the integration branch for the Stable v0.1 candidate.
 - `feature/v0.2.0` is the active v0.2 development branch.
 - Stable releases are tagged only after their smoke/dogfood gates pass.
 
@@ -31,7 +31,7 @@ The v0.1 baseline is the structural consolidation of `kilo-configuration@stable_
 - Kilo CLI available on `PATH`
 - model/provider credentials configured outside Git
 
-On Windows, the `py` launcher is preferred. By default the global Kilo configuration is `%USERPROFILE%\.config\kilo`. Override it with `--config-dir` or `KILO_CONFIG_DIR`.
+On Windows, `subhforge.ps1` tries a working `py -3`, then `python`, then `python3`. A stale `py` launcher does not block the other choices. By default the global Kilo configuration is `%USERPROFILE%\.config\kilo`. Override it with `--config-dir` or `KILO_CONFIG_DIR`.
 
 ## First-time setup
 
@@ -52,7 +52,7 @@ git switch main
 or:
 
 ```powershell
-py -3 tools/subhforge.py doctor
+python tools/subhforge.py doctor
 ```
 
 ### Install the global Kilo configuration
@@ -111,15 +111,15 @@ A non-zero result means setup/validation failed and should be corrected before t
 
 Before v0.2 implementation, `main` must prove that consolidation did not change Stable v0.1 behavior.
 
-Use a disposable project:
+Install the exact candidate branch and validate the installation:
 
 ```powershell
-git switch main
-.\subhforge.ps1 setup C:\Temp\subhforge-v01-smoke
-.\subhforge.ps1 doctor --project C:\Temp\subhforge-v01-smoke
+git switch <release-candidate-branch>
+.\subhforge.ps1 install
+.\subhforge.ps1 doctor
 ```
 
-Then open the generated project and run the existing smoke workflow:
+Run smoke in Kilo with SubhForge installed. The harness creates its own disposable fixture from `template/`:
 
 ```text
 /smoke FAST DEFAULT
@@ -142,22 +142,22 @@ PowerShell wrapper:
 Direct Python usage:
 
 ```powershell
-py -3 tools/subhforge.py install
-py -3 tools/subhforge.py init C:\Code\VidyaBeacon
-py -3 tools/subhforge.py setup C:\Code\VidyaBeacon
-py -3 tools/subhforge.py doctor --project C:\Code\VidyaBeacon
+python tools/subhforge.py install
+python tools/subhforge.py init C:\Code\VidyaBeacon
+python tools/subhforge.py setup C:\Code\VidyaBeacon
+python tools/subhforge.py doctor --project C:\Code\VidyaBeacon
 ```
 
 Custom global config location:
 
 ```powershell
-py -3 tools/subhforge.py --config-dir C:\Temp\kilo-config setup C:\Temp\my-project
+python tools/subhforge.py --config-dir C:\Temp\kilo-config setup C:\Temp\my-project
 ```
 
 Bootstrap unit tests:
 
 ```powershell
-py -3 -m unittest tools/test_subhforge.py -v
+python -m unittest tools/test_subhforge.py -v
 ```
 
 ## Stable v0.1 product workflow

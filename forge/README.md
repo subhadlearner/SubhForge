@@ -4,9 +4,7 @@ Opinionated global configuration for an AI-assisted software-engineering workflo
 
 This repository contains the reusable **global workflow layer** used across projects: engineering policy, lifecycle commands, specialized agents, model-routing rules, permissions, reusable skills, and the Stable-v0.1 implementation-state evidence contract.
 
-The companion project-side template is:
-
-- [subhadlearner/production-ai-project](https://github.com/subhadlearner/production-ai-project)
+The project-side template is `SubhForge/template/`. Smoke provisions disposable fixtures from that template at the recorded source commit.
 
 ## What this repository does
 
@@ -49,10 +47,10 @@ The main design goals are:
 
 ## Repository layout
 
-The deployable Kilo configuration lives under `kilo/`.
+The deployable Kilo configuration lives under `forge/` in the SubhForge source repository.
 
 ```text
-kilo/
+forge/
 ├── AGENTS.md
 ├── kilo.jsonc
 ├── agents/
@@ -220,7 +218,7 @@ The default preference is the simplest architecture that provides the required p
 
 ## Installation / local use
 
-The contents of the repository's `kilo/` directory are intended to represent the global Kilo configuration directory.
+The installer copies the committed `forge/` tree into the global Kilo configuration directory and records its source commit.
 
 On Windows, the global configuration location is typically:
 
@@ -269,7 +267,7 @@ The project copy must match the global canonical contract exactly.
 
 Stable framework releases are tagged in Git.
 
-The first frozen release is:
+The first planned frozen release is:
 
 ```text
 stable_v_0.1.0
@@ -282,7 +280,7 @@ After a stable tag, framework changes should be treated as deliberate versioned 
 Release validation is documented in:
 
 ```text
-kilo/smoke/STABLE-V0.1-SMOKE-TEST-PLAN.md
+forge/smoke/STABLE-V0.1-SMOKE-TEST-PLAN.md
 ```
 
 The runbook can be followed end-to-end from `/grill` or resumed from any valid workflow stage based on persisted repository artifacts. It does not require prior conversational history.
@@ -382,9 +380,9 @@ If no fixture is supplied, `/smoke` shows the compatible approved fixture list a
 Approved fixture metadata lives in:
 
 ```text
-kilo/smoke/fixtures.json
-kilo/smoke/profiles.json
-kilo/smoke/failure-recipes.json
+forge/smoke/fixtures.json
+forge/smoke/profiles.json
+forge/smoke/failure-recipes.json
 ```
 
 Current fixtures:
@@ -395,27 +393,28 @@ Current fixtures:
 | `full-minimal-api` | FULL | Default complete workflow fixture |
 | `full-local-persistence-api` | FULL | Optional local-persistence-oriented validation |
 
-Failure-injection behavior is separately defined in `kilo/smoke/failure-recipes.json`, so the executor does not infer how to manufacture a failure from prose.
+Failure-injection behavior is separately defined in `forge/smoke/failure-recipes.json`, so the executor does not infer how to manufacture a failure from prose.
 
 Fixture choice controls the disposable product shape and default test budget. It does **not** choose the implementation technology; `/architect` retains that authority.
 
 A smoke run persists restartable state in the disposable target project under:
 
 ```text
+docs/verification/smoke/<run-id>.state.json
 docs/verification/smoke/<run-id>.md
 ```
 
 The Run ID is generated automatically by `/smoke` using:
 
 ```text
-SMOKE-<PROFILE>-<fixture-id>-<SEQ>
+SMOKE-<PROFILE>-<fixture-id>-<UTC timestamp>-<random suffix>
 ```
 
 Examples:
 
 ```text
-SMOKE-FAST-fast-micro-library-001
-SMOKE-FULL-full-minimal-api-001
+SMOKE-FAST-fast-micro-library-20260927T080854Z-a1b2c3d4
+SMOKE-FULL-full-minimal-api-20260927T080854Z-c033fcf5
 ```
 
 The Run ID is printed near the top of every smoke response and the run record is created before substantive smoke execution begins.
@@ -461,4 +460,4 @@ Required production gates must never be weakened just to reduce token consumptio
 
 Stable-v0.1 focuses on making the workflow deterministic, evidence-driven, production-oriented, and practical to operate without unnecessary frontier-model or infrastructure spend.
 
-The next validation step for `stable_v_0.1.0` is the `FULL_SMOKE` run defined in `kilo/smoke/STABLE-V0.1-SMOKE-TEST-PLAN.md`.
+Before tagging `stable_v_0.1.0`, the exact candidate must pass the FULL smoke run defined in `forge/smoke/STABLE-V0.1-SMOKE-TEST-PLAN.md`.

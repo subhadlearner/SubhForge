@@ -471,7 +471,7 @@ Adding cloud runtime behavior now would be expensive, slower, harder to reproduc
 
 # 4. Future fixture admission criteria
 
-Before adding any new fixture to `kilo/smoke/fixtures.json`, require all of the following:
+Before adding any new fixture to `forge/smoke/fixtures.json`, require all of the following:
 
 1. A real framework capability cannot be adequately validated with an existing fixture.
 2. The new fixture has a clearly different product/runtime shape.

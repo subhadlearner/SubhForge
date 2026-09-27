@@ -9,6 +9,7 @@ Keeps setup deliberately simple:
 """
 
 import argparse
+from contextlib import contextmanager
 import datetime as _dt
 import filecmp
 import json
@@ -17,6 +18,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import tempfile
 
 
 MIN_PYTHON = (3, 14)
@@ -99,8 +101,40 @@ def _git_value(root: Path, args: list[str]) -> str | None:
     return value or None
 
 
-def _write_install_manifest(config_dir: Path, root: Path) -> None:
-    source_commit = _git_value(root, ["rev-parse", "HEAD"]) or "UNKNOWN"
+@contextmanager
+def _committed_forge(root: Path, commit: str):
+    """Materialize the exact release tree without reading dirty source files."""
+    git = shutil.which("git")
+    if not git:
+        raise RuntimeError("Git is required to install an exact SubhForge commit")
+    with tempfile.TemporaryDirectory(prefix="subhforge-install-") as temp:
+        checkout = Path(temp) / "source"
+        clone = subprocess.run(
+            [git, "clone", "--local", "--no-hardlinks", "--no-checkout", str(root), str(checkout)],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+        if clone.returncode:
+            raise RuntimeError("Cannot materialize source commit: " + clone.stderr.strip())
+        checked = subprocess.run(
+            [git, "checkout", "--detach", commit], cwd=checkout,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+        if checked.returncode:
+            raise RuntimeError("Cannot check out source commit: " + checked.stderr.strip())
+        forge = checkout / "forge"
+        if not forge.is_dir():
+            raise RuntimeError("forge/ is missing at source commit " + commit)
+        yield forge
+
+
+def _source_commit(root: Path) -> str:
+    commit = _git_value(root, ["rev-parse", "HEAD"])
+    if not commit:
+        raise RuntimeError("SubhForge source checkout must have a committed HEAD")
+    return commit
+
+
+def _write_install_manifest(config_dir: Path, root: Path, source_commit: str) -> None:
     source_branch = _git_value(root, ["branch", "--show-current"]) or "UNKNOWN"
     source_tag = _git_value(root, ["describe", "--tags", "--exact-match", "HEAD"])
     if not source_tag:
@@ -127,13 +161,16 @@ def install_config(config_dir: Path, root: Path | None = None) -> Path | None:
     config_dir = config_dir.expanduser().resolve()
     config_dir.parent.mkdir(parents=True, exist_ok=True)
 
-    backup = None
-    if config_dir.exists():
-        backup = _unique_backup_path(config_dir)
-        shutil.copytree(str(config_dir), str(backup))
+    commit = _source_commit(root)
+    with _committed_forge(root, commit) as committed_forge:
+        _assert_source_layout(committed_forge.parent)
+        backup = None
+        if config_dir.exists():
+            backup = _unique_backup_path(config_dir)
+            shutil.copytree(str(config_dir), str(backup))
 
-    _copy_tree_exact(forge, config_dir)
-    _write_install_manifest(config_dir, root)
+        _copy_tree_exact(committed_forge, config_dir)
+        _write_install_manifest(config_dir, root, commit)
     return backup
 
 
@@ -274,11 +311,26 @@ def doctor(
         forge = root / "forge"
         template = root / "template"
 
-    exact_config, config_detail = _same_tree(
-        forge,
-        config_dir.expanduser().resolve(),
-        ignore=(".subhforge-install.json",),
-    )
+    installed = config_dir.expanduser().resolve()
+    commit = _git_value(root, ["rev-parse", "HEAD"])
+    try:
+        manifest = json.loads((installed / ".subhforge-install.json").read_text(encoding="utf-8"))
+        provenance_ok = (isinstance(manifest, dict) and manifest.get("source_commit") == commit and
+                         manifest.get("source_checkout_path") == str(root.resolve()))
+    except (OSError, ValueError):
+        provenance_ok = False
+    if commit:
+        try:
+            with _committed_forge(root, commit) as committed_forge:
+                exact_config, config_detail = _same_tree(
+                    committed_forge, installed, ignore=(".subhforge-install.json",))
+        except RuntimeError as exc:
+            exact_config, config_detail = False, str(exc)
+    else:
+        exact_config, config_detail = False, "source HEAD is unavailable"
+    exact_config = exact_config and provenance_ok
+    if not provenance_ok:
+        config_detail = "installed provenance does not match the source checkout and HEAD"
     checks.append(("Installed Kilo config", exact_config, config_detail))
 
     if project_dir is not None:

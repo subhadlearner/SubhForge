@@ -23,7 +23,7 @@ Do not modify application code or tests merely to obtain a passing result.
 - Every non-trivial verification run creates a new immutable/history-preserving report under `docs/verification/`.
 - Never overwrite an earlier verification report.
 - Human risk acceptance is handled separately by `/waive`.
-- A reviewable verification result must satisfy `kilo/contracts/implementation-state-evidence-v1.md`. The canonical implementation-state manifest is authoritative; the fingerprint is its compact checksum/identifier. The implementation may be uncommitted.
+- A reviewable verification result must satisfy the installed global `<global-config>/contracts/implementation-state-evidence-v1.md`. The canonical implementation-state manifest is authoritative; the fingerprint is its compact checksum/identifier. The implementation may be uncommitted.
 
 ## Stage 1 — Determine Verification Scope
 
@@ -46,7 +46,7 @@ Use, in priority order:
 
 Determine all applicable required checks.
 
-Read and apply `kilo/contracts/implementation-state-evidence-v1.md` as the normative implementation-state freshness contract.
+Read and apply `<global-config>/contracts/implementation-state-evidence-v1.md` as the normative implementation-state freshness contract.
 
 Capture the repository state before executing checks.
 

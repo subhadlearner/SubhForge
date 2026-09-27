@@ -201,8 +201,7 @@ For a new run:
      --source-commit <source_commit> \
      --baseline-head <baseline_head> \
      --required-contract <global-config>/contracts/implementation-state-evidence-v1.md \
-     --required-contract <run-directory>/docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md \
-     --optional-contract <run-directory>/kilo/contracts/implementation-state-evidence-v1.md
+     --required-contract <run-directory>/docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md
    ```
 
    This single helper is authoritative for:
