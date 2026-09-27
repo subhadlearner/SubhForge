@@ -22,7 +22,11 @@ class SubhForgeBootstrapTests(unittest.TestCase):
             config = Path(temp) / "kilo"
             backup = subhforge.install_config(config, self.root)
             self.assertIsNone(backup)
-            self.assertTrue((config / ".subhforge-install.json").is_file())
+            manifest_path = config / ".subhforge-install.json"
+            self.assertTrue(manifest_path.is_file())
+            import json
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(str(self.root.resolve()), manifest["source_checkout_path"])
             ok, detail = subhforge._same_tree(
                 self.root / "forge", config, ignore=(".subhforge-install.json",))
             self.assertTrue(ok, detail)
