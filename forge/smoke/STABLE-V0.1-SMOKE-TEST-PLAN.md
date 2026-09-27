@@ -3095,3 +3095,13 @@ The FULL orchestration budget is enforced by `scripts/smoke_budget.py`.
 Smoke `/verify` must use `scripts/smoke_mechanics.py manifest` for pre/post
 Contract-v1 implementation identity. It must not generate ad-hoc manifest or
 report-generator scripts such as `build_manifest.py` or `gen_report.py`.
+
+## Open Stable-v0.1 smoke hardening TODOs
+
+- [ ] **Make the static Contract-v1 parity check path-aware and non-brittle.**
+  The current FULL static gate can initially report `contract_equal=false` when
+  it includes an optional/non-existent template contract path in the combined
+  boolean, even though the installed global contract and generated project
+  contract are byte-identical. Replace the literal multi-path boolean with a
+  deterministic check over only required, existing canonical contract copies,
+  and report missing optional paths separately from parity failure.
