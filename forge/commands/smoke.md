@@ -436,12 +436,20 @@ delegate to `planning-worker` with the workflow's normal model and an explicit e
 
 For the default Stable-v0.1 smoke path, use GPT-5.6 Sol for these planning stages.
 
-If the child returns `USER_INPUT_REQUIRED`:
+The predefined smoke fixture product brief is required to be sufficient for
+planning. Do not turn a framework smoke run into an interactive product
+discovery session.
 
-- persist continuation state
-- relay only the required question batch to the user
-- return `SMOKE_USER_INPUT_REQUIRED`
-- on the next `/smoke RESUME <run-id>`, delegate with `MODE: CONTINUE`
+If a planning child returns `USER_INPUT_REQUIRED` because product behavior,
+runtime, scope, or acceptance criteria are missing:
+
+- persist the exact missing information
+- mark the run `SMOKE_BLOCKED`
+- classify it as `SMOKE_FIXTURE_UNDERSPECIFIED`
+- do not ask the user to invent product requirements for the smoke fixture
+
+Human input remains allowed only for an explicit human-controlled workflow gate
+that the FULL profile intentionally tests, such as bounded waiver acceptance.
 
 ### Project initialization
 
