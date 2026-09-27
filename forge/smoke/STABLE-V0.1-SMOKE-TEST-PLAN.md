@@ -132,7 +132,12 @@ Before any substantive smoke child is delegated, the installed
 `scripts/smoke_handoff.py` helper must establish a top-level Kilo continuation
 whose actual project root is the disposable `smoke-run` repository. The
 source-root smoke session may provision and bootstrap deterministic state, but
-must not delegate lifecycle/reviewer/adversarial task children.
+must not delegate lifecycle/reviewer/adversarial task children. The one
+long-lived handoff shell call uses a timeout of at least 40 minutes solely as
+process-transport headroom; the independent 30-minute smoke budget remains the
+release-qualification authority. Kilo autonomous mode used for that rooted
+continuation is likewise only a permission-transport mechanism and never
+substitutes for explicit human waiver/risk/paid-model authorization.
 
 Do not mutate the SubhForge source checkout or its protected `main`.
 
