@@ -54,6 +54,7 @@ def init(repo: Path, run_id: str, profile: str, fixture: str,
         "completed_scenarios": [],
         "pending_scenarios": [],
         "context_index": {},
+        "stage_metrics": {},
         "latest_verification": None,
         "latest_review": None,
         "blocker": None,
@@ -88,6 +89,20 @@ def set_values(repo: Path, run_id: str, updates: dict[str, object]) -> dict[str,
 
     completed_set = set(completed)
     data["pending_scenarios"] = [item for item in pending if item not in completed_set]
+
+    stage_metrics = data.get("stage_metrics")
+    if not isinstance(stage_metrics, dict):
+        raise SmokeStateError("stage_metrics must be an object")
+    for stage, metrics in stage_metrics.items():
+        if not isinstance(stage, str) or not isinstance(metrics, dict):
+            raise SmokeStateError("stage_metrics entries must map stage IDs to objects")
+        elapsed = metrics.get("elapsed_seconds")
+        if elapsed is not None and (not isinstance(elapsed, (int, float)) or elapsed < 0):
+            raise SmokeStateError("stage_metrics elapsed_seconds must be non-negative")
+        context_paths = metrics.get("context_paths")
+        if context_paths is not None:
+            if not isinstance(context_paths, list) or not all(isinstance(item, str) for item in context_paths):
+                raise SmokeStateError("stage_metrics context_paths must be a list of paths")
 
     _save(state_path(repo, run_id), data)
     return data
