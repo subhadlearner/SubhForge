@@ -28,20 +28,25 @@ class ReviewPreflightTests(unittest.TestCase):
             base = implementation_state.git(repo, "rev-parse", "HEAD").strip().decode("ascii")
             (repo / "app.py").write_text("print('changed')\n", encoding="utf-8")
             manifest = implementation_state.canonical_manifest(repo, base)
-            path = repo / "verify.manifest"
+            evidence_dir = repo / "docs" / "verification"
+            evidence_dir.mkdir(parents=True)
+            path = evidence_dir / "VERIFY-SPEC-001-001.manifest"
             path.write_bytes(manifest)
 
             result = review_preflight.review_preflight(repo, base, path)
 
             self.assertEqual("MATCH", result["freshness"])
             self.assertTrue(result["canonical_manifest_equal"])
+            self.assertNotIn("docs/verification/", implementation_state.canonical_manifest(repo, base).decode())
 
     def test_mismatch_after_identity_change(self):
         with tempfile.TemporaryDirectory() as temp:
             repo = self._repo(Path(temp))
             base = implementation_state.git(repo, "rev-parse", "HEAD").strip().decode("ascii")
             (repo / "app.py").write_text("print('changed')\n", encoding="utf-8")
-            path = repo / "verify.manifest"
+            evidence_dir = repo / "docs" / "verification"
+            evidence_dir.mkdir(parents=True)
+            path = evidence_dir / "VERIFY-SPEC-001-001.manifest"
             path.write_bytes(implementation_state.canonical_manifest(repo, base))
             (repo / "app.py").write_text("print('changed again')\n", encoding="utf-8")
 
