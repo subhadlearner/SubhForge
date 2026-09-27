@@ -181,7 +181,9 @@ For a new run:
 5. before any substantive smoke stage or child-model invocation, create:
    `docs/verification/smoke/<run-id>.md`
    inside that run directory
-6. never reuse an existing run directory or run ID
+6. immediately initialize the executable elapsed-time guard:
+   `python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <run-id> start`
+7. never reuse an existing run directory or run ID
 
 Canonical run IDs are collision-resistant identifiers such as:
 
@@ -637,10 +639,28 @@ Enforce the runbook's token/cost rules:
 - stop after two materially identical failed attempts
 - Claude invocation count target: zero
 
-For the tiny FULL fixture, target 25 minutes. At 30 minutes stop launching
-new lifecycle/model stages, persist elapsed time, stage, ledger, and blocker,
-and return `SMOKE_BLOCKED` with `PERFORMANCE_BUDGET_EXCEEDED`. Keep the
-workspace for diagnosis/resume; do not call this a functional `SMOKE_FAIL`.
+For the tiny FULL fixture, target 25 minutes and enforce a 30-minute hard
+orchestration ceiling with the installed executable guard.
+
+Before EVERY substantive lifecycle/model stage, and immediately after EVERY
+child/subagent returns, run:
+
+```text
+python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <run-id> check --limit-minutes 30
+```
+
+If the guard returns exit code 3 / `PERFORMANCE_BUDGET_EXCEEDED`:
+
+- do not launch another lifecycle/model stage
+- persist elapsed time, current stage, ledger, and blocker
+- return `SMOKE_BLOCKED` with `PERFORMANCE_BUDGET_EXCEEDED`
+- keep the workspace for diagnosis/resume
+- do not call this a functional `SMOKE_FAIL`
+
+The orchestration guard is a boundary stop: it prevents any new stage after the
+budget is exceeded and catches over-budget child calls immediately on return.
+It cannot forcibly terminate a child model invocation already in progress.
+Do not claim otherwise.
 
 Record every substantive model invocation in the run ledger.
 
