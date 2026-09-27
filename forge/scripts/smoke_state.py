@@ -7,7 +7,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict
 
 
 class SmokeStateError(RuntimeError):
@@ -27,7 +27,7 @@ def state_path(repo: Path, run_id: str) -> Path:
     return folder / (run_id + ".state.json")
 
 
-def load(repo: Path, run_id: str) -> dict[str, Any]:
+def load(repo: Path, run_id: str) -> Dict[str, Any]:
     path = state_path(repo, run_id)
     if not path.is_file():
         raise SmokeStateError("Smoke state is missing")
@@ -38,7 +38,7 @@ def load(repo: Path, run_id: str) -> dict[str, Any]:
 
 
 def init(repo: Path, run_id: str, profile: str, fixture: str,
-         source_commit: str, baseline_head: str) -> dict[str, Any]:
+         source_commit: str, baseline_head: str) -> Dict[str, Any]:
     path = state_path(repo, run_id)
     if path.exists():
         raise SmokeStateError("Smoke state already exists")
@@ -64,13 +64,13 @@ def init(repo: Path, run_id: str, profile: str, fixture: str,
     return data
 
 
-def _save(path: Path, data: dict[str, Any]) -> None:
+def _save(path: Path, data: Dict[str, Any]) -> None:
     temp = path.with_suffix(".tmp")
     temp.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     temp.replace(path)
 
 
-def set_values(repo: Path, run_id: str, updates: dict[str, Any]) -> dict[str, Any]:
+def set_values(repo: Path, run_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
     data = load(repo, run_id)
     protected = {"schema_version", "run_id", "profile", "fixture", "source_commit", "baseline_head"}
     overlap = protected.intersection(updates)
