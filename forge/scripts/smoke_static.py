@@ -86,6 +86,7 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
     worker = read("agent:planning-worker", config / "agents/planning-worker.md")
     orchestrator = read("agent:smoke-orchestrator", config / "agents/smoke-orchestrator.md")
     executor = read("agent:smoke-executor", config / "agents/smoke-executor.md")
+    read("helper:smoke-handoff", config / "scripts/smoke_handoff.py")
     policy = read("policy:global", config / "AGENTS.md")
     architecture = read("policy:architecture", config / "commands/architect.md")
     contract = read("contract:installed", config / "contracts/implementation-state-evidence-v1.md")
