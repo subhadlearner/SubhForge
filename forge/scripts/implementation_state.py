@@ -123,11 +123,15 @@ def canonical_manifest(repo: Path, base: str) -> bytes:
     return "".join(entries).encode("utf-8")
 
 
+def fingerprint(repo: Path, manifest: bytes) -> str:
+    oid = git(repo, "hash-object", "--stdin", input_bytes=manifest).strip().decode("ascii")
+    return "GIT_BLOB_OID:" + oid
+
+
 def identity(repo: Path, base: str) -> dict[str, str]:
     manifest = canonical_manifest(repo, base)
-    oid = git(repo, "hash-object", "--stdin", input_bytes=manifest).strip().decode("ascii")
     return {
         "base_head": base,
         "manifest": manifest.decode("utf-8"),
-        "fingerprint": "GIT_BLOB_OID:" + oid,
+        "fingerprint": fingerprint(repo, manifest),
     }
