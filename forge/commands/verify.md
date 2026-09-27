@@ -29,6 +29,13 @@ Do not modify application code or tests merely to obtain a passing result.
 
 Read only the minimum project context required to determine how the requested specification must be verified.
 
+When exact specification, project configuration, implementation, test, or
+authority paths are supplied by the caller, validate and use them directly.
+Do not perform broad repository discovery merely to rediscover those inputs.
+Bounded discovery remains available when required verification context is
+missing, stale, ambiguous, or an executable check depends on unknown project
+configuration.
+
 Use, in priority order:
 
 1. project-level `AGENTS.md`
