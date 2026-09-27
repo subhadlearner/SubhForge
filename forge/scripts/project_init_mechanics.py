@@ -41,7 +41,7 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def prepare(repo: Path, contract: Path) -> dict:
+def prepare(repo: Path, contract: Path) -> dict[str, object]:
     repo = repo.resolve()
     contract = contract.resolve()
     if not repo.is_dir():
