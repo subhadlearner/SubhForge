@@ -193,6 +193,25 @@ Distinguish clearly between:
 
 ## Stage 5 — Ensure Workflow Artifact Directories
 
+Use the deterministic installed helper for mechanical repository setup:
+
+```text
+python <global-config>/scripts/project_init_mechanics.py --repo <project-root> --contract <global-config>/contracts/implementation-state-evidence-v1.md
+```
+
+The helper owns only deterministic mechanics:
+
+- standard workflow directory creation
+- synchronization of the implementation-state evidence contract
+- idempotent verification of the synchronized contract hash
+
+Do not manually recreate those mechanics with shell loops, repeated directory
+probes, or contract-copy commands when the helper is available.
+
+The workflow still owns all project-specific reasoning and authoring, including
+technology extraction, `AGENTS.md`, README content, project-specific rules,
+skills, commands, and any clarification/blocking decisions.
+
 Ensure the repository contains the standard workflow artifact directories:
 
 - `docs/discovery/`
