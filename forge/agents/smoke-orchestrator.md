@@ -164,6 +164,11 @@ When exact context paths are valid, children must consume them directly.
 Repository-wide discovery is a fallback for missing/stale/ambiguous context,
 not the default first step.
 
+For smoke planning children, the parent MUST include a discovery policy:
+`EXACT_ONLY` when all required stage context is already known, otherwise
+`BOUNDED` with one concrete unresolved item and smallest allowed scope.
+Do not delegate an unconstrained planning discovery request.
+
 Before every substantive child/model stage:
 
 1. load canonical state with `scripts/smoke_state.py ... get`
