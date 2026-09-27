@@ -20,6 +20,8 @@ class SmokeStaticTests(unittest.TestCase):
         config = root / "config"
         for folder in ("commands", "agents", "contracts", "smoke"):
             shutil.copytree(source / folder, config / folder)
+        (config / "scripts").mkdir()
+        shutil.copy2(source / "scripts/smoke_handoff.py", config / "scripts/smoke_handoff.py")
         shutil.copy2(source / "AGENTS.md", config / "AGENTS.md")
         repo = root / "repo"
         evidence = repo / "docs/verification/smoke"
