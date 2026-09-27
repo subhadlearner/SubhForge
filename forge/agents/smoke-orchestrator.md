@@ -206,9 +206,12 @@ Immediately after every child returns, before launching another stage:
 1. end deterministic invocation timing with
    `scripts/smoke_budget.py ... stage-end --invocation-id <id>`
 2. persist stage/scenario/artifact/evidence changes with
-   `scripts/smoke_state.py ... set --json <targeted-update>`
-3. persist/update `stage_metrics[<stage>]` using the deterministic elapsed
-   seconds plus the child model, exact context paths supplied, and discovery policy
+   `scripts/smoke_state.py ... set --json <targeted-update>`; for
+   `context_index` and `stage_metrics`, send only the key(s) changed in this
+   transition because the helper merges those maps by key
+3. persist/update only `stage_metrics[<stage>]` using the deterministic elapsed
+   seconds plus the child model, exact context paths supplied, and discovery
+   policy; do not reconstruct or resend prior stage metrics
 4. verify the update with `smoke_state.py ... get`
 5. update the human-readable Markdown audit projection
 6. run the budget guard
