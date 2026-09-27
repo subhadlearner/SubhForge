@@ -8,8 +8,6 @@ Keeps setup deliberately simple:
 - doctor: validate prerequisites and the installed/project layout.
 """
 
-from __future__ import print_function
-
 import argparse
 import datetime as _dt
 import filecmp
@@ -19,10 +17,9 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
-from typing import Iterable, Optional, Tuple
 
 
-MIN_PYTHON = (3, 8)
+MIN_PYTHON = (3, 14)
 MANAGED_REQUIRED = (
     "AGENTS.md",
     "kilo.jsonc",
@@ -52,7 +49,7 @@ def default_kilo_config_dir() -> Path:
     return (Path.home() / ".config" / "kilo").resolve()
 
 
-def _assert_source_layout(root: Path) -> Tuple[Path, Path]:
+def _assert_source_layout(root: Path) -> tuple[Path, Path]:
     forge = root / "forge"
     template = root / "template"
     missing = []
@@ -85,7 +82,7 @@ def _copy_tree_exact(source: Path, dest: Path) -> None:
     shutil.copytree(str(source), str(dest))
 
 
-def _git_value(root: Path, args: list[str]) -> Optional[str]:
+def _git_value(root: Path, args: list[str]) -> str | None:
     git = shutil.which("git")
     if not git:
         return None
@@ -124,7 +121,7 @@ def _write_install_manifest(config_dir: Path, root: Path) -> None:
     )
 
 
-def install_config(config_dir: Path, root: Optional[Path] = None) -> Optional[Path]:
+def install_config(config_dir: Path, root: Path | None = None) -> Path | None:
     root = root or repo_root()
     forge, _ = _assert_source_layout(root)
     config_dir = config_dir.expanduser().resolve()
@@ -146,7 +143,7 @@ def _directory_nonempty(path: Path) -> bool:
 
 def init_project(
     project_dir: Path,
-    root: Optional[Path] = None,
+    root: Path | None = None,
     force: bool = False,
     git_init: bool = True,
 ) -> None:
@@ -223,8 +220,8 @@ def init_project(
 def _same_tree(
     source: Path,
     dest: Path,
-    ignore: Tuple[str, ...] = (),
-) -> Tuple[bool, str]:
+    ignore: tuple[str, ...] = (),
+) -> tuple[bool, str]:
     if not source.exists():
         return False, "source missing: {}".format(source)
     if not dest.exists():
@@ -255,8 +252,8 @@ def _same_tree(
 
 def doctor(
     config_dir: Path,
-    project_dir: Optional[Path] = None,
-    root: Optional[Path] = None,
+    project_dir: Path | None = None,
+    root: Path | None = None,
 ) -> int:
     root = root or repo_root()
     checks = []
@@ -332,7 +329,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Optional[Iterable[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     root = repo_root()
 
