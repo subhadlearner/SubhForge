@@ -3135,37 +3135,34 @@ report-generator scripts such as `build_manifest.py` or `gen_report.py`.
   runtimes for generated projects remain architecture decisions.
 
 
-- [ ] **Enforce use of deterministic static Contract-v1 parity helper in /smoke.**
-  The current FULL run still hand-rolls contract equality using PowerShell
-  `Get-FileHash` / `Get-Content` instead of invoking
-  `scripts/smoke_static.py contract-parity`. Treat this as an orchestration
-  compliance defect: the helper exists and is authoritative, so the smoke
-  orchestrator must call it rather than reimplement the same static check.
+- [x] **Enforce deterministic static Contract-v1 parity in /smoke.**
+  Implemented through mandatory `scripts/smoke_bootstrap.py`, which invokes
+  the path-aware `smoke_static.contract_parity` logic before any model stage,
+  persists the result into canonical smoke state, and fails closed on required
+  mismatch. **Runtime revalidation is required in the next fresh FULL run.**
 
-- [ ] **Enforce canonical structured smoke state during real runs.**
-  The current FULL run does not visibly initialize
-  `scripts/smoke_state.py ... init` and still appears to maintain the Markdown
-  record directly. Treat `<run-id>.state.json` as the machine-readable source
-  of truth in execution, use targeted `smoke_state.py set` updates for
-  transitions, and keep Markdown as the human-readable projection only.
+- [x] **Enforce canonical structured smoke state during real runs.**
+  New-run bootstrap now initializes `<run-id>.state.json` and the budget in one
+  deterministic prerequisite. The smoke orchestrator must load canonical state
+  before every substantive child, persist targeted `smoke_state.py set`
+  updates immediately after the child, verify the update, then update Markdown
+  as the human-readable projection. **Runtime revalidation is required in the
+  next fresh FULL run.**
 
-- [ ] **Eliminate avoidable rediscovery when exact context paths are already known.**
-  Planning stages are improved but the current FULL run still performs bounded
-  globs such as `**/*fixture*`, `docs/architecture/**`, `docs/adr/**`, and
-  `docs/discovery/**` even when the orchestrator already knows the exact
-  authoritative paths. Tighten stage delegation so valid supplied paths are
-  consumed directly and discovery occurs only for missing, stale, ambiguous,
-  or genuinely unresolved context.
+- [x] **Eliminate avoidable rediscovery when exact context paths are already known.**
+  Smoke delegation now uses an explicit `CONTEXT_PATHS` contract. Planning and
+  execution workers must consume valid supplied paths directly, may not glob a
+  directory merely to rediscover them, and must report the concrete reason when
+  bounded discovery is genuinely required. **Runtime revalidation is required
+  in the next fresh FULL run.**
 
 
-- [ ] **Reduce pre-review and senior-review deterministic reconstruction overhead.**
-  The latest FULL run reached first verification in about 22m48s, but pre-review
-  and senior review consumed the remaining budget and crossed the 30-minute
-  ceiling after the senior reviewer returned. The review path repeatedly
-  reconstructed repository identity/freshness with status, tracked/untracked
-  enumeration, raw diffs, blob/fingerprint checks, broad globs, and rereads of
-  unchanged Spec/Architecture/ADR/evidence files. Reuse canonical verification
-  manifest/freshness evidence and exact context paths where valid; move purely
-  deterministic identity/freshness mechanics into helpers or precomputed
-  handoff data. Preserve reviewer judgment, security review, and authority
-  checks; optimize mechanics only.
+- [x] **Reduce pre-review and senior-review deterministic reconstruction overhead.**
+  Added shared `scripts/implementation_state.py` as the general Contract-v1
+  identity engine and `scripts/review_preflight.py` to reconstruct/compare
+  review freshness once. Both reviewer stages now receive exact context paths,
+  the successful preflight result, verification evidence, and prior review
+  evidence instead of independently rebuilding repository identity. Reviewer
+  judgment, security analysis, architecture checks, and independent production
+  assessment remain unchanged. **Runtime revalidation is required in the next
+  fresh FULL run.**
