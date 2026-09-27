@@ -2682,80 +2682,179 @@ Do not automatically cycle indefinitely.
 
 # 26. Phase 19 — Restart from an arbitrary middle stage
 
-This phase specifically validates that the workflow can be followed without prior conversational baggage.
+This phase validates **routing from persisted repository state**, not repeated
+end-to-end execution from seven different starting points.
 
-Create separate restart scenarios.
+The acceptance question is:
 
-## Scenario A — approved architecture already exists
+> Given a fresh conversational context and only the persisted repository state,
+> can SubhForge identify the earliest correct continuation stage without relying
+> on prior chat history?
 
-Start a fresh chat/session.
+Do not tell the probe the expected stage. The harness may know the expected
+answer for scoring, but that expected answer must not appear in the child
+context, artifact names, prompt text, or checkpoint label exposed to the
+routing decision.
 
-Provide only repository access.
+## 26.1 Cost-controlled execution rule
 
-Expected behavior:
+Use seven bounded subcases, but do **not** replay the full downstream lifecycle
+for each subcase.
 
-- agent discovers existing PRD/architecture
-- does not rerun `/grill` or `/prd`
-- starts at `/project-init` if initialization is incomplete
+- six subcases are **routing-only**
+- one subcase is **routing + real handoff**
+- routing-only cases stop immediately after the correct next stage and reason
+  are persisted
+- the routing + handoff case crosses into the selected normal lifecycle command
+  only far enough to prove that the persisted artifact/context handoff is
+  executable; it does not need to complete the downstream feature again
+- do not count a routing case as passed merely because a deterministic helper
+  computed the expected stage; the routing decision must be produced by the
+  workflow/orchestrator reasoning under test
 
-## Scenario B — project-init already ready
+The normal SubhForge workflow is unchanged. Outside smoke testing, resume
+continues into the selected lifecycle command normally.
 
-Fresh session.
+## 26.2 Subcases
 
-Expected:
+### Scenario A — approved architecture already exists
 
-- discovers project baseline and artifacts
-- starts at `/spec`
+Fresh routing context receives repository access only.
 
-## Scenario C — approved spec exists
+Persisted state:
 
-Fresh session.
+- PRD ready
+- architecture/ADRs ready
+- project-init incomplete
 
-Expected:
+Expected routing decision:
 
-- identifies relevant spec
-- starts at `/implement`
+`/project-init`
 
-## Scenario D — implementation exists, no verification
+Do not rerun `/grill`, `/prd`, or `/architect`.
 
-Fresh session.
+### Scenario B — project-init already ready
 
-Expected:
+Persisted state:
 
-- starts at `/verify`
+- project-init ready
+- no approved Spec
 
-## Scenario E — valid fresh verification exists
+Expected routing decision:
 
-Fresh session.
+`/spec`
 
-Expected:
+### Scenario C — approved Spec exists
 
-- starts at `/review`
+Persisted state:
 
-## Scenario F — stale verification exists
+- approved Spec exists
+- implementation not yet complete
 
-Fresh session.
+Expected routing decision:
 
-Expected:
+`/implement`
 
-- detects stale state
-- requires `/verify`
-- does not trust prior chat
+This is the **routing + real handoff** subcase.
 
-## Scenario G — review blocker exists
+After the routing decision is persisted, invoke the normal `/implement`
+owner with the exact persisted Spec/context paths and prove that the command
+accepts the handoff and begins from that Spec. Stop the resume subcase after
+handoff correctness is evidenced; do not require a second full implementation,
+verification, and review cycle merely for this resume test.
 
-Fresh session.
+### Scenario D — implementation exists, no verification
 
-Expected:
+Persisted state:
 
-- `/fix` consumes persisted review evidence
-- no need to reproduce reviewer conversation
+- implementation exists
+- no applicable current verification evidence
 
-## Pass condition
+Expected routing decision:
 
-Persisted repository artifacts are sufficient to determine the correct continuation point.
+`/verify`
 
-Chat memory must not be required.
+Routing-only.
+
+### Scenario E — valid fresh verification exists
+
+Persisted state:
+
+- applicable verification exists
+- delivery gate is clear
+- deterministic Contract-v1 freshness is `MATCH`
+
+Expected routing decision:
+
+`/review`
+
+Routing-only. Do not invoke reviewers merely to prove routing; review behavior
+is already exercised by its dedicated smoke scenarios.
+
+### Scenario F — stale verification exists
+
+Persisted state:
+
+- applicable historical verification exists
+- current implementation identity no longer matches it
+
+Expected routing decision:
+
+`/verify`
+
+The probe must establish staleness through the normal deterministic freshness
+mechanism. It must not trust the previous verification merely because a report
+exists.
+
+Routing-only.
+
+### Scenario G — review blocker exists
+
+Persisted state:
+
+- blocking review evidence exists
+- no later repair has superseded it
+
+Expected routing decision:
+
+`/fix`
+
+Routing-only. The persisted review artifact must be sufficient; prior reviewer
+conversation must not be required.
+
+## 26.3 Probe isolation
+
+Each subcase must start from a deterministic known repository/checkpoint state.
+
+Before the routing probe:
+
+1. restore/prepare the exact intended persisted state
+2. verify checkpoint identity deterministically
+3. start a fresh bounded routing context with no prior conversational answers
+4. provide repository root plus only normal persisted repository evidence
+5. do not provide the expected stage or a semantic hint that reveals it
+
+After the routing decision:
+
+1. persist actual selected stage and concise reason
+2. compare actual stage to the harness-owned expected stage
+3. for routing-only cases, stop there and restore the next checkpoint
+4. for Scenario C only, perform the real command handoff described above
+
+## 26.4 Pass condition
+
+The `arbitrary-stage-resume` scenario passes only when:
+
+- all seven subcases choose the correct continuation stage
+- none relies on chat history
+- no subcase reruns already-valid upstream ceremony
+- stale verification routes to fresh `/verify`
+- review-blocker state routes to `/fix`
+- Scenario C successfully hands off into the normal `/implement` workflow
+  using persisted Spec/context evidence
+
+The scenario does **not** require seven repeated downstream lifecycle
+executions.
 
 ---
 
