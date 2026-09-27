@@ -3107,11 +3107,10 @@ report-generator scripts such as `build_manifest.py` or `gen_report.py`.
   and report missing optional paths separately from parity failure.
 
 
-- [ ] **Add a repository-level `.gitignore`.**
-  Define and commit a root `.gitignore` suitable for SubhForge development and
-  smoke execution, including generated Python artifacts such as
-  `__pycache__/`, without hiding evidence or source files that the workflow
-  needs to track.
+- [x] **Add a repository-level `.gitignore`.**
+  Added a conservative root `.gitignore` covering generated Python, editor,
+  OS, build, temporary, IaC, and local Kilo scratch artifacts without excluding
+  SubhForge workflow evidence, design documents, or source files.
 
 - [ ] **Design an approved ceremony-bypass path for existing upstream authority.**
   Stable-v0.1.0 should support starting from a later lifecycle stage such as
@@ -3129,3 +3128,10 @@ report-generator scripts such as `build_manifest.py` or `gen_report.py`.
   lives in `<run-id>.state.json`; the Markdown run record remains the
   human-readable audit projection. Stage transitions use targeted structured
   updates instead of relying on exact long-block Markdown matches.
+
+
+- [x] **Raise SubhForge runtime baseline to Python 3.14+.**
+  SubhForge itself now requires Python 3.14+ in bootstrap validation,
+  documentation, and the PowerShell wrapper. New helper code uses modern Python
+  typing accordingly. This requirement applies to the SubhForge harness only;
+  runtimes for generated projects remain architecture decisions.
