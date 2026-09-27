@@ -63,6 +63,33 @@ class SmokeWorkspaceTests(unittest.TestCase):
         ]
         self.assertEqual([], leftovers)
 
+
+    def test_source_guard_allows_preexisting_dirty_source_when_unchanged(self):
+        dirty = self.source / "template" / "README.md"
+        dirty.write_text("dirty working tree\n", encoding="utf-8")
+
+        before = smoke_workspace.source_guard(self.source)
+        verified = smoke_workspace.verify_source_guard(
+            self.source, before["fingerprint"]
+        )
+
+        self.assertEqual("MATCH", verified["result"])
+
+    def test_source_guard_detects_new_untracked_smoke_artifact(self):
+        before = smoke_workspace.source_guard(self.source)
+        leaked = self.source / "docs" / "discovery"
+        leaked.mkdir(parents=True)
+        (leaked / "full-minimal-api-discovery.md").write_text(
+            "smoke leak\n", encoding="utf-8"
+        )
+
+        verified = smoke_workspace.verify_source_guard(
+            self.source, before["fingerprint"]
+        )
+
+        self.assertEqual("MISMATCH", verified["result"])
+        self.assertNotEqual(before["fingerprint"], verified["fingerprint"])
+
     def test_locate_and_destroy_use_internal_run_root(self):
         result = smoke_workspace.create_workspace(
             self.source, self.commit, "FAST", "fast-micro-library"
