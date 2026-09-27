@@ -22,6 +22,13 @@ Completion is determined only by `/verify`.
 
 Before modifying code, read only the context required for the requested specification.
 
+When exact specification, architecture/ADR, project-rule, source, or test paths
+are supplied by the caller, validate and use them directly. Do not perform
+repository-wide listing/globbing just to rediscover known inputs. Discovery is
+allowed when a supplied path is invalid or the implementation requires an
+unknown existing-code dependency, but it should begin with the smallest
+relevant scope.
+
 Use, in priority order:
 
 1. project-level `AGENTS.md`
