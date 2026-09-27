@@ -109,6 +109,21 @@ The implementation agent must:
 
 If requirements conflict or a required architecture decision is missing, stop and report the blocker.
 
+## Python Helper Regression Discipline
+
+Python helpers under `forge/scripts/` are release-critical deterministic infrastructure.
+
+When creating or changing a production Python helper:
+
+- add or update its dedicated `test_<module>.py` regression module in the same change
+- cover the behavior or invariant being changed, including the exact regression when fixing a defect
+- do not rely only on indirect coverage through another helper's tests when the module owns reusable behavior
+- use a documented exemption only for genuinely non-behavioral changes where changing the paired test would add no value
+- run `python -m unittest discover -s forge/scripts -p "test_*.py"` before smoke testing or release validation
+- keep the repository policy test green; it checks that production helpers have paired tests and that changed helpers update their paired tests
+
+A Python-helper bug fix without a regression test is incomplete.
+
 ## Testing and Verification
 
 Use applicable:
