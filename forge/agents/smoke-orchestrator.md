@@ -104,16 +104,25 @@ Never probe `command/` or `agent/`. When loading a lifecycle contract, resolve i
 
 ## Persistence
 
-Persist smoke state under:
+Persist canonical machine state under:
+
+`docs/verification/smoke/<run-id>.state.json`
+
+and keep the human-readable audit/evidence projection under:
 
 `docs/verification/smoke/<run-id>.md`
 
-Update state after every meaningful transition so another chat/session can resume without conversation memory.
+Use `scripts/smoke_state.py` for targeted state changes. Do not rely on
+long-text Markdown patch matching for orchestration state.
 
-Keep a compact context index in that record with exact artifact paths and
+Keep a compact context index in canonical state with exact artifact paths and
 content/authority identity. Pass only the next stage's needed paths and
 acceptance condition to a child. Reuse the index until identity changes;
 avoid repeated glob/git rediscovery and unchanged Markdown reads.
+
+When exact context paths are valid, children must consume them directly.
+Repository-wide discovery is a fallback for missing/stale/ambiguous context,
+not the default first step.
 
 Use `scripts/smoke_mechanics.py` for canonical manifest preflight, exact
 fixture mutation/restoration, and checkpoint comparisons. Fan out independent
