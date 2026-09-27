@@ -797,10 +797,15 @@ For a full end-to-end run from `/grill`, target approximately this number of sub
 
 This table is a target, not a mandate.
 
-The default tiny FULL run targets completion within 25 minutes. At 30 minutes,
-persist `PERFORMANCE_BUDGET_EXCEEDED`, stop launching new model stages, and
-return a resumable blocked state with the workspace and evidence intact.
-Elapsed-time overrun is not evidence of a functional failure or a PASS.
+The default tiny FULL run targets completion within 25 minutes. The 30-minute
+limit is an **end-to-end release-qualification ceiling** measured from smoke
+bootstrap; it does not reset on `RESUME`.
+
+At 30 minutes, persist `PERFORMANCE_BUDGET_EXCEEDED`, stop launching new model
+stages, and retain the workspace/evidence for STATUS, diagnosis, or abandonment.
+Elapsed-time overrun is not evidence of a functional failure, but the same
+exhausted run cannot later continue to a release-qualifying PASS. A new FULL run
+is required after any framework/performance fix.
 
 If a valid artifact already exists because the smoke run resumes mid-workflow, subtract the corresponding completed stages.
 
