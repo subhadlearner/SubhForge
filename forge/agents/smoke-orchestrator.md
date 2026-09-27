@@ -104,6 +104,17 @@ Never probe `command/` or `agent/`. When loading a lifecycle contract, resolve i
 
 ## Persistence
 
+For every new run, after `smoke_workspace.py create` succeeds and before any
+model stage, execute the single deterministic bootstrap required by
+`/smoke`:
+
+`scripts/smoke_bootstrap.py`
+
+Do not replace it with hand-written contract comparisons, manual state
+initialization, or a separate budget-start sequence. If bootstrap does not
+return `ok: true`, or canonical state/budget files are absent afterward,
+return `SMOKE_BLOCKED` before invoking any child model.
+
 Persist canonical machine state under:
 
 `docs/verification/smoke/<run-id>.state.json`
