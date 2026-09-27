@@ -620,6 +620,35 @@ Start from the correct current stage and exercise all required acceptance criter
 - arbitrary-stage resume
 - upstream invalidation routing
 
+
+
+## Arbitrary-stage resume smoke optimization
+
+The FULL `arbitrary-stage-resume` scenario validates routing from persisted
+repository state, not seven repeated downstream lifecycle executions.
+
+For its seven subcases:
+
+- six are routing-only
+- Scenario C (approved Spec exists) is routing + real `/implement` handoff
+- the harness may retain the expected stage for scoring, but MUST NOT expose it
+  to the routing child in prompts, checkpoint labels, artifact names, or context
+- each probe starts from a deterministic known persisted state with no prior
+  conversational answers
+- the routing child must inspect normal persisted repository evidence and
+  produce the next stage itself
+- routing-only probes stop immediately after persisting the chosen stage and
+  concise reason
+- Scenario C crosses into the normal `/implement` owner only far enough to
+  prove persisted Spec/context handoff correctness; it does not replay the
+  entire implementation/verify/review lifecycle
+- normal non-smoke resume semantics are unchanged: real project resumes continue
+  executing the selected lifecycle stage normally
+
+Do not replace the routing decision with a deterministic lookup table. Helpers
+may prepare/verify checkpoint state and freshness, but the workflow reasoning
+under test must choose the continuation stage.
+
 ## Stage 9 — Fixture budget enforcement
 
 Treat the selected fixture's test budget as the default maximum application-test surface.
