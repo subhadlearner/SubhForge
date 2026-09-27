@@ -66,6 +66,43 @@ class SmokeStateTests(unittest.TestCase):
                 {"completed_scenarios": "prd"},
             )
 
+
+
+    def test_stage_metrics_persist_timing_and_context_paths(self):
+        smoke_state.init(
+            self.repo, self.run_id, "FULL", "full-minimal-api", "abc123", "base123"
+        )
+        updated = smoke_state.set_values(
+            self.repo,
+            self.run_id,
+            {
+                "stage_metrics": {
+                    "prd": {
+                        "model": "openai/gpt-5.6-sol",
+                        "elapsed_seconds": 142.5,
+                        "context_paths": [
+                            "docs/discovery/DISC-001.md",
+                            "AGENTS.md",
+                        ],
+                        "discovery_policy": "EXACT_ONLY",
+                    }
+                }
+            },
+        )
+        self.assertEqual(142.5, updated["stage_metrics"]["prd"]["elapsed_seconds"])
+        self.assertEqual("EXACT_ONLY", updated["stage_metrics"]["prd"]["discovery_policy"])
+
+    def test_invalid_stage_metrics_fail_closed(self):
+        smoke_state.init(
+            self.repo, self.run_id, "FULL", "full-minimal-api", "abc123", "base123"
+        )
+        with self.assertRaises(smoke_state.SmokeStateError):
+            smoke_state.set_values(
+                self.repo,
+                self.run_id,
+                {"stage_metrics": {"prd": {"elapsed_seconds": -1}}},
+            )
+
     def test_immutable_identity_fields_fail_closed(self):
         smoke_state.init(
             self.repo, self.run_id, "FULL", "full-minimal-api", "abc123", "base123"
