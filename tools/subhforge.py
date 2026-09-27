@@ -112,6 +112,7 @@ def _write_install_manifest(config_dir: Path, root: Path) -> None:
     manifest = {
         "schema_version": 1,
         "source_repository": "subhadlearner/SubhForge",
+        "source_checkout_path": str(root.resolve()),
         "source_commit": source_commit,
         "source_branch": source_branch,
         "source_tag": source_tag,
