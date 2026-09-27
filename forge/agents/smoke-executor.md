@@ -102,9 +102,15 @@ Apply all normal:
 
 Also read:
 
-- the active smoke-run record supplied by the parent
+- canonical smoke state supplied by the parent
 - the selected fixture entry from installed global `smoke/fixtures.json`
 - only the minimum project artifacts required by the underlying workflow
+
+The parent must provide a compact context packet with exact paths for known
+inputs. Validate and use those paths directly. Do not start with broad
+repository listing/globbing. Perform bounded discovery only when a supplied
+path is missing, stale, ambiguous, or the underlying workflow needs an unknown
+existing-code dependency.
 
 ### Deterministic smoke verification path
 
