@@ -8,6 +8,7 @@ import datetime as dt
 import json
 import sys
 from pathlib import Path
+from typing import Optional
 
 
 class BudgetError(RuntimeError):
@@ -27,7 +28,7 @@ def _now() -> dt.datetime:
     return dt.datetime.now(dt.timezone.utc)
 
 
-def start(repo: Path, run_id: str, now: dt.datetime | None = None) -> dict:
+def start(repo: Path, run_id: str, now: Optional[dt.datetime] = None) -> dict:
     path = _state_path(repo, run_id)
     if path.exists():
         raise BudgetError("Budget state already exists")
@@ -38,7 +39,7 @@ def start(repo: Path, run_id: str, now: dt.datetime | None = None) -> dict:
 
 
 def check(repo: Path, run_id: str, limit_minutes: int = 30,
-          now: dt.datetime | None = None) -> dict:
+          now: Optional[dt.datetime] = None) -> dict:
     path = _state_path(repo, run_id)
     if not path.exists():
         raise BudgetError("Budget state is missing")
