@@ -121,6 +121,11 @@ After new-run bootstrap, and after locating any RESUME workspace, invoke only:
 
 `scripts/smoke_handoff.py --repo <run-directory> --run-id <run-id> ensure`
 
+Run that shell-tool invocation with a per-command timeout of at least
+**2,400,000 ms (40 minutes)**. The timeout exists only to supervise the nested
+Kilo CLI process. It never replaces, resets, pauses, or extends the
+30-minute end-to-end `smoke_budget.py` release-qualification clock.
+
 That helper validates the initialized `smoke-run` target and either:
 
 - returns `ALREADY_ROOTED` when this Kilo session is already running in the
@@ -131,6 +136,14 @@ That helper validates the initialized `smoke-run` target and either:
 On `HANDOFF_COMPLETE`, stop the source-root invocation. Do not execute a
 second lifecycle stage, update, or task child from the source session. Do not
 construct an ad-hoc `kilo run` command yourself.
+
+The helper uses Kilo autonomous mode only for non-interactive tool-permission
+transport inside the validated disposable repository. Autonomous mode never
+constitutes human authorization. It MUST NOT satisfy waiver acceptance, paid
+Claude/model escalation approval, security/risk acceptance, product decisions,
+destructive actions, or any other human-controlled gate. If explicit user
+authorization is absent, persist the waiting/blocking state and return the
+normal smoke status rather than deciding on the user's behalf.
 
 Do not:
 
