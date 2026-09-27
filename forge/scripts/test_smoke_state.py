@@ -38,6 +38,34 @@ class SmokeStateTests(unittest.TestCase):
         self.assertEqual("docs/prd/PRD-001.md", updated["context_index"]["prd"])
         self.assertEqual(updated, smoke_state.load(self.repo, self.run_id))
 
+
+
+    def test_completed_scenarios_are_removed_from_pending(self):
+        smoke_state.init(
+            self.repo, self.run_id, "FULL", "full-minimal-api", "abc123", "base123"
+        )
+        updated = smoke_state.set_values(
+            self.repo,
+            self.run_id,
+            {
+                "completed_scenarios": ["grill", "prd"],
+                "pending_scenarios": ["static-release-gate", "prd", "architect"],
+            },
+        )
+        self.assertEqual(["grill", "prd"], updated["completed_scenarios"])
+        self.assertEqual(["static-release-gate", "architect"], updated["pending_scenarios"])
+
+    def test_invalid_scenario_lists_fail_closed(self):
+        smoke_state.init(
+            self.repo, self.run_id, "FULL", "full-minimal-api", "abc123", "base123"
+        )
+        with self.assertRaises(smoke_state.SmokeStateError):
+            smoke_state.set_values(
+                self.repo,
+                self.run_id,
+                {"completed_scenarios": "prd"},
+            )
+
     def test_immutable_identity_fields_fail_closed(self):
         smoke_state.init(
             self.repo, self.run_id, "FULL", "full-minimal-api", "abc123", "base123"
