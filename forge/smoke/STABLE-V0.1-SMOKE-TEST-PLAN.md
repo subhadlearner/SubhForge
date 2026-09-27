@@ -3078,3 +3078,20 @@ The smoke test should demonstrate that the workflow can be entered and resumed f
 The core guarantee is:
 
 > The workflow preserves authority boundaries, reuses valid prior artifacts, invalidates downstream work when upstream authority changes, and ensures that the exact repository state that was deterministically verified is the state being reviewed—even when implementation was never committed before verification.
+
+
+## Executable FULL runtime guard
+
+The FULL orchestration budget is enforced by `scripts/smoke_budget.py`.
+
+- initialize the guard immediately after the smoke run record is created
+- check it before every substantive lifecycle/model stage
+- check it immediately after every child/subagent returns
+- at 30 minutes, do not launch another stage; persist the blocker and return
+  `PERFORMANCE_BUDGET_EXCEEDED`
+- this is an orchestration-boundary stop and does not forcibly terminate an
+  already-running child model invocation
+
+Smoke `/verify` must use `scripts/smoke_mechanics.py manifest` for pre/post
+Contract-v1 implementation identity. It must not generate ad-hoc manifest or
+report-generator scripts such as `build_manifest.py` or `gen_report.py`.
