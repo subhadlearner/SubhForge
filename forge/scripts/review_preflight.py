@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import smoke_mechanics
+import implementation_state
 
 
 class ReviewPreflightError(RuntimeError):
@@ -23,8 +23,8 @@ def review_preflight(repo: Path, base_head: str, persisted_manifest: Path) -> di
         raise ReviewPreflightError(f"Persisted verification manifest is missing: {persisted_manifest}")
 
     expected = persisted_manifest.read_bytes()
-    current = smoke_mechanics.canonical_manifest(repo, base_head)
-    current_identity = smoke_mechanics.identity(repo, base_head)
+    current = implementation_state.canonical_manifest(repo, base_head)
+    current_identity = implementation_state.identity(repo, base_head)
 
     return {
         "base_head": base_head,
@@ -46,7 +46,7 @@ def main() -> int:
         result = review_preflight(args.repo, args.base, args.manifest)
         print(json.dumps({"ok": True, **result}))
         return 0 if result["freshness"] == "MATCH" else 3
-    except (ReviewPreflightError, smoke_mechanics.MechanicsError, OSError, ValueError) as exc:
+    except (ReviewPreflightError, implementation_state.ImplementationStateError, OSError, ValueError) as exc:
         print(json.dumps({"ok": False, "freshness": "UNRECONSTRUCTABLE", "error": str(exc)}))
         return 2
 
