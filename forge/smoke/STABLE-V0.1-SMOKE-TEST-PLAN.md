@@ -3156,3 +3156,16 @@ report-generator scripts such as `build_manifest.py` or `gen_report.py`.
   authoritative paths. Tighten stage delegation so valid supplied paths are
   consumed directly and discovery occurs only for missing, stale, ambiguous,
   or genuinely unresolved context.
+
+
+- [ ] **Reduce pre-review and senior-review deterministic reconstruction overhead.**
+  The latest FULL run reached first verification in about 22m48s, but pre-review
+  and senior review consumed the remaining budget and crossed the 30-minute
+  ceiling after the senior reviewer returned. The review path repeatedly
+  reconstructed repository identity/freshness with status, tracked/untracked
+  enumeration, raw diffs, blob/fingerprint checks, broad globs, and rereads of
+  unchanged Spec/Architecture/ADR/evidence files. Reuse canonical verification
+  manifest/freshness evidence and exact context paths where valid; move purely
+  deterministic identity/freshness mechanics into helpers or precomputed
+  handoff data. Preserve reviewer judgment, security review, and authority
+  checks; optimize mechanics only.
