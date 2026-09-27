@@ -3105,3 +3105,21 @@ report-generator scripts such as `build_manifest.py` or `gen_report.py`.
   contract are byte-identical. Replace the literal multi-path boolean with a
   deterministic check over only required, existing canonical contract copies,
   and report missing optional paths separately from parity failure.
+
+
+- [ ] **Add a repository-level `.gitignore`.**
+  Define and commit a root `.gitignore` suitable for SubhForge development and
+  smoke execution, including generated Python artifacts such as
+  `__pycache__/`, without hiding evidence or source files that the workflow
+  needs to track.
+
+- [ ] **Design an approved ceremony-bypass path for existing upstream authority.**
+  Stable-v0.1.0 should support starting from a later lifecycle stage such as
+  `/spec` when valid upstream authority already exists, for example an
+  existing PRD that should be used as the governing input for implementation.
+  This is needed for the planned v0.2.0 work, where an accepted PRD already
+  exists and repeating `/grill`, `/prd`, and `/architect` would add ceremony
+  without useful new information. The exact authority checks, permitted skip
+  combinations, provenance requirements, and safety rules are intentionally
+  **deferred for discussion when this TODO is picked up**. Do not design or
+  implement the bypass as part of the current smoke-efficiency work.
