@@ -234,7 +234,7 @@ For a new run:
    ```
 
    Invoke this one shell-tool call with a per-command timeout of at least
-   **2,400,000 ms (40 minutes)**. Kilo's shell timeout is only transport
+   **3,600,000 ms (60 minutes)**. Kilo's shell timeout is only transport
    supervision for the nested CLI process; it is NOT the smoke qualification
    budget and MUST NOT replace, reset, pause, or extend the 30-minute
    `smoke_budget.py` clock.
@@ -345,7 +345,7 @@ reconstruct state from the exact run record and current repository evidence.
 Before continuing:
 
 - locate the run workspace using `python <global-config>/scripts/smoke_workspace.py locate --source <source_checkout_path> --run-id <run-id>` and validate the returned run directory/branch
-- invoke `python <global-config>/scripts/smoke_handoff.py --repo <run-directory> --run-id <run-id> ensure` before any substantive child/model delegation, using a shell-tool timeout of at least 2,400,000 ms (40 minutes); this transport timeout does not alter the 30-minute smoke budget
+- invoke `python <global-config>/scripts/smoke_handoff.py --repo <run-directory> --run-id <run-id> ensure` before any substantive child/model delegation, using a shell-tool timeout of at least 3,600,000 ms (60 minutes); this transport timeout does not alter the 30-minute smoke budget
 - if handoff returns `HANDOFF_COMPLETE`, stop the source-root invocation and
   relay the rooted continuation result; do not continue smoke orchestration in
   the source checkout
