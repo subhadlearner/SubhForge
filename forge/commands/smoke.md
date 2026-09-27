@@ -819,27 +819,42 @@ Enforce the runbook's token/cost rules:
 - Claude invocation count target: zero
 
 For the tiny FULL fixture, target 25 minutes and enforce a 30-minute hard
-orchestration ceiling with the installed executable guard.
+**end-to-end release-qualification ceiling** with the installed executable
+guard. The clock starts at smoke bootstrap and does not reset on `RESUME`.
 
-Before EVERY substantive lifecycle/model stage, and immediately after EVERY
-child/subagent returns, run:
+Before EVERY substantive lifecycle/model stage, run:
 
 ```text
 python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <run-id> check --limit-minutes 30
+python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <run-id> stage-start --stage <stage-id> --model <model-id>
 ```
+
+Retain the returned invocation ID. Immediately after EVERY child/subagent
+returns, run:
+
+```text
+python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <run-id> stage-end --invocation-id <invocation-id>
+python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <run-id> check --limit-minutes 30
+```
+
+Use the deterministic stage timing result for canonical `stage_metrics`.
+Do not hand-reconstruct stage duration from prose or chat timestamps.
 
 If the guard returns exit code 3 / `PERFORMANCE_BUDGET_EXCEEDED`:
 
 - do not launch another lifecycle/model stage
 - persist elapsed time, current stage, ledger, and blocker
 - return `SMOKE_BLOCKED` with `PERFORMANCE_BUDGET_EXCEEDED`
-- keep the workspace for diagnosis/resume
+- keep the workspace for diagnosis, STATUS, evidence preservation, or ABANDON
 - do not call this a functional `SMOKE_FAIL`
+- do not continue the same exhausted clock toward a release-qualifying PASS
 
 The orchestration guard is a boundary stop: it prevents any new stage after the
 budget is exceeded and catches over-budget child calls immediately on return.
-It cannot forcibly terminate a child model invocation already in progress.
-Do not claim otherwise.
+It cannot forcibly terminate a child model invocation already in progress, so
+one child may finish after the ceiling. A later `RESUME` does not reset the
+clock or convert an over-budget run into a qualifying PASS. Do not claim
+otherwise.
 
 Record every substantive model invocation in the run ledger.
 
