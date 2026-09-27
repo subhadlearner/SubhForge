@@ -66,6 +66,15 @@ class SmokeStaticTests(unittest.TestCase):
             self.assertIn("contract:parity", result["failures"])
             self.assertIn("budget:30-minutes", result["failures"])
 
+
+    def test_release_gate_blocks_missing_smoke_handoff_helper(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            (config / "scripts/smoke_handoff.py").unlink()
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("helper:smoke-handoff", result["failures"])
+
     def test_release_gate_detects_broken_agent_model_route(self):
         with tempfile.TemporaryDirectory() as temp:
             config, repo, run_id = self._gate_fixture(Path(temp))
