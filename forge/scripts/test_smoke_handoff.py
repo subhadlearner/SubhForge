@@ -81,6 +81,9 @@ class SmokeHandoffTests(unittest.TestCase):
         self.assertEqual(
             "smoke-orchestrator", command[command.index("--agent") + 1]
         )
+        self.assertEqual(
+            "openai/gpt-5.6-luna", command[command.index("--model") + 1]
+        )
         self.assertEqual("smoke", command[command.index("--command") + 1])
         self.assertIn("--auto", command)
         self.assertEqual("RESUME {}".format(self.run_id), command[-1])
