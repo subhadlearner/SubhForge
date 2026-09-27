@@ -208,29 +208,25 @@ For a new run:
    - path-aware Contract-v1 parity
    - canonical `<run-id>.state.json` initialization
    - elapsed-time budget initialization
-   - persistence of parity/budget bootstrap evidence into canonical state
+   - deterministic Phase 0 static release validation
+   - persistence of the `static-release-gate` scenario transition and timing
+
+   The bootstrap derives the installed `<global-config>` root from its own
+   installed script location. The orchestrator MUST NOT call
+   `smoke_static.py release-gate` separately, probe either helper with
+   `--help`, or infer whether `<global-config>` means a directory or a file.
 
 7. require bootstrap `ok: true`, require both `<run-id>.state.json` and
-   `<run-id>.budget.json` to exist, and require canonical state to identify
-   the same run/profile/fixture/source commit/baseline before launching any
-   planning or execution model
-8. never replace bootstrap with ad-hoc PowerShell/Python equality checks,
-   manual state creation, or a separate budget-start sequence
-9. never reuse an existing run directory or run ID
-
-10. immediately after bootstrap, execute Phase 0 with exactly one call:
-
-   ```text
-   python <global-config>/scripts/smoke_static.py release-gate --config <global-config> --repo <run-directory> --run-id <run-id>
-   ```
-
-   The helper owns Phase 0 static checks, the canonical scenario transition,
-   and `stage_metrics[static-release-gate]`. Its elapsed time is measured from
-   the bootstrap budget start, including orchestration overhead. Require
-   `ok: true` before `/grill` or any other model stage. On failure, retain its
-   persisted `BLOCKED` state and report the failing check IDs. Do not rebuild
-   these checks with PowerShell, call `smoke_state.py set` for this transition,
-   or replace the measured interval with zero.
+   `<run-id>.budget.json` to exist, require
+   `completed_scenarios` to contain `static-release-gate`, and require the
+   canonical next stage to be `grill` for FULL or `project-init` for FAST
+   before launching any planning/execution model
+8. if bootstrap reports the static release gate blocked, retain its persisted
+   `BLOCKED` state and report the failing check IDs
+9. never replace bootstrap with ad-hoc PowerShell/Python equality checks,
+   manual state creation, a separate budget-start sequence, or a second static
+   release-gate invocation
+10. never reuse an existing run directory or run ID
 
 Canonical run IDs are collision-resistant identifiers such as:
 
