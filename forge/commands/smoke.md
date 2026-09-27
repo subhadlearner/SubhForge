@@ -320,6 +320,10 @@ Before continuing:
 - validate profile and fixture from the run record
 - locate the run workspace using `python <global-config>/scripts/smoke_workspace.py locate --source <source_checkout_path> --run-id <run-id>` and validate the returned run directory/branch
 - identify completed, pending, blocked, and invalidated scenarios
+- run the end-to-end budget guard before any lifecycle/model continuation
+- if the run is already `PERFORMANCE_BUDGET_EXCEEDED`, do not launch another
+  lifecycle/model stage; RESUME may only support diagnosis/evidence handling,
+  STATUS, or abandonment for that exhausted run
 - re-evaluate whether the recorded next stage is still correct
 - never trust chat history over repository state
 
