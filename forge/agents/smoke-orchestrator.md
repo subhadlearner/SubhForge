@@ -191,17 +191,25 @@ Before every substantive child/model stage:
 2. derive the child's `CONTEXT_PATHS` only from that state plus the immediately
    preceding deterministic helper result
 3. validate those exact paths before delegation
-4. do not launch the child if canonical state is absent or inconsistent
+4. run `scripts/smoke_budget.py ... check --limit-minutes 30`; do not launch
+   the child when the end-to-end FULL budget is exhausted
+5. start deterministic invocation timing with
+   `scripts/smoke_budget.py ... stage-start --stage <stage> --model <model>`
+   and retain the returned invocation ID
+6. do not launch the child if canonical state, budget state, or timing start is
+   absent or inconsistent
 
 Immediately after every child returns, before launching another stage:
 
-1. persist stage/scenario/artifact/evidence changes with
+1. end deterministic invocation timing with
+   `scripts/smoke_budget.py ... stage-end --invocation-id <id>`
+2. persist stage/scenario/artifact/evidence changes with
    `scripts/smoke_state.py ... set --json <targeted-update>`
-2. persist/update `stage_metrics[<stage>]` with the child model, elapsed
-   seconds, exact context paths supplied, and discovery policy
-3. verify the update with `smoke_state.py ... get`
-4. update the human-readable Markdown audit projection
-5. run the budget guard
+3. persist/update `stage_metrics[<stage>]` using the deterministic elapsed
+   seconds plus the child model, exact context paths supplied, and discovery policy
+4. verify the update with `smoke_state.py ... get`
+5. update the human-readable Markdown audit projection
+6. run the budget guard
 
 A transition is not complete until the canonical state update succeeds.
 
