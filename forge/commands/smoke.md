@@ -469,12 +469,23 @@ delegate to `planning-worker` with the workflow's normal model, an explicit
 execution mode, and a compact context packet containing the exact authoritative
 paths needed by that stage.
 
-The packet MUST enumerate exact paths under a `CONTEXT_PATHS` section. When a
-required path is supplied and validates successfully, repository globbing to
-rediscover that same artifact or directory is prohibited. If a supplied path is
-missing, stale, ambiguous, or insufficient, the child may perform bounded
-discovery only for that unresolved item and must report why discovery was
-needed.
+The packet MUST enumerate exact paths under a `CONTEXT_PATHS` section and
+MUST also declare one smoke discovery policy:
+
+- `DISCOVERY_POLICY: EXACT_ONLY` when all required context for the stage is known
+- `DISCOVERY_POLICY: BOUNDED` only when the parent can name a concrete unresolved item
+
+Under `EXACT_ONLY`, repository-wide glob/grep/search is prohibited. If a
+required supplied path is missing, stale, ambiguous, or insufficient, the child
+must return the concrete unresolved item to the parent instead of widening
+discovery on its own.
+
+Under `BOUNDED`, the packet MUST name the unresolved item and smallest allowed
+search scope. The child may search only that scope and must report why the
+search was needed.
+
+When a required path is supplied and validates successfully, repository
+globbing to rediscover that same artifact or directory remains prohibited.
 
 The child must not rediscover supplied paths unless one is missing, stale,
 ambiguous, or points to unresolved authority:
