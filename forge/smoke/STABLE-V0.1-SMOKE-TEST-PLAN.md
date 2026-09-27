@@ -3124,10 +3124,8 @@ report-generator scripts such as `build_manifest.py` or `gen_report.py`.
   **deferred for discussion when this TODO is picked up**. Do not design or
   implement the bypass as part of the current smoke-efficiency work.
 
-- [ ] **Make smoke-run state updates structured instead of long-text patch matching.**
-  Current orchestration can fail `apply_patch` when it expects an exact block of
-  run-record prose that has already changed (for example completed/pending
-  scenario lists or context-index text). Replace fragile literal-block patching
-  with deterministic structured state updates or narrowly keyed field updates,
-  so stage transitions do not waste model/tool cycles recovering from harmless
-  record formatting drift.
+- [x] **Make smoke-run state updates structured instead of long-text patch matching.**
+  Implemented with `scripts/smoke_state.py`. Canonical orchestration state now
+  lives in `<run-id>.state.json`; the Markdown run record remains the
+  human-readable audit projection. Stage transitions use targeted structured
+  updates instead of relying on exact long-block Markdown matches.
