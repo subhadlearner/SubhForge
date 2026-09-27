@@ -3329,6 +3329,15 @@ report-generator scripts such as `build_manifest.py` or `gen_report.py`.
 
 ## Open Stable-v0.1 smoke hardening TODOs
 
+The Git-authoritative tracker for audit-discovered FULL hardening work is:
+
+`forge/smoke/STABLE-V0.1-FULL-HARDENING-TRACKER.md`
+
+Use that tracker for H01–H14 status, acceptance gates, sequencing, and closing
+commit SHAs. Do not rely on chat history as the work queue.
+
+
+
 - [x] **Make the static Contract-v1 parity check path-aware and non-brittle.**
   Implemented with `scripts/smoke_static.py contract-parity`. Only required
   canonical contract paths determine `contract_equal`; missing optional paths
