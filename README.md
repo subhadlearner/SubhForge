@@ -26,7 +26,7 @@ The v0.1 baseline is the structural consolidation of `kilo-configuration@stable_
 
 ## Prerequisites
 
-- Python 3.8+
+- Python 3.14+
 - Git
 - Kilo CLI available on `PATH`
 - model/provider credentials configured outside Git
