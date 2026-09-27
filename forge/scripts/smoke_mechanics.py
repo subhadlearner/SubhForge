@@ -47,72 +47,6 @@ def _target(repo: Path, name: str) -> Path:
     return path
 
 
-def _index(repo: Path) -> dict[str, str]:
-    entries = {}
-    for raw in git(repo, "ls-files", "--stage", "-z").split(b"\0"):
-        if not raw:
-            continue
-        meta, path = raw.split(b"\t", 1)
-        mode, _, stage = meta.decode("ascii").split()
-        if stage != "0":
-            raise MechanicsError("Unmerged index is UNRECONSTRUCTABLE")
-        entries[_name(path)] = mode
-    return entries
-
-
-def canonical_manifest(repo: Path, base: str) -> bytes:
-    """Contract v1 manifest, or fail closed when a mode/type is uncertain."""
-    repo = implementation_state.repo_root(repo)
-    git(repo, "cat-file", "-e", "{}^{{commit}}".format(base))
-    index = _index(repo)
-    changed = {_name(p) for p in git(repo, "diff", "--name-only", "-z", base, "--").split(b"\0") if p}
-    untracked = {_name(p) for p in git(repo, "ls-files", "--others", "--exclude-standard", "-z").split(b"\0") if p}
-    entries = []
-    for name in sorted(changed | untracked, key=lambda n: n.encode("utf-8")):
-        if implementation_state.excluded(name):
-            continue
-        path = repo / name
-        try:
-            info = path.lstat()
-        except FileNotFoundError:
-            if name not in index and name not in changed:
-                raise MechanicsError("Path disappeared during reconstruction")
-            entries.append("{}\tDELETED\tDELETED\n".format(name))
-            continue
-        if stat.S_ISLNK(info.st_mode):
-            mode = "120000"
-        elif stat.S_ISREG(info.st_mode):
-            indexed = index.get(name)
-            if indexed == "160000":
-                raise MechanicsError("Gitlink mode is UNRECONSTRUCTABLE")
-            # On Windows executable bits are not reliably observable. Git's
-            # index is the effective mode when core.filemode is false.
-            filemode = git(repo, "config", "--bool", "core.filemode").strip()
-            if os.name == "nt" or filemode == b"false":
-                if indexed is None:
-                    # Git records new regular files as non-executable when
-                    # core.filemode is false; the OS bit is not authoritative.
-                    mode = "100644"
-                elif indexed not in ("100644", "100755"):
-                    raise MechanicsError("File mode is UNRECONSTRUCTABLE")
-                else:
-                    mode = indexed
-            else:
-                mode = "100755" if info.st_mode & 0o111 else "100644"
-        else:
-            raise MechanicsError("Unsupported file type is UNRECONSTRUCTABLE")
-        oid = git(repo, "hash-object", "--no-filters", "--", name).strip().decode("ascii")
-        entries.append("{}\t{}\t{}\n".format(name, mode, oid))
-    return "".join(entries).encode("utf-8")
-
-
-def identity(repo: Path, base: str) -> dict[str, str]:
-    manifest = canonical_manifest(repo, base)
-    oid = git(repo, "hash-object", "--stdin", input_bytes=manifest).strip().decode("ascii")
-    return {"base_head": base, "manifest": manifest.decode("utf-8"),
-            "fingerprint": "GIT_BLOB_OID:" + oid}
-
-
 def _ledger(repo: Path, run_id: str) -> Path:
     if not run_id.startswith("SMOKE-") or not all(c.isalnum() or c == "-" for c in run_id):
         raise MechanicsError("Invalid run ID")
@@ -237,7 +171,7 @@ def main() -> int:
     manifest.add_argument("--base", required=True)
     args = parser.parse_args()
     try:
-        repo = _root(args.repo)
+        repo = implementation_state.repo_root(args.repo)
         if args.action == "manifest":
             result = identity(repo, args.base)
         elif args.action == "checkpoint":
