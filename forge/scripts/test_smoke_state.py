@@ -103,6 +103,90 @@ class SmokeStateTests(unittest.TestCase):
                 {"stage_metrics": {"prd": {"elapsed_seconds": -1}}},
             )
 
+
+    def test_context_index_updates_merge_without_dropping_bootstrap_context(self):
+        smoke_state.init(
+            self.repo, self.run_id, "FULL", "full-minimal-api", "abc123", "base123"
+        )
+        smoke_state.set_values(
+            self.repo,
+            self.run_id,
+            {
+                "context_index": {
+                    "budget_started_at_utc": "2026-09-27T00:00:00+00:00",
+                    "contract_parity": {"contract_equal": True},
+                }
+            },
+        )
+        updated = smoke_state.set_values(
+            self.repo,
+            self.run_id,
+            {"context_index": {"discovery": "docs/discovery/full-minimal-api-discovery.md"}},
+        )
+        self.assertEqual(
+            "2026-09-27T00:00:00+00:00",
+            updated["context_index"]["budget_started_at_utc"],
+        )
+        self.assertEqual(
+            {"contract_equal": True},
+            updated["context_index"]["contract_parity"],
+        )
+        self.assertEqual(
+            "docs/discovery/full-minimal-api-discovery.md",
+            updated["context_index"]["discovery"],
+        )
+
+    def test_stage_metric_updates_merge_without_dropping_prior_stages(self):
+        smoke_state.init(
+            self.repo, self.run_id, "FULL", "full-minimal-api", "abc123", "base123"
+        )
+        smoke_state.set_values(
+            self.repo,
+            self.run_id,
+            {
+                "stage_metrics": {
+                    "static-release-gate": {
+                        "model": "deterministic",
+                        "elapsed_seconds": 0.02,
+                        "context_paths": [],
+                    }
+                }
+            },
+        )
+        updated = smoke_state.set_values(
+            self.repo,
+            self.run_id,
+            {
+                "stage_metrics": {
+                    "grill": {
+                        "model": "openai/gpt-5.6-sol",
+                        "elapsed_seconds": 108.9,
+                        "context_paths": ["AGENTS.md"],
+                    }
+                }
+            },
+        )
+        self.assertIn("static-release-gate", updated["stage_metrics"])
+        self.assertIn("grill", updated["stage_metrics"])
+        self.assertEqual(108.9, updated["stage_metrics"]["grill"]["elapsed_seconds"])
+
+    def test_nested_map_updates_reject_non_objects(self):
+        smoke_state.init(
+            self.repo, self.run_id, "FULL", "full-minimal-api", "abc123", "base123"
+        )
+        with self.assertRaises(smoke_state.SmokeStateError):
+            smoke_state.set_values(
+                self.repo,
+                self.run_id,
+                {"context_index": "not-an-object"},
+            )
+        with self.assertRaises(smoke_state.SmokeStateError):
+            smoke_state.set_values(
+                self.repo,
+                self.run_id,
+                {"stage_metrics": []},
+            )
+
     def test_immutable_identity_fields_fail_closed(self):
         smoke_state.init(
             self.repo, self.run_id, "FULL", "full-minimal-api", "abc123", "base123"
