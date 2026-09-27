@@ -90,6 +90,13 @@ when upstream authority is incomplete or conflicting.
 
 You may read the approved upstream artifacts, repository policy, relevant rules/skills, and existing related artifacts.
 
+When invoked by `/smoke`, treat smoke-specific orchestration inputs as already
+resolved by the parent. Do not independently load `smoke/fixtures.json`,
+`smoke/profiles.json`, `smoke/failure-recipes.json`, the full smoke runbook,
+or canonical smoke state unless the parent explicitly names one of those files
+as unresolved authority required for the planning decision. Use the supplied
+fixture/runtime/acceptance constraints directly instead.
+
 ### CONTINUE
 
 Resume from the continuation state supplied by the parent.
