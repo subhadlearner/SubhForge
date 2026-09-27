@@ -470,7 +470,18 @@ that the FULL profile intentionally tests, such as bounded waiver acceptance.
 
 ### Project initialization
 
-Execute the `/project-init` contract using the orchestrator's GPT-5.6 Luna model.
+Before invoking Luna-owned `/project-init`, execute the deterministic mechanical
+setup helper once:
+
+```text
+python <global-config>/scripts/project_init_mechanics.py --repo <run-directory> --contract <global-config>/contracts/implementation-state-evidence-v1.md
+```
+
+Persist its result in canonical smoke state. Then execute only the remaining
+judgment-bearing `/project-init` contract using GPT-5.6 Luna with an exact
+context packet containing PRD, architecture, ADR, AGENTS, README, and helper
+result paths. Do not repeat directory creation, contract synchronization, or
+broad repository discovery already proven by the helper.
 
 ### DeepSeek execution stages
 
