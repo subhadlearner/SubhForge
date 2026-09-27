@@ -45,6 +45,14 @@ class SmokeHandoffTests(unittest.TestCase):
             "source123",
             self.git(self.repo, "rev-parse", "HEAD"),
         )
+        smoke_state.set_values(
+            self.repo,
+            self.run_id,
+            {
+                "completed_scenarios": ["static-release-gate"],
+                "current_stage": "grill",
+            },
+        )
 
     def test_already_rooted_does_not_launch_nested_kilo(self):
         result = smoke_handoff.ensure_rooted(
@@ -134,6 +142,24 @@ class SmokeHandoffTests(unittest.TestCase):
 
         with self.assertRaises(smoke_handoff.SmokeHandoffError):
             smoke_handoff.validate_workspace(wrong, self.run_id)
+
+    def test_incomplete_static_gate_is_rejected_before_kilo_launch(self):
+        state_path = (
+            self.repo
+            / "docs/verification/smoke"
+            / "{}.state.json".format(self.run_id)
+        )
+        state = smoke_state.load(self.repo, self.run_id)
+        state["completed_scenarios"] = []
+        smoke_state._save(state_path, state)
+
+        with self.assertRaises(smoke_handoff.SmokeHandoffError):
+            smoke_handoff.ensure_rooted(
+                self.repo,
+                self.run_id,
+                dry_run=True,
+                current_root=self.root,
+            )
 
     def test_missing_canonical_state_is_rejected(self):
         state_path = (
