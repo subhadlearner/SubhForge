@@ -874,6 +874,19 @@ Update canonical smoke state after:
 - defect classification
 
 Use `scripts/smoke_state.py set` with narrowly scoped JSON field updates.
+
+For `context_index` and `stage_metrics`, send only the keys being added or
+replaced. The helper merges those maps by key and preserves unrelated existing
+entries. Do not read/reconstruct/resend the entire nested map merely to append
+one artifact path or one stage metric.
+
+Example:
+
+```text
+{"context_index":{"discovery":"docs/discovery/..."}}
+{"stage_metrics":{"grill":{"model":"GPT-5.6-Sol","elapsed_seconds":108.9,...}}}
+```
+
 Do not patch long expected prose blocks in the Markdown record.
 
 After the machine-state update succeeds, update the human-readable Markdown
