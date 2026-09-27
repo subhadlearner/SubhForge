@@ -138,15 +138,19 @@ Documentation-only, planning-only, or other non-executable changes may proceed w
 
 Delegate the review to `pre-reviewer`.
 
-Provide the pre-reviewer with:
+Provide the pre-reviewer with one compact handoff containing:
 
-- the requested specification or change scope
-- relevant architecture/ADR references where available
-- the persisted verification report
-- any active waiver, verbatim
+- `CONTEXT_PATHS`: exact specification, relevant architecture/ADR, verification
+  report, canonical verification manifest, changed implementation/test/config
+  paths, and active waiver path when applicable
+- deterministic review-preflight result, including freshness and canonical
+  manifest equality
+- current branch/HEAD provenance already gathered by the parent
 - effective delivery gate: `CLEAR` or `CLEAR_WITH_EXCEPTION`
 
-The pre-reviewer must independently inspect the Git changes.
+Do not ask the pre-reviewer to rediscover supplied paths or reconstruct
+Contract-v1 identity again. The pre-reviewer must independently inspect the
+actual changed implementation and reach its own review judgment.
 
 Wait for its result.
 
@@ -185,19 +189,22 @@ Continue to Stage 3.
 
 Delegate to `code-reviewer`.
 
-Provide the senior reviewer with:
+Provide the senior reviewer with one compact handoff containing:
 
-- the intended change scope
-- the relevant specification
-- relevant architecture/ADR references
-- the persisted verification report
-- any active waiver, verbatim
+- `CONTEXT_PATHS`: exact specification, relevant architecture/ADR, verification
+  report, canonical verification manifest, changed implementation/test/config
+  paths, active waiver path when applicable, and persisted pre-review report
+- the same successful deterministic review-preflight result
+- current branch/HEAD provenance already gathered by the parent
 - effective delivery gate
 - the complete pre-review report, verbatim and without summarization
 
-Do not rewrite, summarize, reinterpret, or omit findings from the pre-review before passing them to `code-reviewer`.
+Do not rewrite, summarize, reinterpret, or omit findings from the pre-review
+before passing them to `code-reviewer`. Do not ask the senior reviewer to
+repeat Contract-v1 identity reconstruction already proven by the preflight.
 
-The senior reviewer must independently validate the implementation.
+The senior reviewer must independently validate the implementation and may
+perform focused evidence checks when a material review question remains.
 
 The pre-review is evidence, not authority.
 
