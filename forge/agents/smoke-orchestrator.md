@@ -34,8 +34,8 @@ permission:
     "code-reviewer": allow
     "adversary": allow
     "adversary-flex": allow
-    "adversary-sonnet": ask
-    "adversary-opus": ask
+    "adversary-sonnet": deny
+    "adversary-opus": deny
   skill: allow
   websearch: ask
   webfetch: ask
@@ -128,10 +128,15 @@ Kilo CLI process. It never replaces, resets, pauses, or extends the
 
 That helper validates the initialized `smoke-run` target and either:
 
-- returns `ALREADY_ROOTED` when this Kilo session is already running in the
-  disposable repository, or
-- launches a top-level `kilo run` continuation rooted in that repository and
-  returns `HANDOFF_COMPLETE` when the rooted continuation exits.
+- returns `ALREADY_ROOTED` only when this Kilo session carries the current
+  handoff marker/token for this run and its working tree is the disposable
+  repository (the shell working directory alone never counts), or
+- mints a fresh handoff token, launches a top-level `kilo run` continuation
+  rooted in that repository, and returns `HANDOFF_COMPLETE` when the rooted
+  continuation exits.
+
+A marked session that fails rooting validation returns an error instead of
+launching a nested continuation; treat that as `SMOKE_BLOCKED`.
 
 On `HANDOFF_COMPLETE`, stop the source-root invocation. Do not execute a
 second lifecycle stage, update, or task child from the source session. Do not
@@ -144,6 +149,11 @@ Claude/model escalation approval, security/risk acceptance, product decisions,
 destructive actions, or any other human-controlled gate. If explicit user
 authorization is absent, persist the waiting/blocking state and return the
 normal smoke status rather than deciding on the user's behalf.
+
+Because `--auto` approves every permission that is not explicitly denied, this
+agent denies `adversary-sonnet`/`adversary-opus`, and the handoff injects a
+Kilo config overlay that disables those agents everywhere in the rooted run
+and denies `external_directory` access to the SubhForge source checkout.
 
 Do not:
 
@@ -239,7 +249,8 @@ Before every substantive child/model stage:
    the child when the end-to-end FULL budget is exhausted
 8. start deterministic invocation timing with
    `scripts/smoke_budget.py ... stage-start --stage <stage> --model <model>`
-   and retain the returned invocation ID
+   and retain the returned invocation ID; this fails closed outside the
+   current rooted handoff
 9. do not launch the child if rooted-workspace validation, canonical state,
    source guard, budget state, or timing start is absent or inconsistent
 

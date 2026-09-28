@@ -104,6 +104,11 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
     checks["routing:claude-optional"] = ("explicit approval" in orchestrator and
         "not part of the default smoke run" in orchestrator and
         "do **not** use Claude" in policy)
+    # Rooted smoke runs under Kilo --auto, which approves every non-denied
+    # permission; paid Claude delegation must therefore be denied, not asked.
+    checks["routing:claude-denied-autonomous"] = all(
+        '"{}": deny'.format(name) in orchestrator
+        for name in ("adversary-sonnet", "adversary-opus"))
     checks["policy:cost"] = all(term in policy.lower()
         for term in ("fixed monthly cost", "variable cost", "storage cost",
                      "network/data-transfer cost", "observability cost", "scaling behavior",
