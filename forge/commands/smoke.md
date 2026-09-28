@@ -367,6 +367,28 @@ Before continuing:
   relay the rooted continuation result; do not continue smoke orchestration in
   the source checkout
 - require `ALREADY_ROOTED` before continuing lifecycle orchestration
+- immediately run
+  `python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <run-id> recover-active --source <source_checkout_path> --reason RESUME_RECOVERY`
+  before any new model call or budget-continuation decision; this helper
+  performs the persisted pre-child source-fingerprint comparison before writing
+  the recovery transition
+- `INTERRUPTED_INVOCATION_RECOVERED` with
+  `source_guard_result.result=MATCH` permits normal state/evidence
+  re-evaluation; do not accept interrupted child artifacts merely because they
+  exist
+- recovered source `MISMATCH` persists a restart-safe
+  `SOURCE_CHECKOUT_MUTATED` continuation blocker and returns
+  `SMOKE_BLOCKED / SOURCE_CHECKOUT_MUTATED`
+- missing/invalid legacy source fingerprint persists
+  `INTERRUPTED_SOURCE_GUARD_UNAVAILABLE` and returns
+  `SMOKE_RUN_UNRECONSTRUCTABLE`; a fresh fingerprint cannot prove the
+  interrupted interval
+- `RECOVERY_BLOCKED` means an earlier continuation blocker remains authoritative
+  across repeated RESUME attempts
+- if the recovery source-guard helper itself fails, the invocation remains
+  ACTIVE so a later RESUME can retry
+- if recovery reports multiple ACTIVE invocations or corrupt timing evidence,
+  fail closed for diagnosis
 - ensure `docs/verification/smoke/<run-id>.md` exists in the rooted repository
   before the next substantive child/model stage
 - validate profile and fixture from the run record
@@ -920,21 +942,33 @@ Before EVERY substantive lifecycle/model stage, run:
 
 ```text
 python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <run-id> check --limit-minutes 30
-python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <run-id> stage-start --stage <stage-id> --model <model-id>
+python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <run-id> stage-start --stage <stage-id> --model <model-id> --source-fingerprint <pre-child-source-fingerprint>
 ```
 
-Retain the returned invocation ID. `stage-start` and `stage-end` fail closed
-unless they run inside the current rooted handoff for this run (see the
-workspace-root handoff above). Immediately after EVERY child/subagent
-returns, run:
+Retain the returned invocation ID. `stage-start`, `stage-end`,
+`stage-abort`, and `recover-active` fail closed unless they run inside the
+current rooted handoff for this run (see the workspace-root handoff above).
 
-```text
-python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <run-id> stage-end --invocation-id <invocation-id>
-python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <run-id> check --limit-minutes 30
-```
+After every child call returns or reports a transport/tool failure, verify the
+pre-child source fingerprint **before** accepting the result:
 
-Use the deterministic stage timing result for canonical `stage_metrics`.
-Do not hand-reconstruct stage duration from prose or chat timestamps.
+- source mismatch: `stage-abort --reason SOURCE_CHECKOUT_MUTATED`; this
+  persists a restart-safe continuation blocker, then block
+- source-guard execution failure: leave the invocation ACTIVE and block the
+  current session so RESUME can retry its persisted pre-child guard
+- source matches but child transport/tool invocation failed:
+  `stage-abort --reason CHILD_INVOCATION_FAILED`
+- normal returned workflow result (including a domain BLOCKED/WAITING result):
+  `stage-end`
+
+Then run the budget check. A process/session crash may prevent both end and
+abort; on the next rooted RESUME, `recover-active` changes the stale ACTIVE
+record to INTERRUPTED before any new child is launched. Interrupted timing does
+not fabricate elapsed runtime.
+
+Use only a `COMPLETED` stage timing result for canonical successful
+`stage_metrics`. ABORTED/INTERRUPTED records remain diagnostic ledger
+evidence and do not make a workflow stage complete.
 
 If the guard returns exit code 3 / `PERFORMANCE_BUDGET_EXCEEDED`:
 
