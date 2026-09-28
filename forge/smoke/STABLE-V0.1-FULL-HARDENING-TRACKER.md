@@ -47,8 +47,8 @@ qualification until the blocking items below are addressed.
 
 | ID | Issue | Priority | Acceptance gate | Status | Closing commit |
 | --- | --- | --- | --- | --- | --- |
-| H01 | Smoke child execution is rooted in the wrong Kilo workspace; task children inherit the parent project/worktree instead of the sibling disposable clone | CRITICAL | Model-bearing smoke execution is actually rooted in the disposable repository; a representative planning child writes only there; the SubhForge source checkout remains unchanged; isolation does not depend on prompt-only path discipline | IN PROGRESS — deterministic mechanics implemented (token-bound rooted marker; `assert-rooted` gate on `stage-start`/`stage-end`; nested-handoff refusal; `--auto` overlay disabling paid Claude and denying source `external_directory`). Remaining gate: live Kilo probe proving a planning child writes only in the clone, the source guard is unchanged, and marker/overlay propagate through Kilo shells and task children | — |
-| H02 | Interrupted/failed child invocation can leave an active `stage-start` record and make RESUME impossible | CRITICAL | Deterministic abort/recovery semantics exist; normal end, failure, interruption, post-child guard failure, duplicate end/abort, and resume are covered; no dangling active invocation prevents continuation | TODO | — |
+| H01 | Smoke child execution is rooted in the wrong Kilo workspace; task children inherit the parent project/worktree instead of the sibling disposable clone | CRITICAL | Model-bearing smoke execution is actually rooted in the disposable repository; a representative planning child writes only there; the SubhForge source checkout remains unchanged; isolation does not depend on prompt-only path discipline | DONE — real Kilo probe `SMOKE-FULL-full-minimal-api-20260928T172150Z-9f874862` proved `ROOTED` parent handoff, real `planning-worker` delegation, denied source-checkout read, child sentinel written in the disposable repo, and unchanged source checkout | `9b5bfe0d034d41252fecd9b5ba5b787a5e73c778` |
+| H02 | Interrupted/failed child invocation can leave an active `stage-start` record and make RESUME impossible | CRITICAL | Deterministic abort/recovery semantics exist; normal end, failure, interruption, post-child guard failure, duplicate end/abort, and resume are covered; no dangling active invocation prevents continuation | TODO — NEXT | — |
 | H03 | Canonical `smoke_state` remains too permissive for model-generated updates | CRITICAL | Mutable fields are whitelisted; unknown/typo fields fail closed; states/scenarios are validated; completed/pending/current-stage invariants are enforced; protected identity/bootstrap context cannot be silently corrupted | TODO | — |
 | H04 | Required `verification-mutation` scenario lacks a deterministic verification-time mutation primitive | CRITICAL | A registered mutation occurs deterministically during `/verify`; post-check identity becomes `MISMATCH`/blocked as required; restoration reproduces the exact checkpoint | TODO | — |
 | H05 | `arbitrary-stage-resume` lacks deterministic preparation/restoration of its seven persisted-state probes | CRITICAL | All seven resume states can be constructed, validated, isolated, scored, and restored deterministically without leaking the expected routing answer to the reasoning context | TODO | — |
@@ -85,8 +85,12 @@ feature merely to make FULL smoke easier.
 
 ## Next action
 
-Start with **H01 only**.
+Start with **H02 only**.
 
-Do not make H02+ implementation changes in the H01 commit unless they are
-strictly necessary to make H01 correct; if such coupling is discovered, record
+H01 is closed by merged implementation commit
+`9b5bfe0d034d41252fecd9b5ba5b787a5e73c778` and real Kilo probe
+`SMOKE-FULL-full-minimal-api-20260928T172150Z-9f874862`.
+
+Do not make H03+ implementation changes in the H02 commit unless they are
+strictly necessary to make H02 correct; if such coupling is discovered, record
 it before changing scope.
