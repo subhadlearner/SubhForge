@@ -1053,7 +1053,9 @@ Before every fan-out probe:
 
 1. verify checkpoint identity deterministically
 2. persist the scenario/checkpoint association in canonical smoke state
-3. apply only the scenario's registered mutation
+3. apply only the scenario's registered mutation; for
+   `verification-mutation`, arm it here but fire it only inside `/verify`
+   after checks and before the post-check manifest
 4. run only the permitted mechanics/model sequence
 5. restore and re-check the checkpoint when the scenario is independent
 
@@ -2141,23 +2143,47 @@ On Windows, use WSL for the specific mode test if necessary rather than faking m
 
 # 19. Phase 12 — Verification mutation test
 
-Use a disposable verification behavior that changes an identity-bearing non-evidence path while verification runs.
+Start from a matching `CP-REVIEWED` implementation identity.
 
-Expected:
+Arm the registered deterministic verification mutation:
+
+```text
+python <global-config>/scripts/smoke_mechanics.py --repo <run-directory> --run-id <run-id> arm-verification-mutation --mutation-id verification-mutation-1 --checkpoint CP-REVIEWED
+```
+
+Delegate exactly one DeepSeek `/verify` with
+`VERIFICATION_MUTATION_ID: verification-mutation-1`. The smoke executor must:
+
+1. capture the normal pre-check Contract-v1 manifest
+2. run all required checks and acceptance evidence
+3. fire the registered mutation with
+   `fire-verification-mutation --mutation-id verification-mutation-1`
+4. capture the post-check manifest
+
+The mutation hook creates only its harness-owned untracked, non-ignored,
+non-evidence identity marker. It must itself prove the checkpoint becomes
+`MISMATCH`; it does not decide the verification verdict.
+
+Expected when the checks themselves pass:
 
 ```text
 Verification Result: DONE
 Freshness: MISMATCH
 Delivery Gate: BLOCKED
+Reviewer calls: 0
 ```
 
-assuming checks themselves pass.
-
-Then restore/stabilize and rerun:
+Then restore and require exact checkpoint reproduction:
 
 ```text
-/verify
+python <global-config>/scripts/smoke_mechanics.py --repo <run-directory> --run-id <run-id> restore --mutation-id verification-mutation-1
+python <global-config>/scripts/smoke_mechanics.py --repo <run-directory> --run-id <run-id> check-checkpoint --label CP-REVIEWED
 ```
+
+Do not spend a second `/verify` solely to close this bounded scenario; the
+authoritative §3.5 matrix permits only the one DeepSeek `/verify` invocation.
+The restored implementation still requires fresh verification before any later
+review use.
 
 ---
 

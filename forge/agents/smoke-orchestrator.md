@@ -355,6 +355,23 @@ and restore the declared checkpoint between independent probes.
 Negative freshness/evidence scenarios MUST terminate before pre-review or
 senior-review invocation.
 
+For the FULL `verification-mutation` scenario specifically:
+
+1. require the declared clean checkpoint to be `MATCH`
+2. arm one mutation using
+   `scripts/smoke_mechanics.py ... arm-verification-mutation --mutation-id <id> --checkpoint <checkpoint>`
+3. delegate exactly one DeepSeek `WORKFLOW: /verify` with
+   `VERIFICATION_MUTATION_ID: <id>` in its compact smoke context
+4. require the verification artifact to record `DONE + MISMATCH + BLOCKED`
+   when its checks pass; do not invoke pre-review or senior review
+5. restore the mutation and require the declared checkpoint to return `MATCH`
+6. do not perform a second `/verify` solely for this bounded scenario; normal
+   workflow use of that restored implementation still requires fresh
+   verification before any later review
+
+Do not use ordinary `mutate` for this recipe and do not ask a model to select
+an application-code mutation target.
+
 Recovery loops MUST use canonical `CONTEXT_PATHS` packets with exact Spec,
 failure evidence, source/test paths, diagnosis/review evidence where applicable,
 and mutation/checkpoint identity. Broad rediscovery is a defect when those

@@ -892,10 +892,28 @@ text, and a unique mutation ID. It requires an exact single anchor, rejects
 evidence/Git paths, and records hashes in the excluded smoke ledger. The
 executor must still establish the intended failure through `/verify` or the
 appropriate gate; the helper's successful mutation is not a verification
-result. For scenarios the helper cannot represent (such as a Git mode change
-or verification-time mutation), use a bounded deterministic command and record
-its exact before/after identity. Restore a helper mutation only when that
-scenario is finished and a real `/fix` is not the required route.
+result. For Git mode changes, use the bounded platform-aware mechanics defined
+by the scenario; never fake unsupported Windows mode semantics.
+
+The `verification-mutation` recipe is special and MUST NOT use ordinary
+`mutate`. From the matching clean checkpoint:
+
+1. arm it with
+   `smoke_mechanics.py ... arm-verification-mutation --mutation-id <id> --checkpoint <checkpoint>`
+2. delegate exactly one DeepSeek `WORKFLOW: /verify` and include
+   `VERIFICATION_MUTATION_ID: <id>`
+3. the smoke executor fires that registered hook only after required checks and
+   acceptance evidence, immediately before the post-check manifest
+4. require the persisted `/verify` result to show factual checks `DONE`,
+   freshness `MISMATCH`, and delivery gate `BLOCKED`; invoke zero reviewers
+5. restore with `smoke_mechanics.py ... restore --mutation-id <id>` and require
+   `check-checkpoint` to return `MATCH`
+
+The hook creates/deletes only its harness-owned identity marker; neither Luna
+nor DeepSeek chooses an application file or replacement. Do not run a second
+`/verify` merely to complete this bounded H04 scenario. The restored state
+still requires a fresh normal `/verify` before any later review attempts, as
+the normal freshness contract requires.
 
 Example (arguments abbreviated; quote text for the active shell):
 
