@@ -3395,6 +3395,28 @@ Smoke `/verify` must use `scripts/smoke_mechanics.py manifest` for pre/post
 Contract-v1 implementation identity. It must not generate ad-hoc manifest or
 report-generator scripts such as `build_manifest.py` or `gen_report.py`.
 
+## Canonical smoke-state validation boundary
+
+`scripts/smoke_state.py` owns structural validation of
+`<run-id>.state.json`. Both reads and targeted writes fail closed when the
+canonical record contains unknown/missing top-level fields, invalid run-state,
+stage or selected-profile scenario IDs, duplicate/overlapping scenario lists,
+premature pre-static scenario completion, invalid blocker/final-result shapes,
+terminal PASS/FAIL tokens inconsistent with profile/completion state, or
+corrupted immutable identity.
+
+`context_index` and `stage_metrics` remain delta-merge maps, but bootstrap
+identity inside `context_index` is protected: `contract_parity` and
+`budget_started_at_utc` may first be established only while
+`static-release-gate` is the current incomplete bootstrap stage, and may later
+be repeated identically but never replaced. The workflow cannot advance past
+the static gate without completing that scenario and retaining both protected
+bootstrap values. Invalid updates are validated as a whole before persistence;
+the helper does not partially write or silently repair the candidate state.
+
+This validation is mechanical only. It does not decide which lifecycle stage
+should run next and must not replace the orchestrator's routing judgment.
+
 ## Open Stable-v0.1 smoke hardening TODOs
 
 The Git-authoritative tracker for audit-discovered FULL hardening work is:

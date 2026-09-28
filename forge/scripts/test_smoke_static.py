@@ -31,7 +31,21 @@ class SmokeStaticTests(unittest.TestCase):
         shutil.copy2(config / "contracts/implementation-state-evidence-v1.md", project_contract)
         run_id = "SMOKE-FULL-test-20260927T000000Z-12345678"
         smoke_state.init(repo, run_id, "FULL", "full-minimal-api", "sha", "base")
-        smoke_budget.start(repo, run_id, now=dt.datetime.now(dt.timezone.utc) - dt.timedelta(seconds=42))
+        budget = smoke_budget.start(
+            repo,
+            run_id,
+            now=dt.datetime.now(dt.timezone.utc) - dt.timedelta(seconds=42),
+        )
+        smoke_state.set_values(
+            repo,
+            run_id,
+            {
+                "context_index": {
+                    "budget_started_at_utc": budget["started_at_utc"],
+                    "contract_parity": {"contract_equal": True},
+                }
+            },
+        )
         return config, repo, run_id
 
     def test_release_gate_persists_real_timing_and_scenarios(self):

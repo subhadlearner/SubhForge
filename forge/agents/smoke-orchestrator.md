@@ -237,8 +237,13 @@ and keep the human-readable audit/evidence projection under:
 
 `docs/verification/smoke/<run-id>.md`
 
-Use `scripts/smoke_state.py` for targeted state changes. Do not rely on
-long-text Markdown patch matching for orchestration state.
+Use `scripts/smoke_state.py` for targeted state changes. Treat it as the
+canonical fail-closed schema boundary: if an update is rejected, do not patch
+the JSON manually and do not weaken an invariant. Correct the transition and
+retry a coherent targeted update. The helper validates the selected profile's
+scenario registry, state/stage IDs, completed/pending consistency, immutable
+identity, and protected bootstrap context. Do not rely on long-text Markdown
+patch matching for orchestration state.
 
 Keep a compact context index in canonical state with exact artifact paths and
 content/authority identity. Pass only the next stage's needed paths and
