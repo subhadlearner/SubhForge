@@ -22,6 +22,7 @@ class SmokeStaticTests(unittest.TestCase):
             shutil.copytree(source / folder, config / folder)
         (config / "scripts").mkdir()
         shutil.copy2(source / "scripts/smoke_handoff.py", config / "scripts/smoke_handoff.py")
+        shutil.copy2(source / "scripts/smoke_mechanics.py", config / "scripts/smoke_mechanics.py")
         shutil.copy2(source / "AGENTS.md", config / "AGENTS.md")
         repo = root / "repo"
         evidence = repo / "docs/verification/smoke"
@@ -99,6 +100,30 @@ class SmokeStaticTests(unittest.TestCase):
             result = smoke_static.release_gate(config, repo, run_id)
             self.assertFalse(result["ok"])
             self.assertIn("routing:claude-denied-autonomous", result["failures"])
+
+    def test_release_gate_blocks_missing_verification_mutation_hook(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            executor = config / "agents/smoke-executor.md"
+            executor.write_text(
+                executor.read_text(encoding="utf-8").replace(
+                    "fire-verification-mutation",
+                    "missing-verification-mutation-hook",
+                ),
+                encoding="utf-8",
+            )
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("verification:mutation-hook", result["failures"])
+
+    def test_release_gate_blocks_missing_smoke_mechanics_helper(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            (config / "scripts/smoke_mechanics.py").unlink()
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("helper:smoke-mechanics", result["failures"])
+            self.assertIn("verification:mutation-hook", result["failures"])
 
     def test_release_gate_detects_broken_agent_model_route(self):
         with tempfile.TemporaryDirectory() as temp:

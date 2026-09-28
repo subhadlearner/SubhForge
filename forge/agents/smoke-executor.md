@@ -158,11 +158,25 @@ Before verification checks:
    `python <global-config>/scripts/smoke_mechanics.py --repo <run-directory> --run-id <run-id> manifest --base <verification-base-HEAD>`
 3. persist the returned canonical manifest and fingerprint as the pre-check identity
 
-After the required checks:
+After the required checks and acceptance-criterion evidence are complete, but
+before the post-check manifest:
+
+1. if the parent supplied `VERIFICATION_MUTATION_ID: <id>`, run exactly:
+   `python <global-config>/scripts/smoke_mechanics.py --repo <run-directory> --run-id <run-id> fire-verification-mutation --mutation-id <id>`
+2. require the helper to return `state=APPLIED` and
+   `checkpoint_result=MISMATCH`; otherwise fail the smoke probe closed
+3. do not rerun or weaken the already-completed checks after the hook fires
+4. if no `VERIFICATION_MUTATION_ID` was supplied, do not run this hook
+
+Then:
 
 1. run the same `manifest --base <verification-base-HEAD>` command again
 2. compare the returned manifest bytes with the persisted pre-check manifest
 3. classify freshness according to the normal `/verify` contract
+
+`VERIFICATION_MUTATION_ID` is a smoke-only deterministic hook. The executor
+must not choose its target, synthesize a replacement, or directly edit the
+mutation marker. The parent must arm the registered mutation before delegation.
 
 The executor MUST NOT create temporary repository-identity or report-generation
 programs such as `build_manifest.py`, `contract_manifest.py`, `gen_report.py`,

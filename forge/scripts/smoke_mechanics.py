@@ -26,6 +26,9 @@ RECIPES = {
     "pre-review-blocker",
 }
 
+VERIFICATION_MUTATION_PATH = ".subhforge-verification-mutation.txt"
+VERIFICATION_MUTATION_BYTES = b"SUBHFORGE_VERIFICATION_MUTATION\n"
+
 MechanicsError = implementation_state.ImplementationStateError
 git = implementation_state.git
 canonical_manifest = implementation_state.canonical_manifest
@@ -73,12 +76,16 @@ def _save(path: Path, data: dict) -> None:
     temp.replace(path)
 
 
+def _has_active_mutation(data: dict) -> bool:
+    return any(not item.get("restored", False) for item in data["mutations"].values())
+
+
 def checkpoint(repo: Path, run_id: str, label: str) -> dict:
     path = _ledger(repo, run_id)
     data = _read(path)
     if label in data["checkpoints"]:
         raise MechanicsError("Checkpoint already exists")
-    if any(not item["restored"] for item in data["mutations"].values()):
+    if _has_active_mutation(data):
         raise MechanicsError("Restore active mutation before checkpointing")
     base = git(repo, "rev-parse", "HEAD").strip().decode("ascii")
     result = identity(repo, base)
@@ -100,11 +107,15 @@ def mutate(repo: Path, run_id: str, mutation_id: str, checkpoint_label: str,
            recipe: str, name: str, old: str, new: str) -> dict:
     if recipe not in RECIPES or not old or old == new:
         raise MechanicsError("Unsupported recipe or invalid anchored replacement")
+    if recipe == "verification-mutation":
+        raise MechanicsError(
+            "verification-mutation must use arm-verification-mutation/fire-verification-mutation"
+        )
     path = _ledger(repo, run_id)
     data = _read(path)
     if mutation_id in data["mutations"]:
         raise MechanicsError("Mutation ID already exists")
-    if any(not item["restored"] for item in data["mutations"].values()):
+    if _has_active_mutation(data):
         raise MechanicsError("Only one active mutation is allowed")
     if check_checkpoint(repo, run_id, checkpoint_label)["result"] != "MATCH":
         raise MechanicsError("Checkpoint drifted; refusing mutation")
@@ -118,9 +129,10 @@ def mutate(repo: Path, run_id: str, mutation_id: str, checkpoint_label: str,
     after = before.replace(old_bytes, new_bytes, 1)
     target.write_bytes(after)
     data["mutations"][mutation_id] = {"checkpoint": checkpoint_label, "recipe": recipe,
-        "path": name, "before_sha256": hashlib.sha256(before).hexdigest(),
+        "path": name, "operation": "replace",
+        "before_sha256": hashlib.sha256(before).hexdigest(),
         "after_sha256": hashlib.sha256(after).hexdigest(), "old": old, "new": new,
-        "restored": False}
+        "applied": True, "restored": False}
     try:
         _save(path, data)
     except Exception:
@@ -129,13 +141,110 @@ def mutate(repo: Path, run_id: str, mutation_id: str, checkpoint_label: str,
     return {"mutation_id": mutation_id, "path": name, "recipe": recipe}
 
 
+def arm_verification_mutation(
+    repo: Path, run_id: str, mutation_id: str, checkpoint_label: str
+) -> dict:
+    path = _ledger(repo, run_id)
+    data = _read(path)
+    if not mutation_id:
+        raise MechanicsError("Mutation ID is required")
+    if mutation_id in data["mutations"]:
+        raise MechanicsError("Mutation ID already exists")
+    if _has_active_mutation(data):
+        raise MechanicsError("Only one active mutation is allowed")
+    if check_checkpoint(repo, run_id, checkpoint_label)["result"] != "MATCH":
+        raise MechanicsError("Checkpoint drifted; refusing verification mutation")
+    target = _target(repo, VERIFICATION_MUTATION_PATH)
+    if target.exists() or target.is_symlink():
+        raise MechanicsError("Verification mutation target already exists")
+    data["mutations"][mutation_id] = {
+        "checkpoint": checkpoint_label,
+        "recipe": "verification-mutation",
+        "path": VERIFICATION_MUTATION_PATH,
+        "operation": "create",
+        "after_sha256": hashlib.sha256(VERIFICATION_MUTATION_BYTES).hexdigest(),
+        "applied": False,
+        "restored": False,
+    }
+    _save(path, data)
+    return {"mutation_id": mutation_id, "checkpoint": checkpoint_label,
+            "recipe": "verification-mutation", "path": VERIFICATION_MUTATION_PATH,
+            "state": "ARMED"}
+
+
+def fire_verification_mutation(repo: Path, run_id: str, mutation_id: str) -> dict:
+    path = _ledger(repo, run_id)
+    data = _read(path)
+    entry = data["mutations"].get(mutation_id)
+    if (not entry or entry.get("restored")
+            or entry.get("recipe") != "verification-mutation"
+            or entry.get("operation") != "create"
+            or entry.get("applied")):
+        raise MechanicsError("Verification mutation is not armed")
+    if check_checkpoint(repo, run_id, entry["checkpoint"])["result"] != "MATCH":
+        raise MechanicsError("Checkpoint drifted before verification mutation hook")
+    target = _target(repo, entry["path"])
+    if target.exists() or target.is_symlink():
+        raise MechanicsError("Verification mutation target already exists")
+    target.write_bytes(VERIFICATION_MUTATION_BYTES)
+    try:
+        if hashlib.sha256(target.read_bytes()).hexdigest() != entry["after_sha256"]:
+            raise MechanicsError("Verification mutation bytes are not deterministic")
+        result = check_checkpoint(repo, run_id, entry["checkpoint"])
+        if result["result"] != "MISMATCH":
+            raise MechanicsError(
+                "Verification mutation did not change Contract-v1 implementation identity"
+            )
+        entry["applied"] = True
+        _save(path, data)
+    except Exception:
+        if target.is_file() and not target.is_symlink():
+            target.unlink()
+        raise
+    return {"mutation_id": mutation_id, "checkpoint": entry["checkpoint"],
+            "recipe": entry["recipe"], "path": entry["path"], "state": "APPLIED",
+            "checkpoint_result": "MISMATCH"}
+
+
 def restore(repo: Path, run_id: str, mutation_id: str) -> dict:
     path = _ledger(repo, run_id)
     data = _read(path)
     entry = data["mutations"].get(mutation_id)
-    if not entry or entry["restored"]:
+    if not entry or entry.get("restored"):
         raise MechanicsError("Unknown or already restored mutation")
+    operation = entry.get("operation", "replace")
     target = _target(repo, entry["path"])
+
+    if operation == "create":
+        if not entry.get("applied", False):
+            if target.exists() or target.is_symlink():
+                raise MechanicsError("Unfired verification mutation target unexpectedly exists")
+            if check_checkpoint(repo, run_id, entry["checkpoint"])["result"] != "MATCH":
+                raise MechanicsError("Checkpoint drifted; refusing mutation disarm")
+            entry["restored"] = True
+            _save(path, data)
+            return {"mutation_id": mutation_id, "checkpoint": entry["checkpoint"],
+                    "result": "MATCH", "state": "RESTORED"}
+        if not target.is_file() or target.is_symlink():
+            raise MechanicsError("Verification mutation target changed type")
+        after = target.read_bytes()
+        if hashlib.sha256(after).hexdigest() != entry["after_sha256"]:
+            raise MechanicsError("Verification mutation drifted; refusing restoration")
+        target.unlink()
+        if check_checkpoint(repo, run_id, entry["checkpoint"])["result"] != "MATCH":
+            target.write_bytes(after)
+            raise MechanicsError("Restoration failed checkpoint comparison")
+        entry["restored"] = True
+        try:
+            _save(path, data)
+        except Exception:
+            target.write_bytes(after)
+            raise
+        return {"mutation_id": mutation_id, "checkpoint": entry["checkpoint"],
+                "result": "MATCH", "state": "RESTORED"}
+
+    if operation != "replace":
+        raise MechanicsError("Unknown mutation operation")
     if not target.is_file() or target.is_symlink():
         raise MechanicsError("Mutated path changed type")
     after = target.read_bytes()
@@ -166,6 +275,11 @@ def main() -> int:
     mutation = actions.add_parser("mutate")
     for key in ("mutation-id", "checkpoint", "recipe", "path", "old", "new"):
         mutation.add_argument("--" + key, required=True)
+    arm = actions.add_parser("arm-verification-mutation")
+    arm.add_argument("--mutation-id", required=True)
+    arm.add_argument("--checkpoint", required=True)
+    fire = actions.add_parser("fire-verification-mutation")
+    fire.add_argument("--mutation-id", required=True)
     actions.add_parser("restore").add_argument("--mutation-id", required=True)
     manifest = actions.add_parser("manifest")
     manifest.add_argument("--base", required=True)
@@ -181,6 +295,12 @@ def main() -> int:
         elif args.action == "mutate":
             result = mutate(repo, args.run_id, args.mutation_id, args.checkpoint,
                             args.recipe, args.path, args.old, args.new)
+        elif args.action == "arm-verification-mutation":
+            result = arm_verification_mutation(
+                repo, args.run_id, args.mutation_id, args.checkpoint
+            )
+        elif args.action == "fire-verification-mutation":
+            result = fire_verification_mutation(repo, args.run_id, args.mutation_id)
         else:
             result = restore(repo, args.run_id, args.mutation_id)
         print(json.dumps({"ok": True, **result}))

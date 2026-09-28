@@ -87,6 +87,7 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
     orchestrator = read("agent:smoke-orchestrator", config / "agents/smoke-orchestrator.md")
     executor = read("agent:smoke-executor", config / "agents/smoke-executor.md")
     read("helper:smoke-handoff", config / "scripts/smoke_handoff.py")
+    mechanics = read("helper:smoke-mechanics", config / "scripts/smoke_mechanics.py")
     policy = read("policy:global", config / "AGENTS.md")
     architecture = read("policy:architecture", config / "commands/architect.md")
     contract = read("contract:installed", config / "contracts/implementation-state-evidence-v1.md")
@@ -109,6 +110,18 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
     checks["routing:claude-denied-autonomous"] = all(
         '"{}": deny'.format(name) in orchestrator
         for name in ("adversary-sonnet", "adversary-opus"))
+    checks["verification:mutation-hook"] = (
+        all(term in executor for term in (
+            "VERIFICATION_MUTATION_ID",
+            "fire-verification-mutation",
+            "checkpoint_result=MISMATCH",
+        ))
+        and all(term in mechanics for term in (
+            "VERIFICATION_MUTATION_PATH",
+            "arm_verification_mutation",
+            "fire_verification_mutation",
+        ))
+    )
     checks["policy:cost"] = all(term in policy.lower()
         for term in ("fixed monthly cost", "variable cost", "storage cost",
                      "network/data-transfer cost", "observability cost", "scaling behavior",
