@@ -66,6 +66,8 @@ class SmokeStaticTests(unittest.TestCase):
             budget_path.write_text(json.dumps({"started_at_utc": (dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=31)).isoformat()}), encoding="utf-8")
             result = smoke_static.release_gate(config, repo, run_id)
             self.assertIn("contract:parity", result["failures"])
+            self.assertIn("budget:30-minutes", result["failures"])
+
     def test_release_gate_blocks_missing_smoke_handoff_helper(self):
         with tempfile.TemporaryDirectory() as temp:
             config, repo, run_id = self._gate_fixture(Path(temp))
