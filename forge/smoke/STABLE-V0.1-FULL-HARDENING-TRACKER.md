@@ -49,8 +49,8 @@ qualification until the blocking items below are addressed.
 | --- | --- | --- | --- | --- | --- |
 | H01 | Smoke child execution is rooted in the wrong Kilo workspace; task children inherit the parent project/worktree instead of the sibling disposable clone | CRITICAL | Model-bearing smoke execution is actually rooted in the disposable repository; a representative planning child writes only there; the SubhForge source checkout remains unchanged; isolation does not depend on prompt-only path discipline | DONE — real Kilo probe `SMOKE-FULL-full-minimal-api-20260928T172150Z-9f874862` proved `ROOTED` parent handoff, real `planning-worker` delegation, denied source-checkout read, child sentinel written in the disposable repo, and unchanged source checkout | `9b5bfe0d034d41252fecd9b5ba5b787a5e73c778` |
 | H02 | Interrupted/failed child invocation can leave an active `stage-start` record and make RESUME impossible | CRITICAL | Deterministic abort/recovery semantics exist; normal end, failure, interruption, post-child guard failure, duplicate end/abort, and resume are covered; no dangling active invocation prevents continuation | DONE — explicit ACTIVE/COMPLETED/ABORTED/INTERRUPTED lifecycle, persisted pre-child source fingerprint, atomic recover+source-revalidation, restart-safe continuation blockers, and no fabricated interrupted runtime; verified on Windows with 21 focused tests, 87 forge-script tests (2 skipped), 7 tooling tests, clean diff check, and clean worktree | `4841eb16ca43753db8352e475916192f3b6189ac` |
-| H03 | Canonical `smoke_state` remains too permissive for model-generated updates | CRITICAL | Mutable fields are whitelisted; unknown/typo fields fail closed; states/scenarios are validated; completed/pending/current-stage invariants are enforced; protected identity/bootstrap context cannot be silently corrupted | IN PROGRESS — strict top-level schema, selected-profile scenario validation, stage/state invariants, write-once bootstrap context, and atomic fail-closed updates under implementation on `harden/h03-strict-smoke-state` | — |
-| H04 | Required `verification-mutation` scenario lacks a deterministic verification-time mutation primitive | CRITICAL | A registered mutation occurs deterministically during `/verify`; post-check identity becomes `MISMATCH`/blocked as required; restoration reproduces the exact checkpoint | TODO | — |
+| H03 | Canonical `smoke_state` remains too permissive for model-generated updates | CRITICAL | Mutable fields are whitelisted; unknown/typo fields fail closed; states/scenarios are validated; completed/pending/current-stage invariants are enforced; protected identity/bootstrap context cannot be silently corrupted | DONE — exact top-level schema; immutable identity; selected-profile scenario validation; unique/disjoint scenario lists; static-release-gate ordering; bootstrap-only protected context; terminal-state/final-result consistency; atomic fail-closed load/set validation; stale handoff fixture corrected without weakening production invariants; verified on Windows with 27 state tests, 9 static-gate tests, 3 bootstrap tests, 25 handoff tests, 105 forge-script tests (2 skipped), 7 tooling tests, clean diff check, and clean worktree | `f7164215b7d6fafa87025360de0a7795bf7d2134` |
+| H04 | Required `verification-mutation` scenario lacks a deterministic verification-time mutation primitive | CRITICAL | A registered mutation occurs deterministically during `/verify`; post-check identity becomes `MISMATCH`/blocked as required; restoration reproduces the exact checkpoint | TODO — NEXT | — |
 | H05 | `arbitrary-stage-resume` lacks deterministic preparation/restoration of its seven persisted-state probes | CRITICAL | All seven resume states can be constructed, validated, isolated, scored, and restored deterministically without leaking the expected routing answer to the reasoning context | TODO | — |
 | H06 | `upstream-rerouting` lacks deterministic blocked-state preparation/restoration | CRITICAL | Required PRD/architecture/project-init/spec/fix authority-boundary cases have reproducible setup, scoring, and restoration without agent-invented fixture state | TODO | — |
 | H07 | Required human waiver interaction conflicts with the continuously running 30-minute qualification clock | DESIGN BLOCKER | Human authorization, waiting, resume, and qualification-time semantics are explicitly agreed; command/orchestrator/runbook/budget implementation and tests all describe the same behavior; authorization is never fabricated | TODO | — |
@@ -85,7 +85,7 @@ feature merely to make FULL smoke easier.
 
 ## Next action
 
-Start with **H03 only**.
+Start with **H04 only**.
 
 H01 is closed by merged implementation commit
 `9b5bfe0d034d41252fecd9b5ba5b787a5e73c778` and real Kilo probe
@@ -96,6 +96,12 @@ H02 is closed by merged implementation commit
 verification: 21 focused timing/recovery tests, 87 forge-script tests
 (2 skipped), 7 tooling tests, clean diff check, and clean working tree.
 
-Do not make H04+ implementation changes in the H03 commit unless they are
-strictly necessary to make H03 correct; if such coupling is discovered, record
+H03 is closed by merged implementation commit
+`f7164215b7d6fafa87025360de0a7795bf7d2134` after deterministic Windows
+verification: 27 state tests, 9 static-gate tests, 3 bootstrap tests, 25
+handoff tests, 105 forge-script tests (2 skipped), 7 tooling tests, clean diff
+check, and clean working tree.
+
+Do not make H05+ implementation changes in the H04 commit unless they are
+strictly necessary to make H04 correct; if such coupling is discovered, record
 it before changing scope.
