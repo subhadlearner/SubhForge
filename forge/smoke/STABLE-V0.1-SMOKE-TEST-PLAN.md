@@ -157,6 +157,39 @@ detector for writes made from inside a program such as `python`.
 
 Do not mutate the SubhForge source checkout or its protected `main`.
 
+### Interrupted child invocation recovery
+
+Every model-bearing stage has an explicit invocation lifecycle in the
+deterministic budget ledger:
+
+- `ACTIVE` after `stage-start`
+- `COMPLETED` after a normal returned child invocation and successful
+  post-child source guard
+- `ABORTED` when the child returned but its transport/tool invocation or
+  post-child source guard failed
+- `INTERRUPTED` when a later rooted RESUME discovers an ACTIVE record left by
+  a crashed/terminated session
+
+`stage-start` persists the exact pre-child source-checkout fingerprint. A
+rooted RESUME runs `recover-active --source <source_checkout_path>` before any
+new model call. The helper performs that persisted source comparison before it
+writes ACTIVE → INTERRUPTED, so another crash during RESUME cannot lose the
+source-integrity decision. MATCH permits normal state/evidence re-evaluation;
+MISMATCH persists a restart-safe `SOURCE_CHECKOUT_MUTATED` continuation
+blocker. The same blocker is written when a normal post-child source guard
+detects mutation and closes the invocation with `stage-abort`. If the guard
+itself cannot execute, leave the invocation ACTIVE so RESUME can retry it.
+Missing legacy fingerprint evidence persists
+`INTERRUPTED_SOURCE_GUARD_UNAVAILABLE` and is unreconstructable. If the guard
+itself cannot execute, the invocation remains ACTIVE for a later retry. Never
+take a new source fingerprint and treat it as proof for the interrupted
+interval.
+
+For INTERRUPTED invocations, the true child termination time is unknown.
+Therefore `ended_at_utc` and `elapsed_seconds` remain null and
+`recovered_at_utc` records only the recovery observation time. Do not count
+session downtime as model runtime.
+
 The implementation fixture should be deliberately small. The goal is to test the workflow, not application complexity.
 
 Approved fixture definitions and profile scenario registries are version-controlled in the source repository as:

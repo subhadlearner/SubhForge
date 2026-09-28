@@ -199,6 +199,36 @@ On RESUME, inspect canonical state and reuse a completed valid static gate for
 the same installed release. Do not rerun bootstrap or the static gate merely
 to rediscover their interface.
 
+After the workspace handoff has returned `ALREADY_ROOTED`, but before any new
+child/model stage or budget-continuation decision, run
+`scripts/smoke_budget.py ... recover-active --source <source_checkout_path> --reason RESUME_RECOVERY`.
+
+Recovery atomically performs the persisted pre-child source-fingerprint check
+before writing the ACTIVE → INTERRUPTED transition, so a second crash cannot
+lose the source-integrity decision.
+
+- `NO_ACTIVE_INVOCATION` means timing needs no recovery.
+- `INTERRUPTED_INVOCATION_RECOVERED` closes exactly one stale ACTIVE
+  invocation as `INTERRUPTED`; do not accept artifacts from that interrupted
+  child merely because they exist.
+- recovered `source_guard_result=MATCH` permits normal evidence/state
+  re-evaluation and rerun of the still-incomplete stage.
+- recovered `source_guard_result=MISMATCH` persists a restart-safe
+  `SOURCE_CHECKOUT_MUTATED` continuation blocker and is `SMOKE_BLOCKED`.
+- missing/invalid legacy source fingerprint persists
+  `INTERRUPTED_SOURCE_GUARD_UNAVAILABLE` and is
+  `SMOKE_RUN_UNRECONSTRUCTABLE`; never take a fresh fingerprint and pretend it
+  proves the interrupted interval.
+- `RECOVERY_BLOCKED` means a prior failed recovery decision is already
+  persisted and remains authoritative on later RESUME attempts.
+- if the deterministic source-guard helper itself cannot run, recovery leaves
+  the invocation ACTIVE so a later RESUME can retry safely.
+- multiple ACTIVE records are ledger corruption and must fail closed for manual
+  diagnosis.
+
+An INTERRUPTED invocation intentionally has no fabricated `elapsed_seconds`;
+`recovered_at_utc` records only when RESUME discovered it.
+
 Persist canonical machine state under:
 
 `docs/verification/smoke/<run-id>.state.json`
@@ -248,31 +278,45 @@ Before every substantive child/model stage:
 7. run `scripts/smoke_budget.py ... check --limit-minutes 30`; do not launch
    the child when the end-to-end FULL budget is exhausted
 8. start deterministic invocation timing with
-   `scripts/smoke_budget.py ... stage-start --stage <stage> --model <model>`
-   and retain the returned invocation ID; this fails closed outside the
-   current rooted handoff
+   `scripts/smoke_budget.py ... stage-start --stage <stage> --model <model> --source-fingerprint <fingerprint>`
+   using the exact source fingerprint obtained in step 5, and retain the
+   returned invocation ID; this fails closed outside the current rooted
+   handoff
 9. do not launch the child if rooted-workspace validation, canonical state,
    source guard, budget state, or timing start is absent or inconsistent
 
-Immediately after every child returns, before accepting any child-produced
-artifact or launching another stage:
+Immediately after every child invocation returns or reports a transport/tool
+failure, before accepting any child-produced artifact or launching another
+stage:
 
 1. verify the retained source fingerprint with
-   `scripts/smoke_workspace.py source-guard --source <source_checkout_path> --expected <fingerprint>`;
-   on `MISMATCH`, stop with `SMOKE_BLOCKED` / `SOURCE_CHECKOUT_MUTATED`
-   and do not treat the child's stage as complete
-2. end deterministic invocation timing with
-   `scripts/smoke_budget.py ... stage-end --invocation-id <id>`
-3. persist stage/scenario/artifact/evidence changes with
+   `scripts/smoke_workspace.py source-guard --source <source_checkout_path> --expected <fingerprint>`.
+   Run this comparison even when the child invocation itself reported failure.
+2. on source-guard `MISMATCH`, close timing first with
+   `scripts/smoke_budget.py ... stage-abort --invocation-id <id> --reason SOURCE_CHECKOUT_MUTATED`.
+   This also persists a restart-safe continuation blocker in the timing ledger.
+   Then stop with `SMOKE_BLOCKED / SOURCE_CHECKOUT_MUTATED`; never accept the
+   child result.
+3. if the source-guard helper itself cannot complete, do **not** end or abort the
+   invocation. Leave it ACTIVE, stop `SMOKE_BLOCKED`, and let rooted RESUME
+   retry the persisted pre-child guard through `recover-active`.
+4. if the source guard matches but the child invocation failed/cancelled before
+   returning a normal workflow result, close timing with
+   `stage-abort --reason CHILD_INVOCATION_FAILED`, then apply the normal
+   blocker/retry policy. A normal workflow result such as BLOCKED or
+   WAITING_FOR_USER is a completed invocation, not a transport failure.
+5. otherwise end deterministic invocation timing with
+   `scripts/smoke_budget.py ... stage-end --invocation-id <id>`.
+6. persist stage/scenario/artifact/evidence changes with
    `scripts/smoke_state.py ... set --json <targeted-update>`; for
    `context_index` and `stage_metrics`, send only the key(s) changed in this
    transition because the helper merges those maps by key
-4. persist/update only `stage_metrics[<stage>]` using the deterministic elapsed
+7. persist/update only `stage_metrics[<stage>]` using the deterministic elapsed
    seconds plus the child model, exact context paths supplied, and discovery
    policy; do not reconstruct or resend prior stage metrics
-5. verify the update with `smoke_state.py ... get`
-6. update the human-readable Markdown audit projection
-7. run the budget guard
+8. verify the update with `smoke_state.py ... get`
+9. update the human-readable Markdown audit projection
+10. run the budget guard
 
 A transition is not complete until the canonical state update succeeds.
 
