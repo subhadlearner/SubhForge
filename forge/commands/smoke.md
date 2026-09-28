@@ -240,15 +240,32 @@ For a new run:
    `smoke_budget.py` clock.
 
    The helper validates that the target is the initialized `smoke-run`
-   repository for this run. If the current Kilo project is not that repository,
-   it launches a top-level continuation with the disposable repository as both
-   process working directory and Kilo `--dir`.
+   repository for this run. It never trusts the shell working directory alone:
+   a session counts as rooted only when it carries the handoff marker
+   (`SUBHFORGE_SMOKE_RUN_ID`, `SUBHFORGE_SMOKE_RUN_DIRECTORY`,
+   `SUBHFORGE_SMOKE_HANDOFF_TOKEN`) whose token digest matches the current
+   `docs/verification/smoke/<run-id>.handoff.json` record, and its working
+   tree is the disposable repository. Otherwise it mints a fresh token, writes
+   that record, and launches a top-level continuation with the disposable
+   repository as both process working directory and Kilo `--dir`. A new
+   handoff invalidates every earlier rooted session for the same run.
+
+   Because the continuation runs with Kilo `--auto` (which approves every
+   permission not explicitly denied), the helper also injects a
+   `KILO_CONFIG_CONTENT` overlay that disables `adversary-opus` and
+   `adversary-sonnet` and denies `external_directory` access to the protected
+   SubhForge source checkout (from install provenance and the launching
+   session's root). Kilo strips that variable from model-visible shells, so
+   rooted agents cannot remove it.
 
    - `ALREADY_ROOTED` — continue in this session
    - `HANDOFF_COMPLETE` — the rooted continuation owned smoke execution; the
      source-root invocation MUST stop and relay its result rather than execute
      another smoke stage
-   - helper failure — return `SMOKE_BLOCKED`; do not delegate a child model
+   - helper failure — return `SMOKE_BLOCKED`; do not delegate a child model.
+     A marked session whose marker is stale, belongs to another run, or whose
+     working tree is not the disposable repository fails here instead of
+     launching a nested continuation.
 
 9. only in an `ALREADY_ROOTED` session, ensure the human-readable
    `docs/verification/smoke/<run-id>.md` projection exists before the first
@@ -533,6 +550,12 @@ The orchestrator MUST have received `ALREADY_ROOTED` from
 must resolve inside that actual rooted repository. A smoke child must never be
 used to bridge from the SubhForge source checkout into a sibling clone.
 
+This is enforced deterministically, not only by prompt discipline:
+`smoke_budget.py stage-start` and `stage-end` call
+`smoke_handoff.py assert-rooted` and fail closed outside the current rooted
+handoff. A child launched from any other session therefore cannot obtain a
+timing record, and its result cannot be accepted into canonical state.
+
 The smoke orchestrator must fingerprint the source checkout with
 `smoke_workspace.py source-guard` immediately before every substantive child
 invocation and verify the same fingerprint immediately after it returns. A
@@ -564,6 +587,12 @@ security/risk acceptance, product decision, destructive action, or any other
 human-controlled gate. When such a gate lacks already-persisted explicit user
 authorization, persist the required state and return the normal user-input/
 blocked status instead of deciding autonomously.
+
+Paid Claude adversaries are unavailable inside the rooted autonomous
+continuation: `smoke-orchestrator` denies them and the handoff overlay disables
+them for every agent. The optional `paid-claude-runtime` scenario therefore
+cannot run inside autonomous smoke; it requires a separate, interactive,
+explicitly user-authorized invocation.
 
 The child must not rediscover supplied paths unless one is missing, stale,
 ambiguous, or points to unresolved authority:
@@ -685,7 +714,7 @@ When material findings require planning correction:
 - use `MODE: RECONCILE_ONLY`
 - do not restart AUTHOR
 
-Do not use Claude during smoke testing unless the user explicitly authorizes that isolated paid invocation.
+Do not use Claude during smoke testing unless the user explicitly authorizes that isolated paid invocation. Inside the rooted autonomous continuation, paid Claude adversaries are denied/disabled regardless of authorization; an authorized paid check runs as a separate interactive invocation.
 
 ## Stage 8 — Profile scenario selection
 
@@ -894,7 +923,9 @@ python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <
 python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <run-id> stage-start --stage <stage-id> --model <model-id>
 ```
 
-Retain the returned invocation ID. Immediately after EVERY child/subagent
+Retain the returned invocation ID. `stage-start` and `stage-end` fail closed
+unless they run inside the current rooted handoff for this run (see the
+workspace-root handoff above). Immediately after EVERY child/subagent
 returns, run:
 
 ```text

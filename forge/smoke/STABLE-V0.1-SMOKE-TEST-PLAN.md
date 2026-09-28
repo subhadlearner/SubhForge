@@ -139,6 +139,22 @@ release-qualification authority. Kilo autonomous mode used for that rooted
 continuation is likewise only a permission-transport mechanism and never
 substitutes for explicit human waiver/risk/paid-model authorization.
 
+Rooting is proven mechanically rather than by prompt discipline or the shell
+working directory. The handoff marks the continuation's process tree with a
+per-handoff secret token and records only its SHA-256 digest in
+`docs/verification/smoke/<run-id>.handoff.json`. `smoke_handoff.py
+assert-rooted` accepts a session only when the marker names this run and
+directory, the token matches the current record, and the working tree is the
+disposable repository. `smoke_budget.py stage-start`/`stage-end` call it, so no
+child stage can be timed or accepted outside the rooted run, and a fresh
+handoff invalidates any earlier rooted session. Because `--auto` approves every
+non-denied permission, the handoff's `KILO_CONFIG_CONTENT` overlay disables
+paid Claude adversaries and denies `external_directory` access to the source
+checkout. Kilo applies that check to file tools and to file-manipulation shell
+commands (`cd`, `cp`, `mv`, `rm`, `mkdir`, `Set-Content`, `Copy-Item`, ...),
+but not to arbitrary interpreters, so `source-guard` remains the after-the-fact
+detector for writes made from inside a program such as `python`.
+
 Do not mutate the SubhForge source checkout or its protected `main`.
 
 The implementation fixture should be deliberately small. The goal is to test the workflow, not application complexity.

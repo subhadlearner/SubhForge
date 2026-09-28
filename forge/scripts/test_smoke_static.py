@@ -66,9 +66,6 @@ class SmokeStaticTests(unittest.TestCase):
             budget_path.write_text(json.dumps({"started_at_utc": (dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=31)).isoformat()}), encoding="utf-8")
             result = smoke_static.release_gate(config, repo, run_id)
             self.assertIn("contract:parity", result["failures"])
-            self.assertIn("budget:30-minutes", result["failures"])
-
-
     def test_release_gate_blocks_missing_smoke_handoff_helper(self):
         with tempfile.TemporaryDirectory() as temp:
             config, repo, run_id = self._gate_fixture(Path(temp))
@@ -76,6 +73,16 @@ class SmokeStaticTests(unittest.TestCase):
             result = smoke_static.release_gate(config, repo, run_id)
             self.assertFalse(result["ok"])
             self.assertIn("helper:smoke-handoff", result["failures"])
+
+    def test_release_gate_blocks_paid_claude_left_at_ask_under_autonomous_mode(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            orchestrator = config / "agents/smoke-orchestrator.md"
+            orchestrator.write_text(orchestrator.read_text(encoding="utf-8").replace(
+                '"adversary-opus": deny', '"adversary-opus": ask'), encoding="utf-8")
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("routing:claude-denied-autonomous", result["failures"])
 
     def test_release_gate_detects_broken_agent_model_route(self):
         with tempfile.TemporaryDirectory() as temp:

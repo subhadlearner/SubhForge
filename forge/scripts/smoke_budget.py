@@ -7,12 +7,29 @@ import argparse
 import datetime as dt
 import json
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Optional
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import smoke_handoff
 
 
 class BudgetError(RuntimeError):
     pass
+
+
+RootedGuard = Callable[[Path, str], object]
+
+
+def _require_rooted(repo: Path, run_id: str, guard: Optional[RootedGuard]) -> None:
+    """Stage timing brackets every smoke child; refuse it outside a rooted session."""
+    try:
+        (guard or smoke_handoff.assert_rooted)(repo, run_id)
+    except smoke_handoff.SmokeHandoffError as exc:
+        raise BudgetError(
+            "Smoke stage timing requires the rooted disposable smoke session: {}".format(exc)
+        ) from exc
 
 
 def _state_path(repo: Path, run_id: str) -> Path:
@@ -89,10 +106,12 @@ def check(repo: Path, run_id: str, limit_minutes: int = 30,
 
 
 def stage_start(repo: Path, run_id: str, stage: str, model: str,
-                now: Optional[dt.datetime] = None) -> dict:
+                now: Optional[dt.datetime] = None, *,
+                rooted_guard: Optional[RootedGuard] = None) -> dict:
     _validate_stage(stage)
     if not model or not isinstance(model, str):
         raise BudgetError("Model is required")
+    _require_rooted(repo, run_id, rooted_guard)
     path, data = _load(repo, run_id)
     invocations = data["stage_invocations"]
     if any(item.get("ended_at_utc") is None for item in invocations):
@@ -116,7 +135,9 @@ def stage_start(repo: Path, run_id: str, stage: str, model: str,
 
 
 def stage_end(repo: Path, run_id: str, invocation_id: str,
-              now: Optional[dt.datetime] = None) -> dict:
+              now: Optional[dt.datetime] = None, *,
+              rooted_guard: Optional[RootedGuard] = None) -> dict:
+    _require_rooted(repo, run_id, rooted_guard)
     path, data = _load(repo, run_id)
     matches = [item for item in data["stage_invocations"]
                if item.get("invocation_id") == invocation_id]
