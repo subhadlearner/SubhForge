@@ -1005,9 +1005,19 @@ Update canonical smoke state after:
 
 Use `scripts/smoke_state.py set` with narrowly scoped JSON field updates.
 
+The helper is the fail-closed schema boundary for canonical state. Unknown
+top-level fields, invalid run-state/stage/scenario IDs, duplicate or overlapping
+completed/pending scenarios, invalid blocker/final-result shapes, premature
+scenario completion, inconsistent terminal result tokens, and attempts to
+change immutable identity or protected bootstrap context are rejected without
+partially writing the JSON. Do not rely on the helper to auto-repair a
+bad model update; correct the proposed transition and submit a coherent update.
+
 For `context_index` and `stage_metrics`, send only the keys being added or
 replaced. The helper merges those maps by key and preserves unrelated existing
-entries. Do not read/reconstruct/resend the entire nested map merely to append
+entries. Bootstrap-owned `contract_parity` and `budget_started_at_utc` are
+write-once: an identical repeat is harmless, but a different value fails
+closed. Do not read/reconstruct/resend the entire nested map merely to append
 one artifact path or one stage metric.
 
 Example:

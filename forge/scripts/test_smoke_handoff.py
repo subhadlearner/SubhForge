@@ -53,6 +53,10 @@ class SmokeHandoffTests(unittest.TestCase):
             self.repo,
             self.run_id,
             {
+                "context_index": {
+                    "budget_started_at_utc": "2026-09-27T00:00:00+00:00",
+                    "contract_parity": {"contract_equal": True},
+                },
                 "completed_scenarios": ["static-release-gate"],
                 "current_stage": "grill",
             },
