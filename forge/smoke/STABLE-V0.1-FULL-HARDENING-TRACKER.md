@@ -126,7 +126,7 @@ explicitly and intentionally changes them:
   deterministic items should be proven cheaply first; H13 then proves the
   assembled real Kilo path with minimal model spend.
 
-### Closed decision record — H01 through H04
+### Closed decision record — H01 through H05
 
 #### H01 — real disposable-workspace rooting
 
@@ -226,15 +226,59 @@ Closed decision:
 - The static release gate verifies that the installed smoke executor/helper
   contain the H04 hook contract.
 
+#### H05 — arbitrary-stage resume probe mechanics
+
+Closed decision:
+
+- The seven resume subcases are represented by opaque harness IDs `r01` through
+  `r07`; their expected continuation stages remain inside deterministic
+  harness code only.
+- `smoke_resume.py` owns deterministic preparation, validation, scoring,
+  snapshotting, restoration, and final status. It does **not** choose the
+  continuation stage.
+- Every probe starts from a declared matching clean checkpoint and snapshots all
+  Git-tracked plus non-ignored untracked repository files except
+  `docs/verification/smoke/**`.
+- The seven persisted states cover: architecture-ready/project-init-incomplete,
+  project-init-ready/no-Spec, Spec-ready/no-implementation,
+  implementation/no-verification, fresh verification, stale verification, and
+  unresolved blocking review evidence.
+- Stale verification is established by a real Contract-v1 implementation
+  identity `MISMATCH`, not by trusting a stale label in a report.
+- A fresh GPT-5.6 Luna `resume-router` makes the routing decision from normal
+  persisted project evidence only. The helper may score that actual decision
+  against the hidden expected route after the child returns.
+- The router never receives probe ID, expected stage, checkpoint label, prior
+  probe result, scoring output, or stage-specific `CONTEXT_PATHS`.
+- Access to `docs/verification/smoke/**` is denied mechanically for
+  `read`, `glob`, and `grep`; general `git status` is not exposed because
+  it could leak smoke-ledger/snapshot filenames.
+- Before scoring, the helper proves the prepared repository snapshot is
+  unchanged so the routing child cannot mutate its own evidence.
+- Six probes are routing-only and restore immediately after scoring.
+- The approved-Spec probe alone may perform one bounded DeepSeek
+  `WORKFLOW: /implement` handoff with `HANDOFF_PROBE_ONLY: true`.
+  That handoff validates the exact persisted Spec/project context but must not
+  edit source/tests/config, run implementation/test commands, or continue into
+  verification/review.
+- The handoff result is accepted only if the prepared snapshot remains
+  unchanged.
+- Every probe restores the complete clean snapshot and must reproduce the
+  declared Contract-v1 checkpoint exactly.
+- Final H05 status is PASS only after all seven opaque probes are both PASS and
+  restored.
+- The static release gate protects the resume-router route, no-leak permissions,
+  resume helper presence/mechanics, and Scenario-C handoff contract.
+- Normal non-smoke resume behavior is unchanged; deterministic helpers do not
+  replace real resume-routing judgment.
+
 ### Current hardening boundary
 
-H05 is the only current implementation target.
+H06 is the only current implementation target.
 
-Do not pull H06+ work into H05 merely because neighboring state-preparation
-problems look similar. In particular:
+Do not pull H07+ work into H06 merely because neighboring blocked-state
+preparation problems look similar. In particular:
 
-- H06 owns deterministic preparation/restoration for upstream-authority blocked
-  rerouting cases.
 - H07 owns human waiver waiting/authorization versus the 30-minute clock.
 - H08 owns the real FULL invocation/runtime budget reconciliation.
 - H09/H10 own containment/target-identity strengthening.
@@ -265,8 +309,8 @@ qualification until the blocking items below are addressed.
 | H02 | Interrupted/failed child invocation can leave an active `stage-start` record and make RESUME impossible | CRITICAL | Deterministic abort/recovery semantics exist; normal end, failure, interruption, post-child guard failure, duplicate end/abort, and resume are covered; no dangling active invocation prevents continuation | DONE — explicit ACTIVE/COMPLETED/ABORTED/INTERRUPTED lifecycle, persisted pre-child source fingerprint, atomic recover+source-revalidation, restart-safe continuation blockers, and no fabricated interrupted runtime; verified on Windows with 21 focused tests, 87 forge-script tests (2 skipped), 7 tooling tests, clean diff check, and clean worktree | `4841eb16ca43753db8352e475916192f3b6189ac` |
 | H03 | Canonical `smoke_state` remains too permissive for model-generated updates | CRITICAL | Mutable fields are whitelisted; unknown/typo fields fail closed; states/scenarios are validated; completed/pending/current-stage invariants are enforced; protected identity/bootstrap context cannot be silently corrupted | DONE — exact top-level schema; immutable identity; selected-profile scenario validation; unique/disjoint scenario lists; static-release-gate ordering; bootstrap-only protected context; terminal-state/final-result consistency; atomic fail-closed load/set validation; stale handoff fixture corrected without weakening production invariants; verified on Windows with 27 state tests, 9 static-gate tests, 3 bootstrap tests, 25 handoff tests, 105 forge-script tests (2 skipped), 7 tooling tests, clean diff check, and clean worktree | `f7164215b7d6fafa87025360de0a7795bf7d2134` |
 | H04 | Required `verification-mutation` scenario lacks a deterministic verification-time mutation primitive | CRITICAL | A registered mutation occurs deterministically during `/verify`; post-check identity becomes `MISMATCH`/blocked as required; restoration reproduces the exact checkpoint | DONE — deterministic ARMED→APPLIED→RESTORED verification-mutation hook fires after checks and before the post-check Contract-v1 manifest, proves `MISMATCH`, preserves zero-reviewer behavior, restores the exact checkpoint, and is protected by the static release gate; verified on Windows with 3 bootstrap tests, 9 mechanics tests plus 1 expected Windows mode skip, 11 static-gate tests, 112 forge-script tests (2 skipped), 7 tooling tests, clean diff check, and clean worktree | `139bf4212d4e2ab9467803fb561657ce6600d3f1` |
-| H05 | `arbitrary-stage-resume` lacks deterministic preparation/restoration of its seven persisted-state probes | CRITICAL | All seven resume states can be constructed, validated, isolated, scored, and restored deterministically without leaking the expected routing answer to the reasoning context | IN PROGRESS — opaque seven-probe deterministic snapshot/prepare/score/restore helper, fresh read-only Luna resume router, and bounded Scenario-C DeepSeek `/implement` handoff contract under implementation on `harden/h05-arbitrary-stage-resume` | — |
-| H06 | `upstream-rerouting` lacks deterministic blocked-state preparation/restoration | CRITICAL | Required PRD/architecture/project-init/spec/fix authority-boundary cases have reproducible setup, scoring, and restoration without agent-invented fixture state | TODO | — |
+| H05 | `arbitrary-stage-resume` lacks deterministic preparation/restoration of its seven persisted-state probes | CRITICAL | All seven resume states can be constructed, validated, isolated, scored, and restored deterministically without leaking the expected routing answer to the reasoning context | DONE — seven opaque persisted-state probes use deterministic snapshot/prepare/validate/score/restore mechanics while fresh Luna routing remains probabilistic; stale verification is a real Contract-v1 `MISMATCH`; smoke-ledger access is mechanically denied to the router; Scenario C proves bounded DeepSeek `/implement` handoff acceptance without implementation replay; all requested focused, static, bootstrap, full forge-script, tooling, diff-check, and clean-worktree verification passed locally on Windows | `1d78d1df4bec2abb11f92ea42c722486bd1cc072` |
+| H06 | `upstream-rerouting` lacks deterministic blocked-state preparation/restoration | CRITICAL | Required PRD/architecture/project-init/spec/fix authority-boundary cases have reproducible setup, scoring, and restoration without agent-invented fixture state | TODO — NEXT | — |
 | H07 | Required human waiver interaction conflicts with the continuously running 30-minute qualification clock | DESIGN BLOCKER | Human authorization, waiting, resume, and qualification-time semantics are explicitly agreed; command/orchestrator/runbook/budget implementation and tests all describe the same behavior; authorization is never fabricated | TODO | — |
 | H08 | FULL runtime/invocation budget does not match the authoritative required scenario matrix | DESIGN BLOCKER | Derive the real minimum/expected invocation plan from all required scenarios; runtime target/ceiling and invocation matrix become mutually consistent and realistically executable; no timeout is silently raised | TODO | — |
 | H09 | Workspace locate/resume path handling is weaker than create/destroy containment | HIGH | Malformed/traversal run IDs are rejected; create/locate/destroy remain confined to the smoke-run root; negative path-containment tests pass | TODO | — |
@@ -299,7 +343,7 @@ feature merely to make FULL smoke easier.
 
 ## Next action
 
-Start with **H05 only**.
+Start with **H06 only**.
 
 H01 is closed by merged implementation commit
 `9b5bfe0d034d41252fecd9b5ba5b787a5e73c778` and real Kilo probe
@@ -322,6 +366,13 @@ verification: 3 bootstrap tests, 9 mechanics tests plus 1 expected Windows
 mode skip, 11 static-gate tests, 112 forge-script tests (2 skipped), 7 tooling
 tests, clean diff check, and clean working tree.
 
-Do not make H06+ implementation changes in the H05 commit unless they are
-strictly necessary to make H05 correct; if such coupling is discovered, record
+H05 is closed by merged implementation commit
+`1d78d1df4bec2abb11f92ea42c722486bd1cc072` after deterministic Windows
+verification: the 13 focused resume-probe tests, static release-gate tests,
+bootstrap tests, full forge-script regression suite, tooling suite, diff check,
+and clean working tree all passed. GitHub review confirmed one commit ahead,
+zero behind, clean/rebaseable merge state, and no review threads before merge.
+
+Do not make H07+ implementation changes in the H06 commit unless they are
+strictly necessary to make H06 correct; if such coupling is discovered, record
 it before changing scope.
