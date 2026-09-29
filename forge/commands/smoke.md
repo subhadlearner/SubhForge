@@ -766,6 +766,12 @@ explicit authorization is missing:
      --classification <waiver-classification>
    ```
 
+   Before opening the interval, the helper also validates canonical smoke
+   state: profile `FULL`, current scenario `waive-review-loop`, waiver
+   verification/waive stage, and latest verification exactly
+   `NOT_DONE / BLOCKED / MATCH`. This prevents a model from manufacturing a
+   budget pause merely by naming an existing file.
+   
    The helper derives `gate_id` as SHA-256 of a canonical payload containing
    the run ID, gate type, exact verification-report path, Contract-v1
    fingerprint, exact canonically ordered failure set, and classification.
@@ -806,9 +812,11 @@ python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <
 
 The source-root orchestrator may structure/quote those values for the helper,
 but must copy the human decision faithfully and must not synthesize missing
-risk acceptance. The helper verifies the disposable workspace, exact gate,
-report, failure set, classification, decision token, and all required non-empty
-authorization fields **before** writing anything. A rejected/invalid RESUME is
+risk acceptance. The helper verifies the disposable workspace, canonical FULL
+`waive-review-loop` state, current `NOT_DONE / BLOCKED / MATCH`
+verification, `WAITING_FOR_USER` blocker with the same `gate_type/gate_id`,
+exact gate, report, failure set, classification, decision token, and all
+required non-empty authorization fields **before** writing anything. A rejected/invalid RESUME is
 therefore a pure no-op on the existing open interval.
 
 A valid authorization closes that one interval and persists the authorization

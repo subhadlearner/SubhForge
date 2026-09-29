@@ -14,6 +14,7 @@ from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import smoke_handoff
+import smoke_state
 import smoke_workspace
 
 
@@ -24,6 +25,7 @@ class BudgetError(RuntimeError):
 RootedGuard = Callable[[Path, str], object]
 SourceGuard = Callable[[Path, str], dict[str, object]]
 WorkspaceGuard = Callable[[Path, str], object]
+StateGuard = Callable[[Path, str], dict[str, object]]
 
 HUMAN_WAIT_WAIVER_AUTHORIZATION = "WAIVER_AUTHORIZATION"
 ALLOWED_HUMAN_WAIT_GATE_TYPES = {HUMAN_WAIT_WAIVER_AUTHORIZATION}
@@ -380,6 +382,61 @@ def _require_workspace(
         ) from exc
 
 
+def _human_gate_state(
+    repo: Path,
+    run_id: str,
+    guard: Optional[StateGuard],
+) -> dict[str, object]:
+    try:
+        state = dict((guard or smoke_state.load)(repo, run_id))
+    except smoke_state.SmokeStateError as exc:
+        raise BudgetError(
+            "Human authorization gate requires valid canonical smoke state: {}".format(exc)
+        ) from exc
+
+    if state.get("profile") != "FULL":
+        raise BudgetError("Human authorization wait is only enabled for FULL smoke")
+    if state.get("current_scenario") != "waive-review-loop":
+        raise BudgetError(
+            "Human authorization wait requires current_scenario waive-review-loop"
+        )
+    if state.get("current_stage") not in {"verify", "waive", "waive-review-loop"}:
+        raise BudgetError(
+            "Human authorization wait requires the waiver verification/waive stage"
+        )
+
+    latest = state.get("latest_verification")
+    if not isinstance(latest, dict):
+        raise BudgetError("Human authorization wait requires canonical verification evidence")
+    expected = {
+        "result": "NOT_DONE",
+        "delivery_gate": "BLOCKED",
+        "freshness": "MATCH",
+    }
+    for field, value in expected.items():
+        if latest.get(field) != value:
+            raise BudgetError(
+                "Human authorization wait requires latest_verification.{}={}".format(
+                    field, value
+                )
+            )
+    return state
+
+
+def _require_waiting_blocker(
+    state: dict[str, object],
+    gate_type: str,
+    gate_id: str,
+) -> None:
+    if state.get("state") != "WAITING_FOR_USER":
+        raise BudgetError("Human authorization capture requires WAITING_FOR_USER state")
+    blocker = state.get("blocker")
+    if not isinstance(blocker, dict):
+        raise BudgetError("Human authorization capture requires persisted blocker identity")
+    if blocker.get("gate_type") != gate_type or blocker.get("gate_id") != gate_id:
+        raise BudgetError("Canonical blocker does not match the active human authorization gate")
+
+
 def _invocation_status(item: dict) -> str:
     status = item.get("status")
     if status is None:
@@ -487,10 +544,12 @@ def human_wait_start(
     now: Optional[dt.datetime] = None,
     *,
     rooted_guard: Optional[RootedGuard] = None,
+    state_guard: Optional[StateGuard] = None,
 ) -> dict:
     """Open the single allow-listed human-authorization pause for this request."""
     _validate_gate_type(gate_type)
     _require_rooted(repo, run_id, rooted_guard)
+    state = _human_gate_state(repo, run_id, state_guard)
     path, data = _load(repo, run_id)
     if data.get("continuation_blocker") is not None:
         raise BudgetError("Smoke invocation recovery is blocked; human wait cannot start")
@@ -512,11 +571,20 @@ def human_wait_start(
     open_wait = _open_human_wait(data)
     if open_wait is not None:
         if open_wait["gate_id"] == gate_id:
+            run_state = state.get("state")
+            if run_state == "WAITING_FOR_USER":
+                _require_waiting_blocker(state, gate_type, gate_id)
+            elif run_state != "IN_PROGRESS":
+                raise BudgetError(
+                    "Open human authorization wait has incompatible canonical run state"
+                )
             return {
                 "result": "HUMAN_AUTHORIZATION_WAIT_ACTIVE",
                 "gate": dict(open_wait),
             }
         raise BudgetError("A different human authorization wait is already active")
+    if state.get("state") != "IN_PROGRESS":
+        raise BudgetError("A new human authorization wait requires IN_PROGRESS state")
     if any(item.get("gate_id") == gate_id for item in data["human_wait_intervals"]):
         raise BudgetError("A completed human authorization gate cannot be reopened")
 
@@ -557,6 +625,7 @@ def human_wait_authorize(
     expiry: str,
     now: Optional[dt.datetime] = None,
     workspace_guard: Optional[WorkspaceGuard] = None,
+    state_guard: Optional[StateGuard] = None,
 ) -> dict:
     """Persist a structurally complete explicit human decision and close its wait.
 
@@ -567,6 +636,7 @@ def human_wait_authorize(
     """
     _validate_gate_type(gate_type)
     _require_workspace(repo, run_id, workspace_guard)
+    state = _human_gate_state(repo, run_id, state_guard)
     path, data = _load(repo, run_id)
     if data.get("continuation_blocker") is not None:
         raise BudgetError("Smoke invocation recovery is blocked; authorization cannot be captured")
@@ -578,6 +648,7 @@ def human_wait_authorize(
         raise BudgetError("No human authorization wait is active")
     if open_wait.get("gate_type") != gate_type or open_wait.get("gate_id") != gate_id:
         raise BudgetError("Human authorization does not match the active gate")
+    _require_waiting_blocker(state, gate_type, gate_id)
 
     authorization = _waiver_authorization_payload(
         open_wait["identity"],

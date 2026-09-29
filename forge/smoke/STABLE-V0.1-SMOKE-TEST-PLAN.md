@@ -2726,6 +2726,12 @@ For the current Stable-v0.1 FULL fixture, the only enabled human gate type is:
 WAIVER_AUTHORIZATION
 ```
 
+Before opening a wait, the helper must validate canonical smoke state is the
+required FULL `waive-review-loop`, the current stage is the waiver
+verification/waive boundary, and the latest verification is exactly
+`NOT_DONE / BLOCKED / MATCH`. Merely naming an existing verification report
+must never be sufficient to pause the qualification clock.
+
 The helper derives a collision-resistant `gate_id` from a canonical payload
 containing the smoke run ID, gate type, exact verification-report path,
 Contract-v1 implementation-state fingerprint, exact canonically ordered failure
@@ -2778,10 +2784,12 @@ is open is a no-op that returns `SMOKE_USER_INPUT_REQUIRED`; authorization
 must not be recovered from earlier chat history. The source-root orchestrator
 must capture the current human response before autonomous handoff using
 `smoke_budget.py human-wait-authorize` against the exact persisted
-`gate_type` and `gate_id`. The helper requires the exact verification
-report, failure set, classification, `ACCEPTED_TEMPORARILY` decision, and
-non-empty human justification, residual risk, compensating control,
-remediation, and expiry before mutating the ledger.
+`gate_type` and `gate_id`. The helper requires canonical FULL `waive-review-loop` state, current
+`NOT_DONE / BLOCKED / MATCH` verification, `WAITING_FOR_USER` with a blocker
+carrying the same `gate_type/gate_id`, the exact verification report, failure
+set, classification, `ACCEPTED_TEMPORARILY` decision, and non-empty human
+justification, residual risk, compensating control, remediation, and expiry
+before mutating the ledger.
 
 If any authorization field is missing or mismatched, the helper rejects the
 attempt without changing the existing open interval. The run remains
