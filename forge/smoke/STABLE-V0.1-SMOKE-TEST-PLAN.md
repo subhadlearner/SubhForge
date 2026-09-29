@@ -891,14 +891,24 @@ For a full end-to-end run from `/grill`, target approximately this number of sub
 This table is a target, not a mandate.
 
 The default tiny FULL run targets completion within 25 minutes. The 30-minute
-limit is an **end-to-end release-qualification ceiling** measured from smoke
-bootstrap; it does not reset on `RESUME`.
+limit is an **active release-qualification ceiling**. Wall-clock measurement
+begins at smoke bootstrap and never resets on `RESUME`, but qualification
+elapsed time excludes only deterministic human-authorization wait intervals
+opened by `scripts/smoke_budget.py` for an allow-listed gate.
 
-At 30 minutes, persist `PERFORMANCE_BUDGET_EXCEEDED`, stop launching new model
-stages, and retain the workspace/evidence for STATUS, diagnosis, or abandonment.
-Elapsed-time overrun is not evidence of a functional failure, but the same
-exhausted run cannot later continue to a release-qualifying PASS. A new FULL run
-is required after any framework/performance fix.
+Stable v0.1 allow-lists only `WAIVER_AUTHORIZATION`. A bare
+`WAITING_FOR_USER` state, crash, retry, transport delay, debugging period, or
+ordinary inactivity never pauses the budget. The ledger is append-only across
+completed waits, permits at most one open interval, and sums all valid wait
+intervals. An invalid/rejected RESUME attempt does not close, replace, or
+restart the existing interval.
+
+At 30 minutes of active qualification time, persist
+`PERFORMANCE_BUDGET_EXCEEDED`, stop launching new model stages, and retain the
+workspace/evidence for STATUS, diagnosis, or abandonment. Elapsed-time overrun
+is not evidence of a functional failure, but the same exhausted run cannot
+later continue to a release-qualifying PASS. A new FULL run is required after
+any framework/performance fix.
 
 If a valid artifact already exists because the smoke run resumes mid-workflow, subtract the corresponding completed stages.
 
@@ -2706,6 +2716,34 @@ Run:
 /waive
 ```
 
+If the required human authorization is not already present, the rooted smoke
+orchestrator must first create the deterministic wait interval with
+`smoke_budget.py human-wait-start`.
+
+For the current Stable-v0.1 FULL fixture, the only enabled human gate type is:
+
+```text
+WAIVER_AUTHORIZATION
+```
+
+Before opening a wait, the helper must validate canonical smoke state is the
+required FULL `waive-review-loop`, the current stage is the waiver
+verification/waive boundary, and the latest verification is exactly
+`NOT_DONE / BLOCKED / MATCH`. Merely naming an existing verification report
+must never be sufficient to pause the qualification clock.
+
+The helper derives a collision-resistant `gate_id` from a canonical payload
+containing the smoke run ID, gate type, exact verification-report path,
+SHA-256 of the exact verification-report bytes, Contract-v1 implementation-state
+fingerprint, exact canonically ordered failure set, and waiver classification.
+The orchestrator does not invent the ID. If those report bytes change while the
+gate is open, authorization must fail closed without mutating the interval.
+
+Persist `WAITING_FOR_USER` plus that exact gate identity, return
+`SMOKE_USER_INPUT_REQUIRED`, and launch no further model stage while the gate
+is open. Repeating the same gate request is idempotent; a different request
+cannot replace it.
+
 Provide explicit smoke-test authorization, for example:
 
 ```text
@@ -2741,6 +2779,35 @@ Delivery Gate: CLEAR_WITH_EXCEPTION
 ```
 
 The verification report itself must remain `NOT_DONE`.
+
+On the later `/smoke RESUME <run-id>`, the human must include the requested
+authorization fields in that same user message. A bare RESUME while the gate
+is open is a no-op that returns `SMOKE_USER_INPUT_REQUIRED`; authorization
+must not be recovered from earlier chat history. The source-root orchestrator
+must capture the current human response before autonomous handoff using
+`smoke_budget.py human-wait-authorize` against the exact persisted
+`gate_type` and `gate_id`. The helper requires canonical FULL `waive-review-loop` state, current
+`NOT_DONE / BLOCKED / MATCH` verification, `WAITING_FOR_USER` with a blocker
+carrying the same `gate_type/gate_id`, the exact verification report, failure
+set, classification, `ACCEPTED_TEMPORARILY` decision, and non-empty human
+justification, residual risk, compensating control, remediation, and expiry
+before mutating the ledger.
+
+If any authorization field is missing or mismatched, or the verification-report
+bytes no longer match the report digest bound into the gate identity, the helper
+rejects the attempt without changing the existing open interval. The run remains
+`WAITING_FOR_USER`; no close/reopen cycle occurs. Only a valid authorization
+closes the interval. The persisted authorization then crosses the source-root
+to rooted-continuation boundary as repository evidence; `--auto` and chat
+history are never substitutes for that human decision.
+
+A deliberate human decline does not call `human-wait-authorize`. The gate
+remains open; use `/smoke ABANDON <run-id>` when the user chooses to terminate
+the run rather than accept the waiver.
+
+A completed gate ID cannot be reopened. If a later verification run changes
+the verification report, Contract-v1 fingerprint, failure set, or
+classification, it is a new request with a new derived gate identity.
 
 ### Step 3 — review with exception
 
@@ -3630,8 +3697,20 @@ The FULL orchestration budget is enforced by `scripts/smoke_budget.py`.
 - initialize the guard immediately after the smoke run record is created
 - check it before every substantive lifecycle/model stage
 - check it immediately after every child/subagent returns
-- at 30 minutes, do not launch another stage; persist the blocker and return
-  `PERFORMANCE_BUDGET_EXCEEDED`
+- compute active qualification time as wall-clock elapsed minus helper-validated
+  allow-listed human-authorization intervals
+- only `human-wait-start` may open an excluded interval, only from the rooted
+  disposable run, and Stable v0.1 only accepts `WAIVER_AUTHORIZATION`
+- `WAITING_FOR_USER` alone never pauses the clock
+- at most one wait interval may be open; completed intervals remain append-only
+  and their durations are summed
+- invalid/rejected authorization is a pure no-op on the open interval
+- `human-wait-authorize` may close an existing gate before rooted handoff only
+  after validating the disposable workspace, exact gate identity, exact waiver
+  scope, and all required human decision fields
+- no smoke model stage may start while a human wait is open
+- at 30 minutes of active qualification time, do not launch another stage;
+  persist the blocker and return `PERFORMANCE_BUDGET_EXCEEDED`
 - this is an orchestration-boundary stop and does not forcibly terminate an
   already-running child model invocation
 

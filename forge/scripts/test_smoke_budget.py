@@ -24,13 +24,94 @@ class SmokeBudgetTests(unittest.TestCase):
         self.started = dt.datetime(2026, 9, 27, 0, 0, tzinfo=dt.timezone.utc)
         self.rooted_calls = []
         self.source_guard_calls = []
+        self.workspace_calls = []
         self.source_fingerprint = "a" * 64
+        self.verification_report = "docs/verification/VERIFY-H07-001.md"
+        (self.repo / self.verification_report).write_text(
+            "Verification Result: NOT_DONE\n", encoding="utf-8"
+        )
+        self.implementation_fingerprint = "GIT_BLOB_OID:" + ("b" * 40)
+        self.failures = ["DOCS_PUBLIC_API_MISSING"]
+        self.classification = "NON_CRITICAL_QUALITY_GATE"
 
     def rooted(self, repo, run_id):
         self.rooted_calls.append((repo, run_id))
 
     def refuse(self, repo, run_id):
         raise smoke_handoff.SmokeHandoffError("not rooted")
+
+    def workspace(self, repo, run_id):
+        self.workspace_calls.append((repo, run_id))
+
+    def refuse_workspace(self, repo, run_id):
+        raise smoke_handoff.SmokeHandoffError("not a disposable smoke workspace")
+
+    def gate_state(self, *, run_state="IN_PROGRESS", gate_id=None, **overrides):
+        state = {
+            "profile": "FULL",
+            "current_scenario": "waive-review-loop",
+            "current_stage": "waive",
+            "state": run_state,
+            "latest_verification": {
+                "result": "NOT_DONE",
+                "delivery_gate": "BLOCKED",
+                "freshness": "MATCH",
+            },
+            "blocker": (
+                {
+                    "gate_type": smoke_budget.HUMAN_WAIT_WAIVER_AUTHORIZATION,
+                    "gate_id": gate_id,
+                }
+                if run_state == "WAITING_FOR_USER" and gate_id
+                else None
+            ),
+        }
+        state.update(overrides)
+        return state
+
+    def start_state(self, repo, run_id):
+        return self.gate_state()
+
+    def _start_wait(self, *, at=None, failures=None, state_guard=None):
+        return smoke_budget.human_wait_start(
+            self.repo,
+            self.run_id,
+            smoke_budget.HUMAN_WAIT_WAIVER_AUTHORIZATION,
+            self.verification_report,
+            self.implementation_fingerprint,
+            failures or self.failures,
+            self.classification,
+            at or (self.started + dt.timedelta(minutes=10)),
+            rooted_guard=self.rooted,
+            state_guard=state_guard or self.start_state,
+        )
+
+    def _authorize_wait(self, gate_id, *, at=None, failures=None, **overrides):
+        values = {
+            "decision": "ACCEPTED_TEMPORARILY",
+            "verification_report": self.verification_report,
+            "failures": failures or self.failures,
+            "classification": self.classification,
+            "justification": "Intentional documentation-only smoke-test exception.",
+            "residual_risk": "One public smoke API lacks required documentation.",
+            "compensating_control": "Behavioral and security checks remain passing.",
+            "remediation": "Restore the required documentation after the scenario.",
+            "expiry": "End of this smoke-test session.",
+        }
+        values.update(overrides)
+        return smoke_budget.human_wait_authorize(
+            self.repo,
+            self.run_id,
+            smoke_budget.HUMAN_WAIT_WAIVER_AUTHORIZATION,
+            gate_id,
+            now=at or (self.started + dt.timedelta(hours=2, minutes=10)),
+            workspace_guard=self.workspace,
+            state_guard=lambda repo, run_id: self.gate_state(
+                run_state="WAITING_FOR_USER",
+                gate_id=gate_id,
+            ),
+            **values,
+        )
 
     def source_matches(self, source, expected):
         self.source_guard_calls.append((source, expected))
@@ -69,6 +150,358 @@ class SmokeBudgetTests(unittest.TestCase):
         smoke_budget.start(self.repo, self.run_id, self.started)
         with self.assertRaises(smoke_budget.BudgetError):
             smoke_budget.start(self.repo, self.run_id, self.started)
+
+    def test_open_human_wait_excludes_only_wait_time_from_budget(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        opened = self._start_wait(at=self.started + dt.timedelta(minutes=10))
+        gate_id = opened["gate"]["gate_id"]
+
+        during = smoke_budget.check(
+            self.repo,
+            self.run_id,
+            30,
+            self.started + dt.timedelta(hours=2, minutes=10),
+        )
+        self.assertEqual("WITHIN_BUDGET", during["result"])
+        self.assertEqual(7800.0, during["wall_elapsed_seconds"])
+        self.assertEqual(7200.0, during["excluded_human_wait_seconds"])
+        self.assertEqual(600.0, during["elapsed_seconds"])
+        self.assertEqual(gate_id, during["active_human_wait"]["gate_id"])
+
+        accepted = self._authorize_wait(
+            gate_id,
+            at=self.started + dt.timedelta(hours=2, minutes=10),
+        )
+        self.assertEqual("HUMAN_AUTHORIZATION_ACCEPTED", accepted["result"])
+
+        after = smoke_budget.check(
+            self.repo,
+            self.run_id,
+            30,
+            self.started + dt.timedelta(hours=2, minutes=15),
+        )
+        self.assertEqual("WITHIN_BUDGET", after["result"])
+        self.assertEqual(900.0, after["elapsed_seconds"])
+        self.assertEqual(900.0, after["remaining_seconds"])
+        self.assertIsNone(after["active_human_wait"])
+        self.assertEqual(1, after["completed_human_wait_count"])
+        self.assertEqual(
+            "ACCEPTED_TEMPORARILY",
+            self._budget_file()["human_wait_intervals"][0]["authorization"]["decision"],
+        )
+
+    def test_multiple_human_wait_intervals_are_summed(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        first = self._start_wait(at=self.started + dt.timedelta(minutes=5))
+        self._authorize_wait(
+            first["gate"]["gate_id"],
+            at=self.started + dt.timedelta(minutes=15),
+        )
+
+        second_failures = ["DOCS_SECOND_PUBLIC_API_MISSING"]
+        second = self._start_wait(
+            at=self.started + dt.timedelta(minutes=20),
+            failures=second_failures,
+        )
+        self._authorize_wait(
+            second["gate"]["gate_id"],
+            at=self.started + dt.timedelta(minutes=50),
+            failures=second_failures,
+        )
+
+        result = smoke_budget.check(
+            self.repo,
+            self.run_id,
+            30,
+            self.started + dt.timedelta(minutes=60),
+        )
+        self.assertEqual("WITHIN_BUDGET", result["result"])
+        self.assertEqual(2400.0, result["excluded_human_wait_seconds"])
+        self.assertEqual(1200.0, result["elapsed_seconds"])
+        self.assertEqual(2, result["completed_human_wait_count"])
+
+    def test_wait_start_is_idempotent_for_same_open_gate_without_restarting_clock(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        first = self._start_wait(at=self.started + dt.timedelta(minutes=10))
+        before = self._budget_file()
+
+        second = self._start_wait(at=self.started + dt.timedelta(minutes=20))
+
+        self.assertEqual("HUMAN_AUTHORIZATION_WAIT_ACTIVE", second["result"])
+        self.assertEqual(first["gate"]["gate_id"], second["gate"]["gate_id"])
+        self.assertEqual(before, self._budget_file())
+        self.assertEqual(
+            (self.started + dt.timedelta(minutes=10)).isoformat(),
+            second["gate"]["started_at_utc"],
+        )
+
+    def test_wait_start_rejects_non_waiver_scenario_without_mutation(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        before = self._budget_file()
+
+        with self.assertRaises(smoke_budget.BudgetError):
+            self._start_wait(
+                state_guard=lambda repo, run_id: self.gate_state(
+                    current_scenario="direct-fix-loop"
+                )
+            )
+
+        self.assertEqual(before, self._budget_file())
+
+    def test_wait_start_requires_failed_fresh_verification_state(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        before = self._budget_file()
+
+        with self.assertRaises(smoke_budget.BudgetError):
+            self._start_wait(
+                state_guard=lambda repo, run_id: self.gate_state(
+                    latest_verification={
+                        "result": "DONE",
+                        "delivery_gate": "CLEAR",
+                        "freshness": "MATCH",
+                    }
+                )
+            )
+
+        self.assertEqual(before, self._budget_file())
+
+    def test_authorization_requires_matching_waiting_blocker(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        opened = self._start_wait(at=self.started + dt.timedelta(minutes=10))
+        gate_id = opened["gate"]["gate_id"]
+        path = self.repo / "docs/verification/smoke" / f"{self.run_id}.budget.json"
+        before = path.read_text(encoding="utf-8")
+        values = {
+            "decision": "ACCEPTED_TEMPORARILY",
+            "verification_report": self.verification_report,
+            "failures": self.failures,
+            "classification": self.classification,
+            "justification": "Approved",
+            "residual_risk": "Residual risk",
+            "compensating_control": "Compensating control",
+            "remediation": "Remediation",
+            "expiry": "End of smoke run",
+        }
+
+        with self.assertRaises(smoke_budget.BudgetError):
+            smoke_budget.human_wait_authorize(
+                self.repo,
+                self.run_id,
+                smoke_budget.HUMAN_WAIT_WAIVER_AUTHORIZATION,
+                gate_id,
+                now=self.started + dt.timedelta(minutes=20),
+                workspace_guard=self.workspace,
+                state_guard=lambda repo, run_id: self.gate_state(
+                    run_state="WAITING_FOR_USER",
+                    gate_id="0" * 64,
+                ),
+                **values,
+            )
+
+        self.assertEqual(before, path.read_text(encoding="utf-8"))
+
+    def test_report_content_change_produces_distinct_gate_identity(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        first = self._start_wait(at=self.started + dt.timedelta(minutes=5))
+        first_gate_id = first["gate"]["gate_id"]
+        self._authorize_wait(
+            first_gate_id,
+            at=self.started + dt.timedelta(minutes=10),
+        )
+
+        (self.repo / self.verification_report).write_text(
+            "Verification Result: NOT_DONE\nChanged report bytes.\n",
+            encoding="utf-8",
+        )
+        second = self._start_wait(at=self.started + dt.timedelta(minutes=15))
+
+        self.assertNotEqual(first_gate_id, second["gate"]["gate_id"])
+        smoke_budget.restore = None if False else getattr(smoke_budget, "restore", None)
+
+    def test_report_change_after_request_blocks_authorization_without_mutation(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        opened = self._start_wait(at=self.started + dt.timedelta(minutes=5))
+        gate_id = opened["gate"]["gate_id"]
+        ledger_path = (
+            self.repo / "docs/verification/smoke" / f"{self.run_id}.budget.json"
+        )
+        before = ledger_path.read_text(encoding="utf-8")
+
+        (self.repo / self.verification_report).write_text(
+            "Verification Result: NOT_DONE\nTampered after request.\n",
+            encoding="utf-8",
+        )
+
+        with self.assertRaises(smoke_budget.BudgetError):
+            self._authorize_wait(
+                gate_id,
+                at=self.started + dt.timedelta(minutes=10),
+            )
+
+        self.assertEqual(before, ledger_path.read_text(encoding="utf-8"))
+
+    def test_unknown_gate_and_second_different_open_gate_fail_without_mutation(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        before = self._budget_file()
+        with self.assertRaises(smoke_budget.BudgetError):
+            smoke_budget.human_wait_start(
+                self.repo,
+                self.run_id,
+                "PAID_MODEL_APPROVAL",
+                self.verification_report,
+                self.implementation_fingerprint,
+                self.failures,
+                self.classification,
+                self.started + dt.timedelta(minutes=1),
+                rooted_guard=self.rooted,
+            )
+        self.assertEqual(before, self._budget_file())
+
+        self._start_wait(at=self.started + dt.timedelta(minutes=10))
+        before = self._budget_file()
+        with self.assertRaises(smoke_budget.BudgetError):
+            self._start_wait(
+                at=self.started + dt.timedelta(minutes=20),
+                failures=["A_DIFFERENT_FAILURE"],
+            )
+        self.assertEqual(before, self._budget_file())
+
+    def test_stage_start_is_blocked_while_human_wait_is_open(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        self._start_wait(at=self.started + dt.timedelta(minutes=10))
+        before = self._budget_file()
+
+        with self.assertRaises(smoke_budget.BudgetError):
+            smoke_budget.stage_start(
+                self.repo,
+                self.run_id,
+                "waive",
+                "openai/gpt-5.6-luna",
+                self.started + dt.timedelta(minutes=11),
+                source_fingerprint=self.source_fingerprint,
+                rooted_guard=self.rooted,
+            )
+
+        self.assertEqual(before, self._budget_file())
+
+    def test_invalid_authorization_is_pure_noop_on_open_interval(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        opened = self._start_wait(at=self.started + dt.timedelta(minutes=10))
+        gate_id = opened["gate"]["gate_id"]
+        path = self.repo / "docs/verification/smoke" / f"{self.run_id}.budget.json"
+        before = path.read_text(encoding="utf-8")
+
+        with self.assertRaises(smoke_budget.BudgetError):
+            self._authorize_wait(
+                gate_id,
+                at=self.started + dt.timedelta(minutes=20),
+                failures=["WRONG_FAILURE_SET"],
+            )
+        self.assertEqual(before, path.read_text(encoding="utf-8"))
+
+        with self.assertRaises(smoke_budget.BudgetError):
+            self._authorize_wait(
+                gate_id,
+                at=self.started + dt.timedelta(minutes=21),
+                justification="   ",
+            )
+        self.assertEqual(before, path.read_text(encoding="utf-8"))
+
+    def test_authorization_requires_validated_disposable_workspace_without_mutation(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        opened = self._start_wait(at=self.started + dt.timedelta(minutes=10))
+        path = self.repo / "docs/verification/smoke" / f"{self.run_id}.budget.json"
+        before = path.read_text(encoding="utf-8")
+
+        with self.assertRaises(smoke_budget.BudgetError):
+            smoke_budget.human_wait_authorize(
+                self.repo,
+                self.run_id,
+                smoke_budget.HUMAN_WAIT_WAIVER_AUTHORIZATION,
+                opened["gate"]["gate_id"],
+                decision="ACCEPTED_TEMPORARILY",
+                verification_report=self.verification_report,
+                failures=self.failures,
+                classification=self.classification,
+                justification="Approved",
+                residual_risk="Residual risk",
+                compensating_control="Compensating control",
+                remediation="Remediation",
+                expiry="End of smoke run",
+                now=self.started + dt.timedelta(minutes=20),
+                workspace_guard=self.refuse_workspace,
+                state_guard=lambda repo, run_id: self.gate_state(
+                    run_state="WAITING_FOR_USER",
+                    gate_id=opened["gate"]["gate_id"],
+                ),
+            )
+
+        self.assertEqual(before, path.read_text(encoding="utf-8"))
+
+    def test_completed_gate_cannot_be_reopened(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        opened = self._start_wait(at=self.started + dt.timedelta(minutes=10))
+        self._authorize_wait(
+            opened["gate"]["gate_id"],
+            at=self.started + dt.timedelta(minutes=20),
+        )
+        before = self._budget_file()
+
+        with self.assertRaises(smoke_budget.BudgetError):
+            self._start_wait(at=self.started + dt.timedelta(minutes=30))
+
+        self.assertEqual(before, self._budget_file())
+
+    def test_overlapping_persisted_wait_intervals_fail_closed(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        first = self._start_wait(at=self.started + dt.timedelta(minutes=5))
+        self._authorize_wait(
+            first["gate"]["gate_id"],
+            at=self.started + dt.timedelta(minutes=15),
+        )
+        second_failures = ["SECOND_FAILURE"]
+        second = self._start_wait(
+            at=self.started + dt.timedelta(minutes=20),
+            failures=second_failures,
+        )
+        self._authorize_wait(
+            second["gate"]["gate_id"],
+            at=self.started + dt.timedelta(minutes=25),
+            failures=second_failures,
+        )
+
+        path = self.repo / "docs/verification/smoke" / f"{self.run_id}.budget.json"
+        data = self._budget_file()
+        data["human_wait_intervals"][1]["started_at_utc"] = (
+            self.started + dt.timedelta(minutes=14)
+        ).isoformat()
+        path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+        with self.assertRaises(smoke_budget.BudgetError):
+            smoke_budget.check(
+                self.repo,
+                self.run_id,
+                30,
+                self.started + dt.timedelta(minutes=30),
+            )
+
+    def test_malformed_human_wait_timestamp_fails_closed(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        opened = self._start_wait(at=self.started + dt.timedelta(minutes=5))
+        path = self.repo / "docs/verification/smoke" / f"{self.run_id}.budget.json"
+        data = self._budget_file()
+        data["human_wait_intervals"][0]["started_at_utc"] = None
+        path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+        with self.assertRaises(smoke_budget.BudgetError):
+            smoke_budget.check(
+                self.repo,
+                self.run_id,
+                30,
+                self.started + dt.timedelta(minutes=10),
+            )
+
+        self.assertIsNotNone(opened["gate"]["gate_id"])
 
     def test_stage_timing_is_persisted_with_unique_invocation_ids(self):
         smoke_budget.start(self.repo, self.run_id, self.started)

@@ -59,6 +59,34 @@ Do not infer authorization from:
 - the mere presence of a flaky test
 - urgency or schedule pressure
 
+### Smoke human-authorization receipt
+
+During a Stable-v0.1 FULL smoke run, live human input cannot cross directly into
+the rooted autonomous continuation. The only permitted substitute for a live
+Stage-2 user message is the exact persisted authorization attached to a closed
+`WAIVER_AUTHORIZATION` interval in that run's deterministic
+`<run-id>.budget.json` ledger.
+
+Treat that receipt as explicit human authorization only when all of these hold:
+
+- it was closed by `smoke_budget.py human-wait-authorize`
+- its `gate_type` is exactly `WAIVER_AUTHORIZATION`
+- its helper-derived `gate_id` still matches the canonical gate identity,
+  including the persisted SHA-256 of the exact verification-report bytes
+- the current verification-report bytes still match that persisted report digest
+- its verification report, Contract-v1 implementation-state fingerprint,
+  failure set, and classification exactly match the waiver request being
+  evaluated
+- its decision is exactly `ACCEPTED_TEMPORARILY`
+- justification, residual risk, compensating control, remediation, and expiry
+  are all present
+- normal Stage-4 freshness/policy validation still succeeds
+
+Do not treat `WAITING_FOR_USER`, Kilo `--auto`, a smoke blocker, chat
+history, or any model-generated prose as authorization. The smoke receipt
+transports the human decision; it does not weaken or bypass any normal waiver
+freshness, scope, classification, expiry, or policy requirement.
+
 Require the human owner to supply or explicitly approve:
 
 - failed verification report ID/path
