@@ -846,11 +846,92 @@ After seven passing, restored probes, require
 `smoke_resume.py status` to return `PASS` before marking
 `arbitrary-stage-resume` complete.
 
+If a resume-router or bounded handoff child is interrupted before the probe is
+scored, complete normal H02 invocation recovery, restore the active probe, then
+retry the same opaque probe ID. Only `RESTORED + NOT_SCORED` is retryable;
+scored `PASS` or `FAIL` attempts remain immutable and single-use.
+
 Normal non-smoke resume behavior is unchanged. Do not replace resume routing
 with a deterministic lookup table; only the fresh Luna routing context chooses
 the continuation stage.
 
+## Upstream-authority rerouting smoke optimization
 
+The FULL `upstream-rerouting` scenario uses installed
+`scripts/smoke_reroute.py` to prepare and restore eight opaque blocked-state
+probes. The helper owns mechanics and hidden scoring only; the normal model
+owner still classifies the authority boundary.
+
+For each `u01`...`u08` probe:
+
+1. start from one matching clean checkpoint
+2. prepare exact normal PRD/architecture/ADR/Spec/project-instruction/
+   implementation/verification context with `smoke_reroute.py prepare`
+3. never pass the opaque probe ID, expected owner/command, checkpoint, score,
+   helper source, or smoke ledger to the child
+4. when the helper returns `classifier=planning`, use one GPT-5.6 Sol
+   `planning-worker` call with `MODE: AUTHOR`,
+   `UPSTREAM_ROUTE_PROBE_ONLY: true`, the returned workflow, exact context,
+   and `DISCOVERY_POLICY: EXACT_ONLY`
+5. when it returns `classifier=fix`, use one DeepSeek `smoke-executor`
+   request with `WORKFLOW: /fix`, `UPSTREAM_ROUTE_PROBE_ONLY: true`, and
+   exact repair context
+6. require exactly `BLOCKED_STATUS:`, `OWNER:`, `NEXT_COMMAND:`, and
+   `REASON:`; score only those actual values
+7. after a passing score, persist the helper-returned deterministic
+   regeneration path
+8. restore every routing-only probe immediately and require exact snapshot +
+   Contract-v1 checkpoint reproduction
+9. if the child is interrupted before scoring, recover the interrupted stage,
+   restore the active probe, and retry that same opaque ID only when the ledger
+   says `RESTORED + NOT_SCORED`. Scored `PASS`/`FAIL` probes are never
+   retried
+
+The required prepared cases cover:
+
+- architecture blocked by contradictory product behavior → product authority
+- specification blocked by conflicting architecture/ADR authority
+- implementation blocked because satisfying the Spec requires an unapproved
+  architecture/persistence change
+- fix blocked by product contradiction
+- fix blocked by architecture change
+- fix blocked by project-init/repository-initialization drift
+- fix blocked by contradictory specification/acceptance criteria
+- fix blocked by repository/environment state
+
+The five normal H06 destinations are therefore `/prd`, `/architect`,
+`/project-init`, `/spec`, and `/fix`. Human approval is explicitly out of
+scope here.
+
+One representative passing architecture route performs a bounded real handoff:
+GPT-5.6 Sol `planning-worker` receives
+`UPSTREAM_HANDOFF_PROBE_ONLY: true`, `WORKFLOW: /architect`, and exact
+persisted context. Require `SMOKE_UPSTREAM_HANDOFF_ACCEPTED`; do not author
+the correction or replay downstream regeneration. Record the handoff through
+the reroute helper and restore exactly.
+
+After all eight probes pass and restore, `smoke_reroute.py status` must return
+`PASS` before marking `upstream-rerouting` complete.
+
+Normal blocked-output contracts remain authoritative. H06 does not replace
+real workflow authority with deterministic routing.
+
+## Deterministic harness regression precondition
+
+Repository hardening uses a separate deterministic-test runtime budget before
+release-qualifying smoke:
+
+- focused/current-item target <=60s, ceiling 90s
+- full `forge/scripts` target <=180s, temporary H06-H11 ceiling 300s
+- `tools` target <=30s, ceiling 60s
+- >10% full-suite regression against the last accepted same-host baseline
+  requires investigation/optimization before merge
+- H12 requires the full <=180s target
+
+This is a developer/release-preparation gate, not part of the 30-minute smoke
+qualification clock. Do not rerun the entire deterministic suite inside a
+`/smoke` run merely to satisfy this policy; consume the pre-merge evidence.
+Never reduce runtime by weakening required tests.
 
 ## Post-first-review FULL execution contract
 

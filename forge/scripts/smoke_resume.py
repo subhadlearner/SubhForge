@@ -328,6 +328,44 @@ def _restore_snapshot(repo: Path, snapshot: dict[str, object]) -> None:
         raise ResumeProbeError("Resume snapshot restoration is not byte-identical")
 
 
+# Public probe-state substrate reused by later smoke hardening helpers. These
+# wrappers intentionally expose mechanics only; they do not expose H05 routing
+# expectations or choose any workflow stage.
+def probe_repo_root(repo: Path) -> Path:
+    return _repo_root(repo)
+
+
+def capture_probe_snapshot(repo: Path) -> dict[str, object]:
+    return _capture_snapshot(_repo_root(repo))
+
+
+def restore_probe_snapshot(repo: Path, snapshot: dict[str, object]) -> None:
+    _restore_snapshot(_repo_root(repo), snapshot)
+
+
+def probe_workspace_names(repo: Path) -> list[str]:
+    return _workspace_names(_repo_root(repo))
+
+
+def probe_path(repo: Path, name: str) -> Path:
+    return _path(_repo_root(repo), name)
+
+
+# Fast-path variants for helpers that have already called probe_repo_root() in
+# the same top-level action. They preserve the exact snapshot semantics while
+# avoiding redundant rev-parse/branch subprocesses on Windows.
+def capture_probe_snapshot_at_root(repo: Path) -> dict[str, object]:
+    return _capture_snapshot(repo)
+
+
+def restore_probe_snapshot_at_root(repo: Path, snapshot: dict[str, object]) -> None:
+    _restore_snapshot(repo, snapshot)
+
+
+def probe_workspace_names_at_root(repo: Path) -> list[str]:
+    return _workspace_names(repo)
+
+
 def _snapshot_entry(snapshot: dict[str, object], name: str) -> dict[str, object]:
     for raw in snapshot["entries"]:
         if isinstance(raw, dict) and raw.get("path") == name:
@@ -695,11 +733,21 @@ def prepare(
     probes = ledger["probes"]
     assert isinstance(probes, list)
 
-    if any(
-        isinstance(item, dict) and item.get("probe_id") == probe_id
+    matches = [
+        item
         for item in probes
-    ):
-        raise ResumeProbeError("Resume probe has already been used")
+        if isinstance(item, dict) and item.get("probe_id") == probe_id
+    ]
+    if len(matches) > 1:
+        raise ResumeProbeError("Duplicate resume probe ledger entries are invalid")
+    retry_record: dict[str, object] | None = None
+    if matches:
+        existing = matches[0]
+        if existing.get("restored") is not True:
+            raise ResumeProbeError("Resume probe is still active")
+        if existing.get("probe_result") != "NOT_SCORED":
+            raise ResumeProbeError("Scored resume probe is immutable and cannot be retried")
+        retry_record = existing
     if any(
         isinstance(item, dict) and not item.get("restored", False)
         for item in probes
@@ -780,6 +828,13 @@ def prepare(
         raise
 
     prepared_snapshot = _capture_snapshot(repo)
+    attempt_count = 1
+    if retry_record is not None:
+        prior_attempts = retry_record.get("attempt_count", 1)
+        if not isinstance(prior_attempts, int) or prior_attempts < 1:
+            raise ResumeProbeError("Malformed resume probe attempt count")
+        attempt_count = prior_attempts + 1
+
     record = {
         "probe_id": probe_id,
         "checkpoint": checkpoint_label,
@@ -791,8 +846,13 @@ def prepare(
         "handoff_pass": None,
         "probe_result": None,
         "restored": False,
+        "attempt_count": attempt_count,
     }
-    probes.append(record)
+    if retry_record is None:
+        probes.append(record)
+    else:
+        retry_record.clear()
+        retry_record.update(record)
     _save_json(ledger_path, ledger)
 
     return {

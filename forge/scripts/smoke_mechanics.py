@@ -99,8 +99,13 @@ def check_checkpoint(repo: Path, run_id: str, label: str) -> dict:
     if not saved:
         raise MechanicsError("Unknown checkpoint")
     current = identity(repo, saved["base_head"])
-    return {"checkpoint": label, "result": "MATCH" if current["manifest"] == saved["manifest"] else "MISMATCH",
-            "expected_fingerprint": saved["fingerprint"], "current_fingerprint": current["fingerprint"]}
+    return {
+        "checkpoint": label,
+        "result": "MATCH" if current["manifest"] == saved["manifest"] else "MISMATCH",
+        "base_head": saved["base_head"],
+        "expected_fingerprint": saved["fingerprint"],
+        "current_fingerprint": current["fingerprint"],
+    }
 
 
 def mutate(repo: Path, run_id: str, mutation_id: str, checkpoint_label: str,

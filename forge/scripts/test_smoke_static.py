@@ -24,6 +24,7 @@ class SmokeStaticTests(unittest.TestCase):
         shutil.copy2(source / "scripts/smoke_handoff.py", config / "scripts/smoke_handoff.py")
         shutil.copy2(source / "scripts/smoke_mechanics.py", config / "scripts/smoke_mechanics.py")
         shutil.copy2(source / "scripts/smoke_resume.py", config / "scripts/smoke_resume.py")
+        shutil.copy2(source / "scripts/smoke_reroute.py", config / "scripts/smoke_reroute.py")
         shutil.copy2(source / "AGENTS.md", config / "AGENTS.md")
         repo = root / "repo"
         evidence = repo / "docs/verification/smoke"
@@ -199,6 +200,81 @@ class SmokeStaticTests(unittest.TestCase):
             result = smoke_static.release_gate(config, repo, run_id)
             self.assertFalse(result["ok"])
             self.assertIn("routing:resume-router", result["failures"])
+
+    def test_release_gate_blocks_missing_reroute_helper(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            (config / "scripts/smoke_reroute.py").unlink()
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("helper:smoke-reroute", result["failures"])
+            self.assertIn("reroute:mechanics", result["failures"])
+
+    def test_release_gate_blocks_missing_planning_reroute_contract(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            worker = config / "agents/planning-worker.md"
+            worker.write_text(
+                worker.read_text(encoding="utf-8").replace(
+                    "SMOKE_UPSTREAM_HANDOFF_ACCEPTED",
+                    "MISSING_UPSTREAM_HANDOFF_TOKEN",
+                ),
+                encoding="utf-8",
+            )
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("routing:upstream-reroute", result["failures"])
+
+    def test_release_gate_blocks_missing_fix_reroute_contract(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            executor = config / "agents/smoke-executor.md"
+            executor.write_text(
+                executor.read_text(encoding="utf-8").replace(
+                    "BLOCKED_STATUS: FIX_BLOCKED",
+                    "MISSING_FIX_BLOCKED_ROUTE_TOKEN",
+                ),
+                encoding="utf-8",
+            )
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("routing:upstream-reroute", result["failures"])
+
+    def test_release_gate_blocks_reroute_helper_answer_leak_access(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            worker = config / "agents/planning-worker.md"
+            worker.write_text(
+                worker.read_text(encoding="utf-8").replace(
+                    '"**/smoke_reroute.py": deny',
+                    '"**/smoke_reroute.py": allow',
+                    1,
+                ),
+                encoding="utf-8",
+            )
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("routing:upstream-reroute-no-leak", result["failures"])
+
+    def test_release_gate_blocks_executor_shell_deny_precedence_regression(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            executor = config / "agents/smoke-executor.md"
+            content = executor.read_text(encoding="utf-8")
+            content = content.replace(
+                '    "*docs/verification/smoke*": deny\n',
+                "",
+                1,
+            )
+            content = content.replace(
+                '    "git status*": allow\n',
+                '    "*docs/verification/smoke*": deny\n    "git status*": allow\n',
+                1,
+            )
+            executor.write_text(content, encoding="utf-8")
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("routing:upstream-reroute-no-leak", result["failures"])
 
     def test_release_gate_detects_broken_agent_model_route(self):
         with tempfile.TemporaryDirectory() as temp:

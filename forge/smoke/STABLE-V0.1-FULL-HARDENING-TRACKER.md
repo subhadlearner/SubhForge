@@ -77,6 +77,30 @@ Operator note for the current Windows workstation: use `python` for local
 test execution; the local `py -3` launcher has previously pointed at a stale
 Python path and is not a reliable hardening command.
 
+### Deterministic regression runtime budget
+
+The deterministic Python regression suite is part of the harness and has its
+own performance contract. A green suite that becomes too slow is a hardening
+quality problem.
+
+Reference-host policy (Windows; use unittest's internal reported runtime):
+
+- focused/current-item suite: target <=60s; hard ceiling 90s
+- full `forge/scripts`: target <=180s
+- temporary H06-H11 full-suite hard ceiling: 300s
+- `tools`: target <=30s; hard ceiling 60s
+- >10% full-suite regression versus the last accepted same-host baseline blocks
+  merge until explained and optimized
+- H12 cannot close until full `forge/scripts` is <=180s and `tools` is <=30s
+
+The temporary 300s allowance is debt containment, not an acceptable target.
+During normal hardening iteration, run focused + directly affected adjacent
+suites; run the complete deterministic regression once before merge. Never
+satisfy the budget by weakening or omitting required tests.
+
+The accepted runtime baseline must be recorded with the closing evidence for
+each hardening item that materially changes deterministic helper/test cost.
+
 ### Global smoke invariants
 
 The following invariants apply across the tracker unless a later item
@@ -169,6 +193,10 @@ Closed decision:
   open so a later RESUME can retry safely.
 - Duplicate terminal transitions and multiple simultaneous ACTIVE records fail
   closed.
+- Later H05/H06 probe ledgers extend this interruption contract: after normal
+  H02 stage recovery, an active probe must be restored first. Only
+  `RESTORED + NOT_SCORED` may be retried under the same opaque probe ID;
+  scored `PASS`/`FAIL` probe attempts remain immutable.
 
 #### H03 — canonical smoke-state validation
 
@@ -265,6 +293,10 @@ Closed decision:
   unchanged.
 - Every probe restores the complete clean snapshot and must reproduce the
   declared Contract-v1 checkpoint exactly.
+- If a routing/handoff child is interrupted before scoring, a restored
+  `NOT_SCORED` probe may be prepared again under the same opaque ID with an
+  incremented attempt count. Scored `PASS` and `FAIL` probes remain
+  immutable and single-use.
 - Final H05 status is PASS only after all seven opaque probes are both PASS and
   restored.
 - The static release gate protects the resume-router route, no-leak permissions,
@@ -310,13 +342,13 @@ qualification until the blocking items below are addressed.
 | H03 | Canonical `smoke_state` remains too permissive for model-generated updates | CRITICAL | Mutable fields are whitelisted; unknown/typo fields fail closed; states/scenarios are validated; completed/pending/current-stage invariants are enforced; protected identity/bootstrap context cannot be silently corrupted | DONE — exact top-level schema; immutable identity; selected-profile scenario validation; unique/disjoint scenario lists; static-release-gate ordering; bootstrap-only protected context; terminal-state/final-result consistency; atomic fail-closed load/set validation; stale handoff fixture corrected without weakening production invariants; verified on Windows with 27 state tests, 9 static-gate tests, 3 bootstrap tests, 25 handoff tests, 105 forge-script tests (2 skipped), 7 tooling tests, clean diff check, and clean worktree | `f7164215b7d6fafa87025360de0a7795bf7d2134` |
 | H04 | Required `verification-mutation` scenario lacks a deterministic verification-time mutation primitive | CRITICAL | A registered mutation occurs deterministically during `/verify`; post-check identity becomes `MISMATCH`/blocked as required; restoration reproduces the exact checkpoint | DONE — deterministic ARMED→APPLIED→RESTORED verification-mutation hook fires after checks and before the post-check Contract-v1 manifest, proves `MISMATCH`, preserves zero-reviewer behavior, restores the exact checkpoint, and is protected by the static release gate; verified on Windows with 3 bootstrap tests, 9 mechanics tests plus 1 expected Windows mode skip, 11 static-gate tests, 112 forge-script tests (2 skipped), 7 tooling tests, clean diff check, and clean worktree | `139bf4212d4e2ab9467803fb561657ce6600d3f1` |
 | H05 | `arbitrary-stage-resume` lacks deterministic preparation/restoration of its seven persisted-state probes | CRITICAL | All seven resume states can be constructed, validated, isolated, scored, and restored deterministically without leaking the expected routing answer to the reasoning context | DONE — seven opaque persisted-state probes use deterministic snapshot/prepare/validate/score/restore mechanics while fresh Luna routing remains probabilistic; stale verification is a real Contract-v1 `MISMATCH`; smoke-ledger access is mechanically denied to the router; Scenario C proves bounded DeepSeek `/implement` handoff acceptance without implementation replay; all requested focused, static, bootstrap, full forge-script, tooling, diff-check, and clean-worktree verification passed locally on Windows | `1d78d1df4bec2abb11f92ea42c722486bd1cc072` |
-| H06 | `upstream-rerouting` lacks deterministic blocked-state preparation/restoration | CRITICAL | Required PRD/architecture/project-init/spec/fix authority-boundary cases have reproducible setup, scoring, and restoration without agent-invented fixture state | TODO — NEXT | — |
+| H06 | `upstream-rerouting` lacks deterministic blocked-state preparation/restoration | CRITICAL | Required PRD/architecture/project-init/spec/fix authority-boundary cases have reproducible setup, scoring, and restoration without agent-invented fixture state | IN PROGRESS — eight opaque deterministic blocked-state probes cover the original Phase-20 planning reroutes plus all five normal corrective authority destinations; model owners remain responsible for authority classification; one bounded representative `/architect` handoff is required; Contract-v1/process-launch cost has been reduced without identity-semantic changes; interrupted unscored H05/H06 probes are now retryable only after exact restoration, while scored PASS/FAIL attempts remain immutable | — |
 | H07 | Required human waiver interaction conflicts with the continuously running 30-minute qualification clock | DESIGN BLOCKER | Human authorization, waiting, resume, and qualification-time semantics are explicitly agreed; command/orchestrator/runbook/budget implementation and tests all describe the same behavior; authorization is never fabricated | TODO | — |
 | H08 | FULL runtime/invocation budget does not match the authoritative required scenario matrix | DESIGN BLOCKER | Derive the real minimum/expected invocation plan from all required scenarios; runtime target/ceiling and invocation matrix become mutually consistent and realistically executable; no timeout is silently raised | TODO | — |
 | H09 | Workspace locate/resume path handling is weaker than create/destroy containment | HIGH | Malformed/traversal run IDs are rejected; create/locate/destroy remain confined to the smoke-run root; negative path-containment tests pass | TODO | — |
 | H10 | Mutating deterministic helpers need stronger proof that they target only the disposable smoke repository | HIGH | Every mutating helper fails closed when pointed at the source checkout/wrong branch/wrong repository identity where applicable; valid `smoke-run` behavior remains unchanged | TODO | — |
 | H11 | No design-time workflow contract validator / dry orchestration simulator exists | CRITICAL | A cheap deterministic validator walks FAST/FULL contracts and detects missing helper references, invalid state transitions, model/owner mismatch, missing handoff fields, invalid checkpoint/restoration plans, scenario budget violations, zero-reviewer rule violations, and contradictory orchestration instructions before model execution | TODO | — |
-| H12 | Final cross-file/system consistency validation is missing | RELEASE GATE | Commands, agents, profiles, fixtures, failure recipes, runbook, helpers, and tests agree; all deterministic/unit/integration gates are green; `git diff --check` is clean; dry FAST/FULL plans are green | BLOCKED by H01–H11 | — |
+| H12 | Final cross-file/system consistency validation is missing | RELEASE GATE | Commands, agents, profiles, fixtures, failure recipes, runbook, helpers, and tests agree; all deterministic/unit/integration gates are green; full `forge/scripts` runtime is <=180s and `tools` runtime is <=30s on the reference Windows host; `git diff --check` is clean; dry FAST/FULL plans are green | BLOCKED by H01–H11 | — |
 | H13 | Small real Kilo integration probe is required before another FULL | RELEASE GATE | Minimal model-bearing probe proves real disposable-workspace rooting, child handoff, source isolation, state/timing lifecycle, and interruption-safe cleanup with minimal model spend | BLOCKED by H01–H12 | — |
 | H14 | Fresh release-qualifying FULL smoke | FINAL | All required FULL scenarios complete under the agreed qualification contract with no harness defect and with evidence/state consistency intact | BLOCKED by H13 | — |
 

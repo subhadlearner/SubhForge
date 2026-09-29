@@ -48,7 +48,42 @@ def changed_paths_from_main() -> set[str]:
     return {line.strip().replace("\\", "/") for line in result.stdout.splitlines() if line.strip()}
 
 
+RUNTIME_POLICY_MARKERS = (
+    "focused/current-item",
+    "<=60s",
+    "90s",
+    "full `forge/scripts`",
+    "<=180s",
+    "300s",
+    "`tools`",
+    "<=30s",
+    "10%",
+)
+
+RUNTIME_POLICY_FILES = (
+    REPO_ROOT / "forge/AGENTS.md",
+    REPO_ROOT / "forge/README.md",
+    REPO_ROOT / "forge/commands/smoke.md",
+    REPO_ROOT / "forge/smoke/STABLE-V0.1-SMOKE-TEST-PLAN.md",
+    REPO_ROOT / "forge/smoke/STABLE-V0.1-FULL-HARDENING-TRACKER.md",
+)
+
+
 class ScriptTestPolicyTests(unittest.TestCase):
+    def test_deterministic_runtime_budget_is_consistent_across_policy_docs(self):
+        missing: list[str] = []
+        for path in RUNTIME_POLICY_FILES:
+            text = path.read_text(encoding="utf-8")
+            for marker in RUNTIME_POLICY_MARKERS:
+                if marker not in text:
+                    missing.append(f"{path.relative_to(REPO_ROOT).as_posix()}: {marker}")
+
+        self.assertEqual(
+            [],
+            missing,
+            "Deterministic regression runtime budgets must stay aligned across policy docs",
+        )
+
     def test_every_production_script_has_dedicated_test_module(self):
         missing = [
             script.name
