@@ -105,6 +105,24 @@ resolved by the parent. Do not independently reread `smoke/fixtures.json`,
 the full smoke runbook, or canonical smoke state merely to recover fixture,
 current-stage, or path information already present in the handoff.
 
+For the H05 arbitrary-stage-resume Scenario C only, the parent may add:
+
+`HANDOFF_PROBE_ONLY: true`
+
+with `WORKFLOW: /implement`. In that bounded mode:
+
+- read the installed `/implement` command contract
+- validate the exact supplied active Spec and project/architecture context paths
+- confirm the Spec is implementation-ready enough for normal `/implement` Stage 1/2 entry
+- confirm all supplied paths resolve inside the current rooted smoke repository
+- do not edit source/tests/configuration
+- do not create/switch branches or worktrees
+- do not run implementation/test commands
+- return `SMOKE_IMPLEMENT_HANDOFF_ACCEPTED` only when the normal implementation owner could begin from that exact persisted Spec/context without rediscovery or chat history
+- otherwise return the normal implementation blocker needed to explain why the handoff is not executable
+
+This mode proves handoff correctness only. It must never be used by ordinary non-smoke `/implement` execution.
+
 Read only:
 
 - the corresponding installed workflow command contract
@@ -208,6 +226,8 @@ Remain on DeepSeek Flash.
 Do not delegate to Claude or another paid model.
 
 ## Result
+
+For `HANDOFF_PROBE_ONLY: true`, return the exact accepted token plus the active Spec path and one concise acceptance reason; do not claim implementation completion.
 
 Return the underlying workflow's normal result/status plus a compact smoke handoff containing:
 

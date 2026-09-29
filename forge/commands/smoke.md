@@ -794,27 +794,61 @@ Start from the correct current stage and exercise all required acceptance criter
 The FULL `arbitrary-stage-resume` scenario validates routing from persisted
 repository state, not seven repeated downstream lifecycle executions.
 
-For its seven subcases:
+Use the installed `scripts/smoke_resume.py` helper for all deterministic H05
+mechanics. Its seven probe IDs (`r01`...`r07`) are harness-internal and
+opaque. The routing model must never receive a probe ID, expected stage,
+checkpoint label, score, or prior probe result.
 
-- six are routing-only
-- Scenario C (approved Spec exists) is routing + real `/implement` handoff
-- the harness may retain the expected stage for scoring, but MUST NOT expose it
-  to the routing child in prompts, checkpoint labels, artifact names, or context
-- each probe starts from a deterministic known persisted state with no prior
-  conversational answers
-- the routing child must inspect normal persisted repository evidence and
-  produce the next stage itself
-- routing-only probes stop immediately after persisting the chosen stage and
-  concise reason
-- Scenario C crosses into the normal `/implement` owner only far enough to
-  prove persisted Spec/context handoff correctness; it does not replay the
-  entire implementation/verify/review lifecycle
-- normal non-smoke resume semantics are unchanged: real project resumes continue
-  executing the selected lifecycle stage normally
+For each probe:
 
-Do not replace the routing decision with a deterministic lookup table. Helpers
-may prepare/verify checkpoint state and freshness, but the workflow reasoning
-under test must choose the continuation stage.
+1. require the clean source checkpoint to be `MATCH`
+2. call `smoke_resume.py prepare` with the exact active Spec,
+   implementation/test/config paths, applicable fresh verification path,
+   disposable baseline HEAD, checkpoint label, and one opaque probe ID
+3. require preparation validation to succeed
+4. invoke a **new** GPT-5.6 Luna `resume-router` child with no prior probe
+   answers and no stage-specific context packet
+5. give that child only the rooted repository assertion, the deterministic
+   manifest-helper path, and the instruction to inspect normal persisted
+   repository evidence and choose the earliest continuation command
+6. require exactly one `RESUME_STAGE:` and one concise `REASON:`
+7. score the actual result with `smoke_resume.py score`
+8. routing-only probes stop after scoring and exact restoration
+9. after every probe, require the snapshot restoration and declared Contract-v1
+   checkpoint to reproduce exactly
+
+The fresh router may inspect normal project artifacts but must not read
+`docs/verification/smoke/**`, canonical smoke state, timing/mechanics/resume
+ledgers, global smoke registries/runbook/helper source, or another probe's
+result.
+
+For the one approved-Spec handoff case, a passing route score returns
+`handoff_required=true`. Then invoke exactly one DeepSeek `smoke-executor`
+request:
+
+```text
+WORKFLOW: /implement
+HANDOFF_PROBE_ONLY: true
+```
+
+with the exact persisted active Spec and normal implementation context. Require
+`SMOKE_IMPLEMENT_HANDOFF_ACCEPTED`, persist that handoff evidence through the
+resume helper, and restore. Do not edit implementation files or replay the
+implementation/verify/review lifecycle for this probe.
+
+The H05 helper snapshots all Git-tracked plus non-ignored untracked repository
+files except `docs/verification/smoke/**`. Prepared probes therefore alter
+only the disposable smoke repository, and restoration must reproduce the full
+snapshot plus the declared Contract-v1 checkpoint. A failed preparation,
+routing score, handoff, or restoration is `SMOKE_BLOCKED`.
+
+After seven passing, restored probes, require
+`smoke_resume.py status` to return `PASS` before marking
+`arbitrary-stage-resume` complete.
+
+Normal non-smoke resume behavior is unchanged. Do not replace resume routing
+with a deterministic lookup table; only the fresh Luna routing context chooses
+the continuation stage.
 
 
 
