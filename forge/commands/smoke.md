@@ -27,6 +27,14 @@ Canonical profile names are:
 
 Treat user phrases `FAST_SMOKE` and `FULL_SMOKE` as aliases when they occur inside the `/smoke` invocation.
 
+When a run is paused at an allow-listed human-authorization gate, the human
+must provide the requested authorization fields in the **same user message**
+that invokes `/smoke RESUME <run-id>` (or explicitly include that RESUME
+invocation with the authorization response). A bare RESUME while the gate is
+open is valid only as a no-op: return `SMOKE_USER_INPUT_REQUIRED` and preserve
+the existing open interval. Do not recover authorization from earlier chat
+history.
+
 Do not treat free-form text outside this command as an executable smoke run.
 
 ## Stage 1 — Load smoke contracts
@@ -236,8 +244,10 @@ For a new run:
    Invoke this one shell-tool call with a per-command timeout of at least
    **3,600,000 ms (60 minutes)**. Kilo's shell timeout is only transport
    supervision for the nested CLI process; it is NOT the smoke qualification
-   budget and MUST NOT replace, reset, pause, or extend the 30-minute
-   `smoke_budget.py` clock.
+   budget and MUST NOT replace, reset, or extend the 30-minute
+   `smoke_budget.py` clock. It does not itself pause qualification time.
+   Qualification time excludes only helper-validated, allow-listed
+   human-authorization wait intervals as defined below.
 
    The helper validates that the target is the initialized `smoke-run`
    repository for this run. It never trusts the shell working directory alone:
@@ -362,7 +372,33 @@ reconstruct state from the exact run record and current repository evidence.
 Before continuing:
 
 - locate the run workspace using `python <global-config>/scripts/smoke_workspace.py locate --source <source_checkout_path> --run-id <run-id>` and validate the returned run directory/branch
-- invoke `python <global-config>/scripts/smoke_handoff.py --repo <run-directory> --run-id <run-id> ensure` before any substantive child/model delegation, using a shell-tool timeout of at least 3,600,000 ms (60 minutes); this transport timeout does not alter the 30-minute smoke budget
+- run `smoke_budget.py ... check --limit-minutes 30` before handoff and inspect
+  `active_human_wait`
+- when an allow-listed human wait is open, treat the budget ledger as the
+  qualification-time authority. Canonical smoke state should be
+  `WAITING_FOR_USER` with the same `gate_type`/`gate_id`; if a crash
+  occurred after the helper opened the wait but before that projection was
+  persisted, repair only that exact projection from the helper-returned gate
+  identity before continuing
+- an open wait does not by itself authorize anything. If the current RESUME
+  invocation does not contain explicit human authorization for that exact
+  request, return `SMOKE_USER_INPUT_REQUIRED` without handoff and without
+  changing the wait interval
+- when the current RESUME contains explicit waiver authorization, capture it
+  before handoff with the deterministic `human-wait-authorize` action using
+  the active `gate_id`, exact report/failure set/classification, and the
+  human-supplied decision, justification, residual risk, compensating control,
+  remediation, and expiry. This action validates the disposable workspace and
+  gate binding but intentionally does not require a rooted marker because it is
+  the bridge that persists the current user's decision before the autonomous
+  rooted continuation starts
+- if `human-wait-authorize` rejects missing, mismatched, or invalid input,
+  return `SMOKE_USER_INPUT_REQUIRED`; the existing open interval remains
+  byte-for-byte unchanged. Do not close/reopen it and do not launch a model
+- if authorization was already persisted before a crash, do not ask the human
+  to repeat it; continue from the closed interval and its persisted
+  authorization
+- invoke `python <global-config>/scripts/smoke_handoff.py --repo <run-directory> --run-id <run-id> ensure` before any substantive child/model delegation, using a shell-tool timeout of at least 3,600,000 ms (60 minutes); this transport timeout does not alter the 30-minute active qualification budget
 - if handoff returns `HANDOFF_COMPLETE`, stop the source-root invocation and
   relay the rooted continuation result; do not continue smoke orchestration in
   the source checkout
@@ -610,6 +646,13 @@ human-controlled gate. When such a gate lacks already-persisted explicit user
 authorization, persist the required state and return the normal user-input/
 blocked status instead of deciding autonomously.
 
+`WAITING_FOR_USER` by itself never stops the qualification clock. Only an
+open interval created by the deterministic human-wait helper for an
+allow-listed gate type is excluded. Stable v0.1 currently allow-lists only
+`WAIVER_AUTHORIZATION`; paid-model escalation, destructive-action approval,
+product decisions, and other human gates remain blocked/non-pausing unless a
+future hardening decision explicitly adds their gate contract.
+
 Paid Claude adversaries are unavailable inside the rooted autonomous
 continuation: `smoke-orchestrator` denies them and the handoff overlay disables
 them for every agent. The optional `paid-claude-runtime` scenario therefore
@@ -707,11 +750,74 @@ Execute the `/waive` contract using GPT-5.6 Luna.
 
 Human risk acceptance can never be fabricated by the smoke orchestrator.
 
-If explicit authorization is required:
+When the waiver scenario reaches a policy-eligible failed verification but
+explicit authorization is missing:
 
-- persist state
-- return `SMOKE_USER_INPUT_REQUIRED`
-- resume only after the user supplies/approves the required waiver details
+1. finish the current timed child normally; no model stage may remain ACTIVE
+2. run the budget check
+3. open the human gate from the rooted disposable session:
+
+   ```text
+   python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <run-id> human-wait-start \
+     --gate-type WAIVER_AUTHORIZATION \
+     --verification-report <exact-report-path> \
+     --implementation-state-fingerprint <exact-GIT_BLOB_OID> \
+     --failure <exact-failure-id> [--failure <exact-failure-id> ...] \
+     --classification <waiver-classification>
+   ```
+
+   The helper derives `gate_id` as SHA-256 of a canonical payload containing
+   the run ID, gate type, exact verification-report path, Contract-v1
+   fingerprint, exact canonically ordered failure set, and classification.
+   The orchestrator never invents an opaque gate ID.
+
+4. persist canonical smoke state as `WAITING_FOR_USER`; the blocker must carry
+   the helper-returned `gate_type`, `gate_id`, and exact request identity
+5. return `SMOKE_USER_INPUT_REQUIRED`
+
+The helper permits at most one open interval. Repeating `human-wait-start`
+for the same open request is an idempotent no-op and preserves its original
+start timestamp. A different request cannot open while one is active, and a
+completed `gate_id` can never be reopened.
+
+While an interval is open, `stage-start` fails closed. The human may take any
+amount of wall-clock time without consuming qualification time, but crashes,
+retries, ordinary inactivity, debugging, and unrelated blocked states are not
+excluded.
+
+On the later source-root `/smoke RESUME <run-id>`, require the human to
+explicitly supply/approve the normal `/waive` fields. Capture that exact
+decision with:
+
+```text
+python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <run-id> human-wait-authorize \
+  --gate-type WAIVER_AUTHORIZATION \
+  --gate-id <persisted-gate-id> \
+  --decision ACCEPTED_TEMPORARILY \
+  --verification-report <exact-report-path> \
+  --failure <exact-failure-id> [--failure <exact-failure-id> ...] \
+  --classification <waiver-classification> \
+  --justification <human-supplied-justification> \
+  --residual-risk <human-supplied-residual-risk> \
+  --compensating-control <human-supplied-control> \
+  --remediation <human-supplied-remediation> \
+  --expiry <human-supplied-expiry>
+```
+
+The source-root orchestrator may structure/quote those values for the helper,
+but must copy the human decision faithfully and must not synthesize missing
+risk acceptance. The helper verifies the disposable workspace, exact gate,
+report, failure set, classification, decision token, and all required non-empty
+authorization fields **before** writing anything. A rejected/invalid RESUME is
+therefore a pure no-op on the existing open interval.
+
+A valid authorization closes that one interval and persists the authorization
+payload with it. Then perform the normal rooted handoff. The rooted continuation
+uses that persisted payload as the human input to `/waive`; it must not
+reconstruct authorization from chat history or `--auto`. If freshness or
+policy later blocks the waiver for a non-human-input reason, report that normal
+blocker; never fabricate approval or reopen the completed gate. A genuinely new
+verification report/failure set requires a new gate identity.
 
 ### Review
 
@@ -1068,8 +1174,14 @@ Enforce the runbook's token/cost rules:
 - Claude invocation count target: zero
 
 For the tiny FULL fixture, target 25 minutes and enforce a 30-minute hard
-**end-to-end release-qualification ceiling** with the installed executable
-guard. The clock starts at smoke bootstrap and does not reset on `RESUME`.
+**active release-qualification ceiling** with the installed executable guard.
+The wall clock starts at smoke bootstrap and never resets on `RESUME`.
+Effective qualification elapsed time is wall-clock elapsed minus the sum of
+helper-validated, allow-listed human-authorization wait intervals. Multiple
+completed waits are additive; at most one interval may be open at a time.
+Stable v0.1 enables only `WAIVER_AUTHORIZATION`. No crash, retry, transport
+delay, ordinary inactivity, debugging period, or bare `WAITING_FOR_USER`
+state is excluded.
 
 Before EVERY substantive lifecycle/model stage, run:
 
@@ -1081,6 +1193,10 @@ python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <
 Retain the returned invocation ID. `stage-start`, `stage-end`,
 `stage-abort`, and `recover-active` fail closed unless they run inside the
 current rooted handoff for this run (see the workspace-root handoff above).
+`stage-start` also fails closed whenever a human-authorization wait is open.
+The only source-root budget mutation is `human-wait-authorize`, which can
+close but never open/restart a wait and first validates the exact disposable
+workspace and persisted gate identity.
 
 After every child call returns or reports a transport/tool failure, verify the
 pre-child source fingerprint **before** accepting the result:
