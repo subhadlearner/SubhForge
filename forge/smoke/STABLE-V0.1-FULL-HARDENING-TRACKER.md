@@ -304,12 +304,51 @@ Closed decision:
 - Normal non-smoke resume behavior is unchanged; deterministic helpers do not
   replace real resume-routing judgment.
 
+#### H06 — upstream authority rerouting probes
+
+Closed decision:
+
+- Eight opaque blocked-state probes `u01` through `u08` cover the original
+  upstream-rerouting cases plus all five normal corrective authority
+  destinations: `/prd`, `/architect`, `/project-init`, `/spec`, and
+  `/fix`. `USER_APPROVAL` remains outside H06.
+- Deterministic helpers own fixture preparation, hidden scoring, restoration,
+  and downstream regeneration-path mechanics only. The normal model owner still
+  classifies the actual authority boundary.
+- Planning-origin probes use GPT-5.6 Sol `planning-worker`; fix-origin probes
+  use DeepSeek `smoke-executor`. Expected status/owner/next-command values,
+  opaque probe IDs, smoke ledgers, and helper source are denied from the child
+  reasoning context.
+- The representative conflicting-architecture Spec case performs one bounded
+  `/architect` handoff acceptance check without authoring the correction or
+  replaying downstream work.
+- Prepared repository state is proven unchanged before deterministic scoring or
+  handoff acceptance; every probe restores the complete snapshot and matching
+  Contract-v1 checkpoint.
+- H05/H06 probe interruption recovery is explicit: after normal H02 stage
+  recovery, restore the active probe first. Only `RESTORED + NOT_SCORED` may
+  retry the same opaque ID, reusing one ledger record and incrementing
+  `attempt_count`. Scored `PASS`/`FAIL` attempts remain immutable.
+- Contract-v1 manifest reconstruction batches file hashing and reads
+  `core.filemode` once per manifest, preserving canonical identity semantics
+  while reducing Windows Git-process overhead.
+- H05/H06 focused tests use reusable seeded Git fixtures and avoid duplicate
+  full-probe replay where direct status-contract coverage proves the same
+  invariant.
+- Final accepted Windows evidence on H06 head
+  `80849e7a3e29d508fd6ca5ad7a4db15f70b8c964`:
+  H05 focused 15 tests / 74.722s; full `forge/scripts` 156 tests /
+  236.188s with 2 expected Windows skips; `tools` 7 tests / 13.762s;
+  `git diff --check` clean; working tree clean.
+- The accepted full-suite runtime baseline after H06 is **236.188s**. The
+  temporary H06-H11 ceiling remains 300s, while H12 still requires <=180s.
+
 ### Current hardening boundary
 
-H06 is the only current implementation target.
+H07 is the only current implementation target.
 
-Do not pull H07+ work into H06 merely because neighboring blocked-state
-preparation problems look similar. In particular:
+Do not pull H08+ work into H07 merely because the waiver timing decision
+interacts with the broader FULL runtime budget. In particular:
 
 - H07 owns human waiver waiting/authorization versus the 30-minute clock.
 - H08 owns the real FULL invocation/runtime budget reconciliation.
@@ -342,8 +381,8 @@ qualification until the blocking items below are addressed.
 | H03 | Canonical `smoke_state` remains too permissive for model-generated updates | CRITICAL | Mutable fields are whitelisted; unknown/typo fields fail closed; states/scenarios are validated; completed/pending/current-stage invariants are enforced; protected identity/bootstrap context cannot be silently corrupted | DONE — exact top-level schema; immutable identity; selected-profile scenario validation; unique/disjoint scenario lists; static-release-gate ordering; bootstrap-only protected context; terminal-state/final-result consistency; atomic fail-closed load/set validation; stale handoff fixture corrected without weakening production invariants; verified on Windows with 27 state tests, 9 static-gate tests, 3 bootstrap tests, 25 handoff tests, 105 forge-script tests (2 skipped), 7 tooling tests, clean diff check, and clean worktree | `f7164215b7d6fafa87025360de0a7795bf7d2134` |
 | H04 | Required `verification-mutation` scenario lacks a deterministic verification-time mutation primitive | CRITICAL | A registered mutation occurs deterministically during `/verify`; post-check identity becomes `MISMATCH`/blocked as required; restoration reproduces the exact checkpoint | DONE — deterministic ARMED→APPLIED→RESTORED verification-mutation hook fires after checks and before the post-check Contract-v1 manifest, proves `MISMATCH`, preserves zero-reviewer behavior, restores the exact checkpoint, and is protected by the static release gate; verified on Windows with 3 bootstrap tests, 9 mechanics tests plus 1 expected Windows mode skip, 11 static-gate tests, 112 forge-script tests (2 skipped), 7 tooling tests, clean diff check, and clean worktree | `139bf4212d4e2ab9467803fb561657ce6600d3f1` |
 | H05 | `arbitrary-stage-resume` lacks deterministic preparation/restoration of its seven persisted-state probes | CRITICAL | All seven resume states can be constructed, validated, isolated, scored, and restored deterministically without leaking the expected routing answer to the reasoning context | DONE — seven opaque persisted-state probes use deterministic snapshot/prepare/validate/score/restore mechanics while fresh Luna routing remains probabilistic; stale verification is a real Contract-v1 `MISMATCH`; smoke-ledger access is mechanically denied to the router; Scenario C proves bounded DeepSeek `/implement` handoff acceptance without implementation replay; all requested focused, static, bootstrap, full forge-script, tooling, diff-check, and clean-worktree verification passed locally on Windows | `1d78d1df4bec2abb11f92ea42c722486bd1cc072` |
-| H06 | `upstream-rerouting` lacks deterministic blocked-state preparation/restoration | CRITICAL | Required PRD/architecture/project-init/spec/fix authority-boundary cases have reproducible setup, scoring, and restoration without agent-invented fixture state | IN PROGRESS — eight opaque deterministic blocked-state probes cover the original Phase-20 planning reroutes plus all five normal corrective authority destinations; model owners remain responsible for authority classification; one bounded representative `/architect` handoff is required; Contract-v1/process-launch cost has been reduced without identity-semantic changes; interrupted unscored H05/H06 probes are now retryable only after exact restoration, while scored PASS/FAIL attempts remain immutable | — |
-| H07 | Required human waiver interaction conflicts with the continuously running 30-minute qualification clock | DESIGN BLOCKER | Human authorization, waiting, resume, and qualification-time semantics are explicitly agreed; command/orchestrator/runbook/budget implementation and tests all describe the same behavior; authorization is never fabricated | TODO | — |
+| H06 | `upstream-rerouting` lacks deterministic blocked-state preparation/restoration | CRITICAL | Required PRD/architecture/project-init/spec/fix authority-boundary cases have reproducible setup, scoring, and restoration without agent-invented fixture state | DONE — eight opaque deterministic authority-boundary probes cover all required planning/fix destinations with hidden expectations, exact restoration, one bounded `/architect` handoff, restartable `RESTORED + NOT_SCORED` probe recovery, static no-leak protection, and Contract-v1-preserving runtime optimizations; final Windows evidence: H05 focused 15 tests / 74.722s, full `forge/scripts` 156 tests / 236.188s (2 expected skips), `tools` 7 tests / 13.762s, clean diff check and worktree | `1119b84a82d7cee66ec3eadc7eacfd65644ac196` |
+| H07 | Required human waiver interaction conflicts with the continuously running 30-minute qualification clock | DESIGN BLOCKER | Human authorization, waiting, resume, and qualification-time semantics are explicitly agreed; command/orchestrator/runbook/budget implementation and tests all describe the same behavior; authorization is never fabricated | TODO — NEXT | — |
 | H08 | FULL runtime/invocation budget does not match the authoritative required scenario matrix | DESIGN BLOCKER | Derive the real minimum/expected invocation plan from all required scenarios; runtime target/ceiling and invocation matrix become mutually consistent and realistically executable; no timeout is silently raised | TODO | — |
 | H09 | Workspace locate/resume path handling is weaker than create/destroy containment | HIGH | Malformed/traversal run IDs are rejected; create/locate/destroy remain confined to the smoke-run root; negative path-containment tests pass | TODO | — |
 | H10 | Mutating deterministic helpers need stronger proof that they target only the disposable smoke repository | HIGH | Every mutating helper fails closed when pointed at the source checkout/wrong branch/wrong repository identity where applicable; valid `smoke-run` behavior remains unchanged | TODO | — |
@@ -375,7 +414,7 @@ feature merely to make FULL smoke easier.
 
 ## Next action
 
-Start with **H06 only**.
+Start with **H07 only**.
 
 H01 is closed by merged implementation commit
 `9b5bfe0d034d41252fecd9b5ba5b787a5e73c778` and real Kilo probe
