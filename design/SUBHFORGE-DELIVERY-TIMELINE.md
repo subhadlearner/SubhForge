@@ -17,6 +17,9 @@ releases.
 |---|---|---|---|
 | Sep 29 -- Oct 4 | 5--6 | Complete planned v0.1.0 hardening | `stable_v0.1.0` |
 | Oct 5 -- Oct 10 | 5--6 | Develop and harden the two already-defined v0.1.1 items | `stable_v0.1.1` |
+
+
+> **v0.1.1 scope is intentionally singular:** Ceremony Bypass for valid existing upstream authority. Design-time workflow contract validation + dry orchestration simulation remains wholly in v0.1.0 hardening (H11).
 | Oct 11 -- Oct 17 | 5--7 | Architecture Fitness Review for v0.2.0 | Architecture decision report |
 | Oct 18 -- Oct 22 | 4--5 | Reconcile accepted architecture changes into the v0.2 design/tracker; freeze RC1--RC3 exit criteria | Revised v0.2 design and RC exit criteria accepted and frozen |
 | Oct 23 -- Nov 5 | 11--12 | Use stable v0.1.1 to implement and harden revised LARGE workflow; build behavioural canary baseline | `v0.2.0-rc1` |
