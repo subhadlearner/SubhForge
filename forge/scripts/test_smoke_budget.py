@@ -345,6 +345,24 @@ class SmokeBudgetTests(unittest.TestCase):
                 self.started + dt.timedelta(minutes=30),
             )
 
+    def test_malformed_human_wait_timestamp_fails_closed(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        opened = self._start_wait(at=self.started + dt.timedelta(minutes=5))
+        path = self.repo / "docs/verification/smoke" / f"{self.run_id}.budget.json"
+        data = self._budget_file()
+        data["human_wait_intervals"][0]["started_at_utc"] = None
+        path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+        with self.assertRaises(smoke_budget.BudgetError):
+            smoke_budget.check(
+                self.repo,
+                self.run_id,
+                30,
+                self.started + dt.timedelta(minutes=10),
+            )
+
+        self.assertIsNotNone(opened["gate"]["gate_id"])
+
     def test_stage_timing_is_persisted_with_unique_invocation_ids(self):
         smoke_budget.start(self.repo, self.run_id, self.started)
         first = smoke_budget.stage_start(

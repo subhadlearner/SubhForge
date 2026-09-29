@@ -97,8 +97,13 @@ def _save(path: Path, data: dict) -> None:
     temp.replace(path)
 
 
-def _aware_timestamp(value: str, field: str) -> dt.datetime:
-    parsed = dt.datetime.fromisoformat(value)
+def _aware_timestamp(value: object, field: str) -> dt.datetime:
+    if not isinstance(value, str) or not value.strip():
+        raise BudgetError(f"{field} must be a non-empty ISO timestamp")
+    try:
+        parsed = dt.datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise BudgetError(f"{field} is not a valid ISO timestamp") from exc
     if parsed.tzinfo is None:
         raise BudgetError(f"{field} must be timezone-aware")
     return parsed
