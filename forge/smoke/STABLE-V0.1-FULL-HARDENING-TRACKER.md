@@ -57,7 +57,7 @@ qualification until the blocking items below are addressed.
 | H08 | FULL runtime/invocation budget does not match the authoritative required scenario matrix | DESIGN BLOCKER | Derive the real minimum/expected invocation plan from all required scenarios; runtime target/ceiling and invocation matrix become mutually consistent and realistically executable; no timeout is silently raised | TODO | — |
 | H09 | Workspace locate/resume path handling is weaker than create/destroy containment | HIGH | Malformed/traversal run IDs are rejected; create/locate/destroy remain confined to the smoke-run root; negative path-containment tests pass | TODO | — |
 | H10 | Mutating deterministic helpers need stronger proof that they target only the disposable smoke repository | HIGH | Every mutating helper fails closed when pointed at the source checkout/wrong branch/wrong repository identity where applicable; valid `smoke-run` behavior remains unchanged | TODO | — |
-| H11 | No design-time workflow contract validator / dry orchestration simulator exists | CRITICAL | A cheap deterministic validator walks FAST/FULL contracts and detects missing helper references, invalid state transitions, model/owner mismatch, missing handoff fields, invalid checkpoint/restoration plans, scenario budget violations, zero-reviewer rule violations, and contradictory orchestration instructions before model execution | TODO | — |
+| H11 | No design-time workflow contract validator / dry orchestration simulator exists | CRITICAL | A cheap deterministic validator walks FAST/FULL contracts and detects missing helper references, invalid state transitions, model/owner mismatch, missing handoff fields, invalid checkpoint/restoration plans, scenario budget violations, zero-reviewer rule violations, and contradictory orchestration instructions before model execution. **This entire capability belongs to Stable v0.1.0 hardening; no residual portion is deferred to v0.1.1.** | TODO | — |
 | H12 | Final cross-file/system consistency validation is missing | RELEASE GATE | Commands, agents, profiles, fixtures, failure recipes, runbook, helpers, and tests agree; all deterministic/unit/integration gates are green; `git diff --check` is clean; dry FAST/FULL plans are green | BLOCKED by H01–H11 | — |
 | H13 | Small real Kilo integration probe is required before another FULL | RELEASE GATE | Minimal model-bearing probe proves real disposable-workspace rooting, child handoff, source isolation, state/timing lifecycle, and interruption-safe cleanup with minimal model spend | BLOCKED by H01–H12 | — |
 | H14 | Fresh release-qualifying FULL smoke | FINAL | All required FULL scenarios complete under the agreed qualification contract with no harness defect and with evidence/state consistency intact | BLOCKED by H13 | — |
@@ -67,10 +67,16 @@ qualification until the blocking items below are addressed.
 The following existing item remains intentionally separate unless a tracker
 issue proves it must be changed:
 
-- ceremony-bypass support for valid existing upstream authority
+- **Stable v0.1.1 — ceremony-bypass support for valid existing upstream authority**
 
-Do not expand the current Stable-v0.1 hardening effort into that deferred
-feature merely to make FULL smoke easier.
+Stable v0.1.1 has **one planned requirement only: Ceremony Bypass**.
+
+The complete design-time workflow contract validation + dry orchestration
+simulation capability is owned by **H11 in Stable v0.1.0 hardening**. Do not
+split or defer any residual H11 scope into v0.1.1.
+
+Do not expand the current Stable-v0.1 hardening effort into Ceremony Bypass
+merely to make FULL smoke easier.
 
 ## Status definitions
 
