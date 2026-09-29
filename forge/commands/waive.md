@@ -71,7 +71,9 @@ Treat that receipt as explicit human authorization only when all of these hold:
 
 - it was closed by `smoke_budget.py human-wait-authorize`
 - its `gate_type` is exactly `WAIVER_AUTHORIZATION`
-- its helper-derived `gate_id` still matches the canonical gate identity
+- its helper-derived `gate_id` still matches the canonical gate identity,
+  including the persisted SHA-256 of the exact verification-report bytes
+- the current verification-report bytes still match that persisted report digest
 - its verification report, Contract-v1 implementation-state fingerprint,
   failure set, and classification exactly match the waiver request being
   evaluated

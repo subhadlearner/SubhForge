@@ -773,9 +773,11 @@ explicit authorization is missing:
    budget pause merely by naming an existing file.
    
    The helper derives `gate_id` as SHA-256 of a canonical payload containing
-   the run ID, gate type, exact verification-report path, Contract-v1
-   fingerprint, exact canonically ordered failure set, and classification.
-   The orchestrator never invents an opaque gate ID.
+   the run ID, gate type, exact verification-report path, SHA-256 of the exact
+   verification-report bytes, Contract-v1 implementation-state fingerprint,
+   exact canonically ordered failure set, and classification. The orchestrator
+   never invents an opaque gate ID. If the report bytes change while the human
+   request is open, authorization fails closed and the interval is not mutated.
 
 4. persist canonical smoke state as `WAITING_FOR_USER`; the blocker must carry
    the helper-returned `gate_type`, `gate_id`, and exact request identity
@@ -820,7 +822,10 @@ required non-empty authorization fields **before** writing anything. A rejected/
 therefore a pure no-op on the existing open interval.
 
 A valid authorization closes that one interval and persists the authorization
-payload with it. Then perform the normal rooted handoff. The rooted continuation
+payload with it. A deliberate human decline is not an authorization error to
+reinterpret as approval: do not call `human-wait-authorize`; leave the gate
+open and instruct the user to use `/smoke ABANDON <run-id>` if they want to
+terminate the run. Then perform the normal rooted handoff only after acceptance. The rooted continuation
 uses that persisted payload as the human input to `/waive`; it must not
 reconstruct authorization from chat history or `--auto`. If freshness or
 policy later blocks the waiver for a non-human-input reason, report that normal

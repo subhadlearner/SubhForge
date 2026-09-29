@@ -208,6 +208,7 @@ def _waiver_gate_identity(
         "run_id": run_id,
         "gate_type": HUMAN_WAIT_WAIVER_AUTHORIZATION,
         "verification_report": report,
+        "verification_report_sha256": hashlib.sha256(report_path.read_bytes()).hexdigest(),
         "implementation_state_fingerprint": _validate_contract_fingerprint(
             implementation_state_fingerprint
         ),
@@ -224,6 +225,23 @@ def _gate_id_from_identity(identity: dict[str, object]) -> str:
         sort_keys=True,
     ).encode("utf-8")
     return hashlib.sha256(canonical).hexdigest()
+
+
+def _require_report_binding(repo: Path, identity: dict[str, object]) -> None:
+    report = _normalize_verification_report(identity.get("verification_report"))
+    expected = identity.get("verification_report_sha256")
+    if not isinstance(expected, str):
+        raise BudgetError("Human authorization gate is missing verification-report digest")
+    report_path = (repo.resolve() / Path(*report.split("/"))).resolve()
+    try:
+        report_path.relative_to(repo.resolve())
+    except ValueError as exc:
+        raise BudgetError("Verification report escapes the smoke repository") from exc
+    if not report_path.is_file():
+        raise BudgetError("Verification report no longer exists: {}".format(report))
+    actual = hashlib.sha256(report_path.read_bytes()).hexdigest()
+    if actual != expected:
+        raise BudgetError("Verification report changed after human authorization was requested")
 
 
 def _required_human_text(value: str, field: str) -> str:
@@ -289,6 +307,7 @@ def _validate_human_wait_intervals(data: dict, run_id: str) -> None:
         "run_id",
         "gate_type",
         "verification_report",
+        "verification_report_sha256",
         "implementation_state_fingerprint",
         "failure_set",
         "classification",
@@ -315,6 +334,13 @@ def _validate_human_wait_intervals(data: dict, run_id: str) -> None:
         if identity.get("run_id") != run_id or identity.get("gate_type") != gate_type:
             raise BudgetError("Human wait identity does not belong to this run/gate")
         _normalize_verification_report(identity.get("verification_report"))
+        report_sha256 = identity.get("verification_report_sha256")
+        if (
+            not isinstance(report_sha256, str)
+            or len(report_sha256) != 64
+            or not all(char in "0123456789abcdef" for char in report_sha256)
+        ):
+            raise BudgetError("Human wait verification-report SHA-256 is invalid")
         _validate_contract_fingerprint(identity.get("implementation_state_fingerprint"))
         normalized_failures = _normalize_failure_set(identity.get("failure_set"))
         if normalized_failures != identity.get("failure_set"):
@@ -649,6 +675,7 @@ def human_wait_authorize(
     if open_wait.get("gate_type") != gate_type or open_wait.get("gate_id") != gate_id:
         raise BudgetError("Human authorization does not match the active gate")
     _require_waiting_blocker(state, gate_type, gate_id)
+    _require_report_binding(repo, open_wait["identity"])
 
     authorization = _waiver_authorization_payload(
         open_wait["identity"],

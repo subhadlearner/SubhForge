@@ -2734,8 +2734,10 @@ must never be sufficient to pause the qualification clock.
 
 The helper derives a collision-resistant `gate_id` from a canonical payload
 containing the smoke run ID, gate type, exact verification-report path,
-Contract-v1 implementation-state fingerprint, exact canonically ordered failure
-set, and waiver classification. The orchestrator does not invent the ID.
+SHA-256 of the exact verification-report bytes, Contract-v1 implementation-state
+fingerprint, exact canonically ordered failure set, and waiver classification.
+The orchestrator does not invent the ID. If those report bytes change while the
+gate is open, authorization must fail closed without mutating the interval.
 
 Persist `WAITING_FOR_USER` plus that exact gate identity, return
 `SMOKE_USER_INPUT_REQUIRED`, and launch no further model stage while the gate
@@ -2791,12 +2793,17 @@ set, classification, `ACCEPTED_TEMPORARILY` decision, and non-empty human
 justification, residual risk, compensating control, remediation, and expiry
 before mutating the ledger.
 
-If any authorization field is missing or mismatched, the helper rejects the
-attempt without changing the existing open interval. The run remains
+If any authorization field is missing or mismatched, or the verification-report
+bytes no longer match the report digest bound into the gate identity, the helper
+rejects the attempt without changing the existing open interval. The run remains
 `WAITING_FOR_USER`; no close/reopen cycle occurs. Only a valid authorization
 closes the interval. The persisted authorization then crosses the source-root
 to rooted-continuation boundary as repository evidence; `--auto` and chat
 history are never substitutes for that human decision.
+
+A deliberate human decline does not call `human-wait-authorize`. The gate
+remains open; use `/smoke ABANDON <run-id>` when the user chooses to terminate
+the run rather than accept the waiver.
 
 A completed gate ID cannot be reopened. If a later verification run changes
 the verification report, Contract-v1 fingerprint, failure set, or

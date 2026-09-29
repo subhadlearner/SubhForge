@@ -300,6 +300,46 @@ class SmokeBudgetTests(unittest.TestCase):
 
         self.assertEqual(before, path.read_text(encoding="utf-8"))
 
+    def test_report_content_change_produces_distinct_gate_identity(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        first = self._start_wait(at=self.started + dt.timedelta(minutes=5))
+        first_gate_id = first["gate"]["gate_id"]
+        self._authorize_wait(
+            first_gate_id,
+            at=self.started + dt.timedelta(minutes=10),
+        )
+
+        (self.repo / self.verification_report).write_text(
+            "Verification Result: NOT_DONE\nChanged report bytes.\n",
+            encoding="utf-8",
+        )
+        second = self._start_wait(at=self.started + dt.timedelta(minutes=15))
+
+        self.assertNotEqual(first_gate_id, second["gate"]["gate_id"])
+        smoke_budget.restore = None if False else getattr(smoke_budget, "restore", None)
+
+    def test_report_change_after_request_blocks_authorization_without_mutation(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        opened = self._start_wait(at=self.started + dt.timedelta(minutes=5))
+        gate_id = opened["gate"]["gate_id"]
+        ledger_path = (
+            self.repo / "docs/verification/smoke" / f"{self.run_id}.budget.json"
+        )
+        before = ledger_path.read_text(encoding="utf-8")
+
+        (self.repo / self.verification_report).write_text(
+            "Verification Result: NOT_DONE\nTampered after request.\n",
+            encoding="utf-8",
+        )
+
+        with self.assertRaises(smoke_budget.BudgetError):
+            self._authorize_wait(
+                gate_id,
+                at=self.started + dt.timedelta(minutes=10),
+            )
+
+        self.assertEqual(before, ledger_path.read_text(encoding="utf-8"))
+
     def test_unknown_gate_and_second_different_open_gate_fail_without_mutation(self):
         smoke_budget.start(self.repo, self.run_id, self.started)
         before = self._budget_file()
