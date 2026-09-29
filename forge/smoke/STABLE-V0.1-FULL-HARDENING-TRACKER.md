@@ -33,6 +33,220 @@ Do not make planning, implementation, verification judgment, review judgment,
 adversarial reasoning, or routing decisions deterministic merely to make the
 smoke test easier.
 
+## Durable hardening operating context
+
+This section records the working rules and closed design decisions that must
+survive chat/context changes. Treat it as part of the hardening contract, not
+as informal history.
+
+### Branch and PR discipline
+
+For each hardening item:
+
+1. Start from the current `harden/v0.1-full-smoke` head.
+2. Create one dedicated branch named for that item, e.g.
+   `harden/h05-...`.
+3. Keep the branch scoped to that tracker item. Do not make H(N+1)+ changes
+   unless they are strictly required to make the current invariant correct;
+   record any such coupling before expanding scope.
+4. Prefer one coherent implementation commit on the item branch. Rewriting
+   that one commit during pre-merge review is acceptable while the PR is still
+   open and unmerged.
+5. Open the PR as **Draft** until deterministic/local verification is complete.
+6. Verification normally includes:
+   - focused regression tests for the item;
+   - adjacent compatibility tests;
+   - the full `forge/scripts` suite;
+   - the `tools` suite;
+   - `git diff --check harden/v0.1-full-smoke...HEAD`;
+   - a clean `git status --short`.
+7. Review the full diff and second-order effects after tests pass. Green tests
+   alone are not sufficient.
+8. Move the PR out of Draft only after the invariant and verification evidence
+   are both satisfactory.
+9. Squash-merge the PR into `harden/v0.1-full-smoke`.
+10. Only after the real squash SHA exists, update this tracker on the hardening
+    branch: mark the item `DONE`, record the merge SHA/evidence, and promote
+    the next item to `TODO — NEXT`.
+11. Do not start the next tracker item before that closure update.
+12. Do not spend model/Kilo calls on an item whose acceptance gate is fully
+    deterministic. Real integrated Kilo proof belongs to H13 unless the
+    current item explicitly requires a model-bearing acceptance test.
+
+Operator note for the current Windows workstation: use `python` for local
+test execution; the local `py -3` launcher has previously pointed at a stale
+Python path and is not a reliable hardening command.
+
+### Global smoke invariants
+
+The following invariants apply across the tracker unless a later item
+explicitly and intentionally changes them:
+
+- **Disposable repository ownership:** smoke must provision/use its own
+  disposable repository. The user must not be required to manually open or
+  select an arbitrary repository merely to run the harness.
+- **Real Kilo rooting:** substantive model-bearing smoke work must execute with
+  the top-level Kilo session rooted in the disposable smoke repository. Child
+  tasks inherit that real project/worktree; prompt-only path instructions are
+  not an isolation mechanism.
+- **Source checkout protection:** the SubhForge source checkout is an input,
+  not the smoke workspace. Before and after every substantive child invocation,
+  the source checkout is fingerprinted deterministically. Source mutation is a
+  fail-closed blocker and the child result is not accepted.
+- **Deterministic mechanics, probabilistic judgment:** helpers may provision,
+  fingerprint, validate, checkpoint, mutate, restore, time, and enforce
+  contracts. They must not replace planning, implementation, verification,
+  review, adversarial, or resume-routing judgment with lookup tables merely to
+  make smoke tests pass.
+- **Canonical machine state:** `<run-id>.state.json` is the authoritative
+  orchestration record. Markdown is an audit projection, not a competing state
+  source.
+- **Fail-closed continuation:** malformed/inconsistent canonical state,
+  unreconstructable identity, source drift, invalid recovery state, or failed
+  checkpoint restoration stops the run rather than being silently repaired.
+- **Contract-v1 identity:** implementation freshness is based on the canonical
+  Contract-v1 manifest, not HEAD equality alone. Evidence under
+  `docs/verification/**`, `docs/reviews/**`, and `docs/diagnostics/**`
+  is excluded; identity-bearing source/config/spec/project-instruction changes
+  are not.
+- **Negative freshness/evidence paths invoke zero reviewers:** when freshness
+  is `MISMATCH`/`UNRECONSTRUCTABLE` or reusable evidence is invalid,
+  pre-review and senior review must not run.
+- **Model routing/cost:** smoke defaults to GPT-5.6 Sol/Luna and DeepSeek.
+  Paid Claude is not required for release qualification and is denied inside
+  the rooted autonomous smoke continuation; any explicit paid Claude check is
+  a separate user-authorized interactive action.
+- **Qualification budget remains authoritative:** the 30-minute FULL
+  qualification budget is not silently raised. Transport/process timeouts are
+  not permission to extend qualification time. Human-wait semantics and the
+  final invocation/runtime model remain unresolved until H07/H08.
+- **No premature FULL:** another release-qualifying FULL is forbidden until
+  H01-H12 are closed and H13's small real Kilo integration probe passes.
+- **H13 is the integration catch-all, not a substitute for unit hardening:**
+  deterministic items should be proven cheaply first; H13 then proves the
+  assembled real Kilo path with minimal model spend.
+
+### Closed decision record — H01 through H04
+
+#### H01 — real disposable-workspace rooting
+
+Closed decision:
+
+- `smoke_handoff.py` establishes a token-bound rooted continuation and
+  `assert-rooted` proves the current Git root is exactly the disposable run
+  repository.
+- The top-level rooted Kilo run is launched with the smoke orchestrator; child
+  tasks inherit that same disposable project/worktree.
+- The autonomous overlay denies access to the SubhForge source checkout and
+  disables paid Claude routes for the rooted smoke continuation.
+- Rooting is enforced mechanically by smoke timing/handoff guards; a child from
+  the wrong session cannot obtain/complete an accepted stage timing record.
+- The representative real Kilo probe
+  `SMOKE-FULL-full-minimal-api-20260928T172150Z-9f874862` proved rooted
+  parent handoff, real `planning-worker` delegation, denied source-checkout
+  read, child-only write in the disposable repo, and unchanged source checkout.
+
+Do not regress to a design where the operator manually opens a separate project
+or where a child is merely told to write to a sibling path.
+
+#### H02 — interrupted invocation recovery
+
+Closed decision:
+
+- Stage invocation lifecycle is explicit:
+  `ACTIVE -> COMPLETED | ABORTED | INTERRUPTED`.
+- `stage-start` persists the exact pre-child source-checkout fingerprint.
+- Normal returned completion uses `stage-end`; known returned/transport
+  failure uses `stage-abort`.
+- `SOURCE_CHECKOUT_MUTATED` is a restart-safe continuation blocker.
+- Rooted RESUME uses atomic `recover-active --source <source>`: the persisted
+  pre-child source fingerprint is revalidated before ACTIVE is closed.
+- A matching source closes stale ACTIVE as `INTERRUPTED`; an interrupted run
+  does **not** fabricate `ended_at_utc` or elapsed runtime.
+- Source mismatch persists a blocker. Missing legacy source fingerprint becomes
+  `INTERRUPTED_SOURCE_GUARD_UNAVAILABLE`/unreconstructable.
+- If the source-guard helper itself cannot execute, ACTIVE is deliberately left
+  open so a later RESUME can retry safely.
+- Duplicate terminal transitions and multiple simultaneous ACTIVE records fail
+  closed.
+
+#### H03 — canonical smoke-state validation
+
+Closed decision:
+
+- Canonical state has an exact top-level schema. Unknown/typo and missing fields
+  fail closed.
+- Identity fields such as run/profile/fixture/source/baseline are immutable
+  through targeted state updates.
+- Run states are a closed enum; scenarios are validated against the selected
+  profile's installed registry.
+- Completed/pending scenario lists are unique and disjoint. Invalid overlap is
+  rejected; the helper does not silently “repair” model output.
+- `static-release-gate` is the first completed smoke scenario; workflow
+  advancement/current scenario cannot bypass it.
+- Bootstrap-owned `contract_parity` and `budget_started_at_utc` are
+  established only during bootstrap, are typed, become protected/write-once,
+  and must exist once the static gate is complete.
+- Terminal state and `final_result` must be consistent with the selected
+  profile and required-scenario completion. Nonterminal states cannot carry a
+  final result.
+- `BLOCKED`/`WAITING_FOR_USER` require a non-empty blocker object, but H03
+  intentionally did **not** invent a mandatory `blocker.code` schema.
+- `stage_metrics` keys remain flexible non-empty telemetry labels; H03 did not
+  turn telemetry into a closed workflow enum.
+- Both load and set validate the whole state. A candidate update is persisted
+  only after full validation, so invalid updates cannot partially mutate the
+  canonical JSON.
+
+#### H04 — deterministic verification-time mutation
+
+Closed decision:
+
+- `verification-mutation` is a special deterministic smoke hook and cannot
+  use ordinary pre-verification `mutate`.
+- Lifecycle is `ARMED -> APPLIED -> RESTORED`.
+- The harness owns a fixed, local, reversible, non-evidence identity marker;
+  Luna/DeepSeek do not choose an application source/test mutation.
+- The hook is armed from a matching clean checkpoint without changing identity.
+- DeepSeek `/verify` captures its normal pre-check manifest and runs all real
+  required checks/acceptance evidence.
+- Only **after checks and before the post-check manifest**, the smoke executor
+  fires the registered hook. The helper itself proves Contract-v1 identity is
+  now `MISMATCH`.
+- The normal `/verify` contract therefore records factual
+  `Verification Result: DONE` when checks passed, but
+  `Freshness: MISMATCH` and `Delivery Gate: BLOCKED`.
+- Reviewer calls for this negative freshness probe are zero.
+- Restoration removes the marker and must reproduce the exact checkpoint.
+  Armed-but-unfired hooks can also be safely disarmed.
+- The authoritative post-first-review matrix permits exactly one DeepSeek
+  `/verify` for this bounded scenario. Do not spend a second `/verify`
+  merely to close H04; the restored implementation still needs fresh normal
+  verification before any later review use.
+- The static release gate verifies that the installed smoke executor/helper
+  contain the H04 hook contract.
+
+### Current hardening boundary
+
+H05 is the only current implementation target.
+
+Do not pull H06+ work into H05 merely because neighboring state-preparation
+problems look similar. In particular:
+
+- H06 owns deterministic preparation/restoration for upstream-authority blocked
+  rerouting cases.
+- H07 owns human waiver waiting/authorization versus the 30-minute clock.
+- H08 owns the real FULL invocation/runtime budget reconciliation.
+- H09/H10 own containment/target-identity strengthening.
+- H11 owns the dry orchestration/contract validator.
+- H12 is the final deterministic/system consistency gate.
+- H13 is the small real Kilo integration probe.
+- H14 is the next release-qualifying FULL.
+
+Existing ceremony-bypass support for valid pre-existing upstream authority
+remains deferred and must not be pulled into Stable-v0.1 hardening merely to
+make smoke easier.
+
 ## Audit baseline
 
 The systematic audit that created this tracker inspected branch
