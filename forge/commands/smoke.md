@@ -771,7 +771,7 @@ explicit authorization is missing:
    verification/waive stage, and latest verification exactly
    `NOT_DONE / BLOCKED / MATCH`. This prevents a model from manufacturing a
    budget pause merely by naming an existing file.
-   
+
    The helper derives `gate_id` as SHA-256 of a canonical payload containing
    the run ID, gate type, exact verification-report path, SHA-256 of the exact
    verification-report bytes, Contract-v1 implementation-state fingerprint,
