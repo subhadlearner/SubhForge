@@ -124,6 +124,41 @@ When creating or changing a production Python helper:
 
 A Python-helper bug fix without a regression test is incomplete.
 
+### Deterministic regression runtime budget
+
+Deterministic helper tests are part of the engineering harness and must remain
+fast enough for normal iteration. Runtime growth is a regression even when all
+tests are green.
+
+On the reference Windows development host, use the unittest-reported
+`Ran <N> tests in <seconds>s` duration as the comparison value. Shell startup
+and `Measure-Command` wrapper overhead are diagnostic only.
+
+Budget:
+
+- focused/current-item deterministic suite: target **<=60s**, hard ceiling **90s**
+- full `forge/scripts` deterministic suite: target **<=180s**
+- temporary hard ceiling for the full `forge/scripts` suite during H06-H11: **300s**
+- `tools` deterministic suite: target **<=30s**, hard ceiling **60s**
+- any full-suite runtime regression greater than **10%** versus the last accepted
+  same-host baseline is merge-blocking until explained and optimized
+
+The temporary 300s full-suite ceiling is not a healthy steady-state target. H12
+must bring the full `forge/scripts` suite to the 180s target or below before
+release-gate closure.
+
+Iteration policy:
+
+1. run the focused current-item suite plus directly affected adjacent/shared suites while developing
+2. do not repeatedly pay the full-suite cost after every small patch
+3. run one complete deterministic regression before merge
+4. record the accepted full-suite runtime baseline in the PR/tracker evidence
+
+Never meet a runtime budget by deleting, skipping, quarantining, weakening, or
+excluding required tests, assertions, coverage, or fail-closed checks. Optimize
+fixtures, subprocess use, batching, caching of immutable setup, or other
+mechanics while preserving the same invariant coverage.
+
 ## Testing and Verification
 
 Use applicable:

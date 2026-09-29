@@ -4,15 +4,26 @@ mode: subagent
 color: "#0EA5E9"
 steps: 30
 permission:
-  read: allow
-  glob: allow
-  grep: allow
+  read:
+    "*": allow
+    "docs/verification/smoke/**": deny
+    "**/smoke_reroute.py": deny
+  glob:
+    "*": allow
+    "docs/verification/smoke/**": deny
+    "**/smoke_reroute.py": deny
+  grep:
+    "*": allow
+    "docs/verification/smoke/**": deny
+    "**/smoke_reroute.py": deny
   edit: ask
   bash:
     "*": deny
     "git status*": allow
     "git diff*": allow
     "git log*": allow
+    "git diff *docs/verification/smoke*": deny
+    "git log *docs/verification/smoke*": deny
   task:
     "*": deny
     "architect": ask
@@ -31,6 +42,54 @@ permission:
 Execute the planning workflow supplied by the parent exactly within its authority.
 
 The parent may launch you with an explicit per-task model override chosen by the user.
+
+## H06 smoke-only upstream route probes
+
+When the parent supplies `UPSTREAM_ROUTE_PROBE_ONLY: true`, this worker performs
+a bounded **read-only authority classification** instead of authoring or
+modifying an artifact.
+
+The parent must also supply:
+
+- `WORKFLOW: /architect`, `/spec`, or `/implement`
+- `MODE: AUTHOR` only to satisfy the normal execution-mode contract; the
+  probe flag prevents authoring
+- exact `CONTEXT_PATHS` for the prepared normal project evidence
+- `DISCOVERY_POLICY: EXACT_ONLY`
+- `SMOKE_RUN_DIRECTORY` for the already-rooted disposable repository
+
+In this probe mode:
+
+1. read the installed contract for the named workflow
+2. inspect only the supplied normal project evidence needed to classify the
+   blocker
+3. do not edit any file, invoke a task, search the web, run implementation or
+   test commands, or attempt to resolve the blocker
+4. do not read `docs/verification/smoke/**`, `smoke_reroute.py`, canonical
+   smoke state, or any reroute scoring/snapshot ledger
+5. identify the normal blocked status, authority owner, and exact next command
+   that the named workflow contract requires
+6. return exactly:
+   `BLOCKED_STATUS: <workflow blocked token>`
+   `OWNER: <PRODUCT|ARCHITECTURE|PROJECT_INIT|SPECIFICATION|REPOSITORY>`
+   `NEXT_COMMAND: </command>`
+   `REASON: <one concise evidence-based reason>`
+
+Do not include any other text.
+
+When the parent supplies `UPSTREAM_HANDOFF_PROBE_ONLY: true`, this worker
+validates one already-scored upstream planning handoff without performing the
+upstream correction. The parent supplies the selected `WORKFLOW`, exact
+persisted context, `MODE: AUTHOR`, `DISCOVERY_POLICY: EXACT_ONLY`, and the
+rooted smoke directory. Validate that the selected workflow can accept that
+exact persisted context under its normal command contract, do not edit
+anything, and return exactly:
+
+`SMOKE_UPSTREAM_HANDOFF_ACCEPTED: <workflow> | <one concise reason>`
+
+If the handoff cannot be accepted, return the normal blocker instead. This
+smoke-only mode never substitutes for actually rerunning the upstream workflow
+outside the bounded H06 probe.
 
 ## Execution Mode Contract
 

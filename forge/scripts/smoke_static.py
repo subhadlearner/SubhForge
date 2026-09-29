@@ -90,6 +90,7 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
     read("helper:smoke-handoff", config / "scripts/smoke_handoff.py")
     mechanics = read("helper:smoke-mechanics", config / "scripts/smoke_mechanics.py")
     resume = read("helper:smoke-resume", config / "scripts/smoke_resume.py")
+    reroute = read("helper:smoke-reroute", config / "scripts/smoke_reroute.py")
     policy = read("policy:global", config / "AGENTS.md")
     architecture = read("policy:architecture", config / "commands/architect.md")
     contract = read("contract:installed", config / "contracts/implementation-state-evidence-v1.md")
@@ -135,6 +136,54 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
         "prepared_snapshot_sha256",
         "record_handoff",
         "def status(",
+        "attempt_count",
+        '"NOT_SCORED"',
+        "Scored resume probe is immutable and cannot be retried",
+    ))
+    checks["routing:upstream-reroute"] = (
+        all(term in worker for term in (
+            "UPSTREAM_ROUTE_PROBE_ONLY: true",
+            "UPSTREAM_HANDOFF_PROBE_ONLY: true",
+            "SMOKE_UPSTREAM_HANDOFF_ACCEPTED",
+            "BLOCKED_STATUS:",
+            "NEXT_COMMAND:",
+        ))
+        and all(term in executor for term in (
+            "WORKFLOW: /fix",
+            "UPSTREAM_ROUTE_PROBE_ONLY: true",
+            "BLOCKED_STATUS: FIX_BLOCKED",
+            "NEXT_COMMAND:",
+        ))
+        and all(term in orchestrator for term in (
+            "scripts/smoke_reroute.py",
+            "u01",
+            "u08",
+            "SMOKE_UPSTREAM_HANDOFF_ACCEPTED",
+        ))
+    )
+    executor_smoke_deny = '"*docs/verification/smoke*": deny'
+    executor_helper_deny = '"*smoke_reroute.py*": deny'
+    checks["routing:upstream-reroute-no-leak"] = (
+        worker.count('"docs/verification/smoke/**": deny') >= 3
+        and worker.count('"**/smoke_reroute.py": deny') >= 3
+        and "git diff *docs/verification/smoke*" in worker
+        and "git log *docs/verification/smoke*" in worker
+        and executor.count('"docs/verification/smoke/**": deny') >= 3
+        and executor.count('"**/smoke_reroute.py": deny') >= 3
+        and executor_smoke_deny in executor
+        and executor_helper_deny in executor
+        and executor.rfind(executor_smoke_deny) > executor.rfind('"git status*": allow')
+        and executor.rfind(executor_helper_deny) > executor.rfind('"npm run build*": allow')
+    )
+    checks["reroute:mechanics"] = all(term in reroute for term in (
+        "PROBE_PLAN",
+        "prepared_snapshot_sha256",
+        "regeneration_path",
+        "record_handoff",
+        "def status(",
+        "attempt_count",
+        '"NOT_SCORED"',
+        "Scored reroute probe is immutable and cannot be retried",
     ))
     checks["verification:mutation-hook"] = (
         all(term in executor for term in (

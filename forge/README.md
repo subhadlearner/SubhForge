@@ -275,6 +275,25 @@ stable_v_0.1.0
 
 After a stable tag, framework changes should be treated as deliberate versioned changes rather than incidental edits.
 
+## Deterministic regression runtime
+
+The framework's deterministic Python helpers are intentionally tested as part
+of the harness, but that suite must remain practical for local iteration.
+
+Reference Windows-host budget:
+
+- focused/current-item suite: target <=60s, hard ceiling 90s
+- full `forge/scripts` suite: target <=180s; temporary H06-H11 ceiling 300s
+- `tools` suite: target <=30s, hard ceiling 60s
+- >10% regression versus the last accepted full-suite baseline requires
+  investigation/optimization before merge
+- H12 must meet the <=180s full-suite target
+
+Use the unittest-reported runtime rather than PowerShell wrapper overhead.
+Prefer focused + adjacent suites during development and one complete
+deterministic regression before merge. Never obtain a faster result by
+weakening or omitting required coverage.
+
 ## Smoke testing
 
 Release validation is documented in:

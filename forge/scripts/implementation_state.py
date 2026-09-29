@@ -67,6 +67,22 @@ def _index(repo: Path) -> dict[str, str]:
     return entries
 
 
+def _hash_paths(repo: Path, names: list[str]) -> dict[str, str]:
+    """Return raw Git blob OIDs for repository paths with one git process.
+
+    Contract-v1 paths are already required to be UTF-8 and free of newlines,
+    making git hash-object --stdin-paths safe and unambiguous here.
+    """
+    if not names:
+        return {}
+    payload = ("\n".join(names) + "\n").encode("utf-8")
+    raw = git(repo, "hash-object", "--no-filters", "--stdin-paths", input_bytes=payload)
+    oids = [line.decode("ascii") for line in raw.splitlines() if line]
+    if len(oids) != len(names):
+        raise ImplementationStateError("Git returned an incomplete batch hash result")
+    return dict(zip(names, oids))
+
+
 def canonical_manifest(repo: Path, base: str) -> bytes:
     """Return Contract-v1 canonical manifest or fail closed."""
     repo = repo_root(repo)
@@ -83,42 +99,54 @@ def canonical_manifest(repo: Path, base: str) -> bytes:
         if p
     }
 
-    entries: list[str] = []
-    for name in sorted(changed | untracked, key=lambda n: n.encode("utf-8")):
-        if excluded(name):
-            continue
+    names = [
+        name
+        for name in sorted(changed | untracked, key=lambda n: n.encode("utf-8"))
+        if not excluded(name)
+    ]
+    filemode = git(repo, "config", "--bool", "core.filemode").strip()
 
+    modes: dict[str, str] = {}
+    hash_names: list[str] = []
+    deleted: set[str] = set()
+
+    for name in names:
         path = repo / name
         try:
             info = path.lstat()
         except FileNotFoundError:
             if name not in index and name not in changed:
                 raise ImplementationStateError("Path disappeared during reconstruction")
-            entries.append(f"{name}\tDELETED\tDELETED\n")
+            deleted.add(name)
             continue
 
         if stat.S_ISLNK(info.st_mode):
-            mode = "120000"
+            modes[name] = "120000"
         elif stat.S_ISREG(info.st_mode):
             indexed = index.get(name)
             if indexed == "160000":
                 raise ImplementationStateError("Gitlink mode is UNRECONSTRUCTABLE")
 
-            filemode = git(repo, "config", "--bool", "core.filemode").strip()
             if os.name == "nt" or filemode == b"false":
                 if indexed is None:
-                    mode = "100644"
+                    modes[name] = "100644"
                 elif indexed not in ("100644", "100755"):
                     raise ImplementationStateError("File mode is UNRECONSTRUCTABLE")
                 else:
-                    mode = indexed
+                    modes[name] = indexed
             else:
-                mode = "100755" if info.st_mode & 0o111 else "100644"
+                modes[name] = "100755" if info.st_mode & 0o111 else "100644"
         else:
             raise ImplementationStateError("Unsupported file type is UNRECONSTRUCTABLE")
+        hash_names.append(name)
 
-        oid = git(repo, "hash-object", "--no-filters", "--", name).strip().decode("ascii")
-        entries.append(f"{name}\t{mode}\t{oid}\n")
+    hashes = _hash_paths(repo, hash_names)
+    entries: list[str] = []
+    for name in names:
+        if name in deleted:
+            entries.append(f"{name}\tDELETED\tDELETED\n")
+        else:
+            entries.append(f"{name}\t{modes[name]}\t{hashes[name]}\n")
 
     return "".join(entries).encode("utf-8")
 

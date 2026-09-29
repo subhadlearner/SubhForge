@@ -156,6 +156,80 @@ Do not replace the routing decision with a deterministic lookup table. Helpers
 may prepare, validate, score, snapshot, and restore persisted state, but only a
 fresh Luna `resume-router` chooses the continuation stage.
 
+## H06 upstream-authority rerouting probes
+
+The FULL `upstream-rerouting` scenario validates that a blocked workflow
+returns to the authority that owns the unresolved decision instead of inventing
+a downstream answer.
+
+Use installed `scripts/smoke_reroute.py` for deterministic preparation,
+validation, hidden scoring, exact restoration, and final status only. The
+helper must never choose the authority on behalf of the model.
+
+The eight harness probe IDs are opaque: `u01` through `u08`. Never include
+the probe ID, expected blocked status, expected owner, expected next command,
+regeneration path, checkpoint label, prior probe result, or scoring output in
+the model task.
+
+For each probe:
+
+1. require one declared clean checkpoint to be `MATCH`
+2. call `smoke_reroute.py prepare` with exact PRD, architecture, ADR, Spec,
+   project-instruction, implementation/test/config, and normal verification
+   paths plus the opaque probe ID
+3. require every deterministic preparation check to pass
+4. use the helper-returned classifier/workflow only to select the normal model
+   owner:
+   - `classifier=planning`: delegate GPT-5.6 Sol `planning-worker` with
+     `MODE: AUTHOR`, `UPSTREAM_ROUTE_PROBE_ONLY: true`, the returned
+     `WORKFLOW`, `DISCOVERY_POLICY: EXACT_ONLY`, and exact normal project
+     `CONTEXT_PATHS`
+   - `classifier=fix`: delegate DeepSeek `smoke-executor` with
+     `WORKFLOW: /fix`, `UPSTREAM_ROUTE_PROBE_ONLY: true`, and exact normal
+     repair context
+5. do not give either child `docs/verification/smoke/**`, the reroute helper
+   path/source, canonical smoke state, or another probe's result
+6. parse exactly one `BLOCKED_STATUS:`, `OWNER:`, `NEXT_COMMAND:`, and
+   concise `REASON:`
+7. pass only those actual returned values to `smoke_reroute.py score`
+8. the helper must prove the complete prepared snapshot is unchanged before
+   comparing the model result to its hidden expectation
+9. persist the helper-returned regeneration path only **after** a passing model
+   classification; that path is mechanical from the selected authority and
+   does not replace authority judgment
+10. routing-only probes restore immediately after scoring and must reproduce
+    both the complete clean snapshot and the declared Contract-v1 checkpoint
+11. if a model child is interrupted before scoring, first complete normal H02
+    stage recovery, then restore the active probe. A restored `NOT_SCORED`
+    probe may be prepared again under the same opaque ID; scored `PASS` or
+    `FAIL` probes remain immutable and single-use
+
+The prepared cases cover the existing Phase-20 architecture/spec/implementation
+reroutes plus all normal `/fix` authority destinations needed by H06:
+`/prd`, `/architect`, `/project-init`, `/spec`, and `/fix`.
+`USER_APPROVAL` is not part of H06.
+
+Probe `u02` is the single representative real upstream handoff. After a
+passing classification to `/architect`, delegate GPT-5.6 Sol
+`planning-worker` once with `MODE: AUTHOR`,
+`UPSTREAM_HANDOFF_PROBE_ONLY: true`, `WORKFLOW: /architect`,
+`DISCOVERY_POLICY: EXACT_ONLY`, and the exact persisted context. Require
+`SMOKE_UPSTREAM_HANDOFF_ACCEPTED`, then call
+`smoke_reroute.py record-handoff`. The helper must prove the prepared
+repository is still unchanged before accepting the handoff. Do not perform the
+architecture correction or regenerate downstream artifacts inside this probe.
+
+After all eight probes restore, require:
+
+```text
+smoke_reroute.py ... status
+→ result=PASS
+→ completed_probes contains all eight opaque IDs
+```
+
+Only then mark `upstream-rerouting` complete. Do not broaden this H06 scenario
+into H07 human approval or H08 runtime-budget policy.
+
 ## Repository safety
 
 Smoke runs must use the deterministic disposable clone helper installed at `scripts/smoke_workspace.py`.

@@ -5,9 +5,18 @@ model: deepseek/deepseek-flash
 color: "#14B8A6"
 steps: 75
 permission:
-  read: allow
-  glob: allow
-  grep: allow
+  read:
+    "*": allow
+    "docs/verification/smoke/**": deny
+    "**/smoke_reroute.py": deny
+  glob:
+    "*": allow
+    "docs/verification/smoke/**": deny
+    "**/smoke_reroute.py": deny
+  grep:
+    "*": allow
+    "docs/verification/smoke/**": deny
+    "**/smoke_reroute.py": deny
   edit: ask
   bash:
     "*": ask
@@ -32,6 +41,8 @@ permission:
     "Remove-Item *": deny
     "git reset --hard*": deny
     "git clean*": deny
+    "*docs/verification/smoke*": deny
+    "*smoke_reroute.py*": deny
   task: deny
   skill: allow
   websearch: ask
@@ -97,6 +108,33 @@ Apply all normal:
 - evidence rules
 - testing/security rules
 - blocked-state routing
+
+## H06 smoke-only upstream route probe
+
+For `WORKFLOW: /fix`, the parent may add:
+
+`UPSTREAM_ROUTE_PROBE_ONLY: true`
+
+This is a bounded read-only classification of a prepared fix blocker. In this
+mode:
+
+1. read the installed `/fix` command contract
+2. inspect only the supplied exact verification/review/diagnosis, Spec,
+   architecture/ADR, project-instruction, and source context needed to classify
+   the blocker
+3. do not edit source/tests/configuration, run repair/test commands, invoke
+   another task, or attempt to resolve the blocker
+4. do not read `docs/verification/smoke/**`, `smoke_reroute.py`, canonical
+   smoke state, or reroute scoring/snapshot ledgers
+5. classify the blocker using the normal `/fix` Blocked Output Contract
+6. return exactly:
+   `BLOCKED_STATUS: FIX_BLOCKED`
+   `OWNER: <PRODUCT|ARCHITECTURE|PROJECT_INIT|SPECIFICATION|REPOSITORY>`
+   `NEXT_COMMAND: </command>`
+   `REASON: <one concise evidence-based reason>`
+
+Do not include any other text. This probe does not count as a repair attempt
+and must never be used by ordinary non-smoke `/fix`.
 
 ## Smoke-specific constraints
 

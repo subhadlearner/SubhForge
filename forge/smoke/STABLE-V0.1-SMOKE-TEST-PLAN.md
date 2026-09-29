@@ -1,5 +1,30 @@
 # Stable v0.1 Workflow Smoke-Test Runbook
 
+## Deterministic harness regression budget
+
+Before release-qualifying smoke, the deterministic harness itself must remain
+cheap enough to iterate on safely.
+
+Reference Windows-host budget:
+
+| Suite | Target | Hard ceiling during H06-H11 |
+| --- | ---: | ---: |
+| focused/current-item deterministic tests | <=60s | 90s |
+| Full `forge/scripts` deterministic tests | <=180s | 300s |
+| `tools` deterministic tests | <=30s | 60s |
+
+Use unittest's own reported runtime for the budget. A >10% regression in the
+full `forge/scripts` runtime versus the last accepted same-host baseline is a
+merge blocker until investigated/optimized.
+
+The 300s full-suite ceiling is temporary debt containment only. H12 requires
+the full `forge/scripts` suite to meet the <=180s target and `tools` to meet
+<=30s.
+
+During hardening, run focused + directly affected adjacent suites while
+iterating, then one complete deterministic regression before merge. Do not
+reduce runtime by weakening/skipping/quarantining required tests or assertions.
+
 ## Purpose
 
 This document is the executable smoke-test and recovery runbook for the Kilo workflow release:
@@ -3165,54 +3190,168 @@ executions.
 
 # 27. Phase 20 — upstream-change rerouting tests
 
-Validate that blocked workflows route to authority rather than inventing decisions.
+Validate that blocked workflows route to the owning authority rather than
+inventing decisions downstream.
 
-## Architecture discovers product ambiguity
+## 27.1 H06 deterministic preparation boundary
 
-Expected:
+Use installed `scripts/smoke_reroute.py`. It owns only:
+
+- complete non-smoke working-tree snapshotting
+- deterministic blocked-state preparation
+- preparation validation
+- hidden comparison of the model's **actual** blocked status/owner/next command
+- regeneration-path derivation after a passing authority classification
+- representative handoff recording
+- exact snapshot/checkpoint restoration
+- final all-probe status
+
+It does **not** choose the authority on behalf of the model.
+
+Use eight opaque IDs, `u01` through `u08`. Their hidden expected
+status/owner/next-command mapping must remain inside deterministic harness code
+and must not be written into normal project evidence or the reroute ledger
+before model classification.
+
+Every probe starts from the same applicable clean reviewed/repaired checkpoint
+unless another clean checkpoint is explicitly selected. Supply exact paths for
+the active PRD, architecture, one relevant ADR, Spec, `AGENTS.md`,
+implementation/test/config files, and applicable normal verification report.
+
+## 27.2 Required prepared cases
+
+| Probe meaning | Classifier | Expected authority destination |
+| --- | --- | --- |
+| Architecture sees contradictory product behavior | GPT-5.6 Sol planning-worker | product → `/prd` |
+| Spec sees conflicting architecture/ADR decisions | GPT-5.6 Sol planning-worker | architecture → `/architect` |
+| Implementation would require an unapproved architecture/persistence change | GPT-5.6 Sol planning-worker | architecture → `/architect` |
+| Fix exposes contradictory product requirements | DeepSeek `/fix` | product → `/prd` |
+| Fix requires changing approved architecture | DeepSeek `/fix` | architecture → `/architect` |
+| Fix is blocked by repository initialization that no longer matches architecture | DeepSeek `/fix` | project-init → `/project-init` |
+| Fix is blocked by contradictory Spec/acceptance criteria | DeepSeek `/fix` | specification → `/spec` |
+| Fix is blocked by repository/environment state that must be preserved/corrected | DeepSeek `/fix` | repository → `/fix` |
+
+These eight cases preserve all original Phase-20 examples while covering the
+five normal H06 corrective authority destinations required by the current
+blocked-output contracts. `USER_APPROVAL` is out of scope for H06.
+
+## 27.3 Fresh classification context
+
+For planning cases delegate exactly one GPT-5.6 Sol `planning-worker` with:
 
 ```text
-ARCHITECTURE_BLOCKED
-→ /prd
+MODE: AUTHOR
+UPSTREAM_ROUTE_PROBE_ONLY: true
+WORKFLOW: /architect | /spec | /implement
+DISCOVERY_POLICY: EXACT_ONLY
 ```
 
-## Spec discovers architecture ambiguity
-
-Expected:
+For fix-origin cases delegate exactly one DeepSeek `smoke-executor` with:
 
 ```text
-SPEC_BLOCKED
-→ /architect
+WORKFLOW: /fix
+UPSTREAM_ROUTE_PROBE_ONLY: true
 ```
 
-## Implementation requires unapproved architecture change
+Supply only exact normal project context. Never supply:
 
-Expected:
+- opaque probe ID
+- expected blocked token
+- expected owner
+- expected next command
+- checkpoint label
+- prior probe result
+- reroute score
+- `docs/verification/smoke/**`
+- `smoke_reroute.py` source/path as semantic context
+- canonical smoke state
+
+The child returns exactly:
 
 ```text
-IMPLEMENTATION_BLOCKED
-→ /architect
+BLOCKED_STATUS: <normal blocked token>
+OWNER: <normal owner>
+NEXT_COMMAND: </command>
+REASON: <one concise evidence-based reason>
 ```
 
-## Fix reveals requirement contradiction
+Before scoring, the helper must prove the prepared repository snapshot is
+unchanged.
 
-Expected:
+Only after a passing model classification may the helper expose the mechanical
+downstream regeneration chain implied by the selected authority:
+
+- product: `/prd → /architect → /project-init → /spec → /implement → /verify`
+- architecture: `/architect → /project-init → /spec → /implement → /verify`
+- project-init: `/project-init → /spec → /implement → /verify`
+- specification: `/spec → /implement → /verify`
+- repository: `/fix → /verify`
+
+This chain is deterministic workflow mechanics **after** authority judgment; it
+must not be used to predetermine the authority result.
+
+## 27.4 Representative executable handoff
+
+The conflicting-architecture Spec case is the one real handoff probe. After a
+passing route to `/architect`, invoke one GPT-5.6 Sol `planning-worker` with:
 
 ```text
-FIX_BLOCKED
-→ /prd
+MODE: AUTHOR
+UPSTREAM_HANDOFF_PROBE_ONLY: true
+WORKFLOW: /architect
+DISCOVERY_POLICY: EXACT_ONLY
 ```
 
-## Fix reveals architecture defect
+and exact persisted normal context.
 
-Expected:
+Require:
 
 ```text
-FIX_BLOCKED
-→ /architect
+SMOKE_UPSTREAM_HANDOFF_ACCEPTED
 ```
 
-After upstream correction, explicitly regenerate invalidated downstream artifacts.
+The handoff proves the selected upstream owner can accept that exact persisted
+context. It must not edit the repository, resolve the architecture conflict, or
+regenerate project-init/Spec/implementation/verification. The helper must prove
+the prepared snapshot remains unchanged before recording the handoff.
+
+## 27.5 Restoration and pass condition
+
+After every routing-only case, restore immediately. After the representative
+handoff, record acceptance then restore.
+
+Every restoration must reproduce:
+
+1. the helper's complete tracked + non-ignored untracked snapshot excluding
+   `docs/verification/smoke/**`
+2. the declared Contract-v1 checkpoint as `MATCH`
+
+Do not carry one prepared blocker into the next probe.
+
+If a classifier/handoff child is interrupted before deterministic scoring,
+first complete normal H02 stage recovery, then restore the active H06 probe.
+A `RESTORED + NOT_SCORED` record may be prepared again under the same opaque
+ID with an incremented attempt count. Scored `PASS` and `FAIL` records are
+single-use and cannot be retried.
+
+The scenario passes only when all eight opaque probes:
+
+- were deterministically prepared and validated
+- were classified by the permitted normal model owner
+- matched hidden blocked-status/owner/next-command expectations
+- did not mutate their prepared evidence during classification/handoff
+- restored exactly
+- and the representative architecture handoff was accepted
+
+Finally require:
+
+```text
+smoke_reroute.py ... status
+→ result=PASS
+```
+
+Do not replay every downstream regeneration path inside H06. The real FULL
+workflow continues to validate the ordinary lifecycle elsewhere.
 
 ---
 

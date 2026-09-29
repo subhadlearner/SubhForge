@@ -37,6 +37,51 @@ class ImplementationStateTests(unittest.TestCase):
         self.assertIn("new.py\t100644\t", manifest)
         self.assertNotIn("docs/verification/", manifest)
 
+    def test_batch_hash_preserves_exact_manifest_for_multiple_paths(self):
+        (self.repo / "app.py").write_text("print('changed')\n", encoding="utf-8")
+        (self.repo / "new file.py").write_text("new\n", encoding="utf-8")
+        (self.repo / "another.py").write_text("another\n", encoding="utf-8")
+
+        manifest = implementation_state.canonical_manifest(self.repo, self.base).decode("utf-8")
+
+        expected = []
+        for name in ("another.py", "app.py", "new file.py"):
+            oid = implementation_state.git(
+                self.repo, "hash-object", "--no-filters", "--", name
+            ).strip().decode("ascii")
+            expected.append(f"{name}\t100644\t{oid}\n")
+        self.assertEqual("".join(expected), manifest)
+
+    def test_batch_hash_uses_constant_git_process_count_for_file_hashes(self):
+        (self.repo / "app.py").write_text("print('changed')\n", encoding="utf-8")
+        for index in range(5):
+            (self.repo / f"new-{index}.py").write_text(
+                f"{index}\n", encoding="utf-8"
+            )
+
+        original_git = implementation_state.git
+        calls = []
+
+        def counting_git(repo, *args, input_bytes=None):
+            calls.append(args)
+            return original_git(repo, *args, input_bytes=input_bytes)
+
+        implementation_state.git = counting_git
+        try:
+            implementation_state.canonical_manifest(self.repo, self.base)
+        finally:
+            implementation_state.git = original_git
+
+        hash_calls = [
+            args for args in calls if args[:2] == ("hash-object", "--no-filters")
+        ]
+        config_calls = [
+            args for args in calls if args[:3] == ("config", "--bool", "core.filemode")
+        ]
+        self.assertEqual(1, len(hash_calls))
+        self.assertIn("--stdin-paths", hash_calls[0])
+        self.assertEqual(1, len(config_calls))
+
     def test_identity_is_stable_for_evidence_only_changes(self):
         (self.repo / "app.py").write_text("print('changed')\n", encoding="utf-8")
         before = implementation_state.identity(self.repo, self.base)
