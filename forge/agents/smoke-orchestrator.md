@@ -29,6 +29,7 @@ permission:
   task:
     "*": deny
     "planning-worker": allow
+    "resume-router": allow
     "smoke-executor": allow
     "pre-reviewer": allow
     "code-reviewer": allow
@@ -65,6 +66,7 @@ Do not independently author product requirements, architecture, specifications, 
 Use:
 
 - `planning-worker` with GPT-5.6 Sol for `/grill`, `/prd`, `/architect`, and `/spec`
+- `resume-router` with GPT-5.6 Luna for one fresh read-only arbitrary-stage resume routing decision
 - `smoke-executor` for DeepSeek-owned `/implement`, `/verify`, `/fix`, and `/diagnose`
 - `pre-reviewer` for DeepSeek pre-review
 - `code-reviewer` for GPT-5.6 Sol senior review after pre-review readiness
@@ -81,27 +83,78 @@ Claude-family adversaries require the same explicit approval rules as the global
 The FULL `arbitrary-stage-resume` scenario validates routing from persisted
 repository state, not seven repeated downstream lifecycle executions.
 
-For its seven subcases:
+Use `scripts/smoke_resume.py` for deterministic probe preparation, scoring,
+and exact restoration. The helper owns only smoke mechanics; it must never
+choose the stage on behalf of the routing model.
 
-- six are routing-only
-- Scenario C (approved Spec exists) is routing + real `/implement` handoff
-- the harness may retain the expected stage for scoring, but MUST NOT expose it
-  to the routing child in prompts, checkpoint labels, artifact names, or context
-- each probe starts from a deterministic known persisted state with no prior
-  conversational answers
-- the routing child must inspect normal persisted repository evidence and
-  produce the next stage itself
-- routing-only probes stop immediately after persisting the chosen stage and
-  concise reason
-- Scenario C crosses into the normal `/implement` owner only far enough to
-  prove persisted Spec/context handoff correctness; it does not replay the
-  entire implementation/verify/review lifecycle
-- normal non-smoke resume semantics are unchanged: real project resumes continue
-  executing the selected lifecycle stage normally
+### H05 probe contract
+
+The seven harness-owned probe IDs are intentionally opaque: `r01` through
+`r07`. Never include the probe ID, expected stage, expected route, checkpoint
+label, prior probe result, or scoring output in the `resume-router` task.
+
+For every probe:
+
+1. start from one declared clean checkpoint whose
+   `smoke_mechanics.py check-checkpoint` result is `MATCH`
+2. call `smoke_resume.py prepare` with the exact active Spec,
+   implementation/test/config paths, applicable fresh verification path, the
+   disposable baseline HEAD, and the opaque probe ID
+3. require every deterministic preparation check to pass
+4. start a **fresh** `resume-router` child; provide only:
+   - `SMOKE_RUN_DIRECTORY: <rooted disposable repository>`
+   - `FRESHNESS_HELPER: <global-config>/scripts/smoke_mechanics.py`
+   - the instruction to determine the earliest normal continuation command
+     from persisted repository evidence
+5. do not provide `CONTEXT_PATHS` that pre-select one artifact category; the
+   routing child must inspect normal persisted project evidence
+6. parse exactly `RESUME_STAGE: /<command>` and one `REASON:` line
+7. pass only that actual stage/reason to `smoke_resume.py score`; before
+   comparing routes, the helper must prove the complete prepared working-tree
+   snapshot is unchanged so a routing child cannot mutate its own evidence
+8. the helper compares the actual route with its harness-owned expectation
+   without writing the expected answer into the prepared repository or resume
+   ledger
+9. if scoring fails, persist the failure, restore the probe snapshot exactly,
+   and stop `SMOKE_BLOCKED`
+10. for routing-only probes, restore immediately after a passing score
+11. require restoration to reproduce both the helper's complete non-ignored
+    working-tree snapshot and the declared Contract-v1 checkpoint
+
+The `resume-router` is read-only. It MUST NOT read
+`docs/verification/smoke/**`, global smoke runbooks/registries/helpers, or
+another probe's result. Its agent permissions must mechanically deny
+`docs/verification/smoke/**` for read/glob/grep and must not expose general
+`git status`, which could reveal smoke-ledger/snapshot filenames. The prepared
+repository is the only semantic routing input.
+
+Scenario C is the only routing + handoff probe. When its score reports
+`handoff_required=true`, delegate one DeepSeek `smoke-executor` request with:
+
+```text
+WORKFLOW: /implement
+HANDOFF_PROBE_ONLY: true
+```
+
+and the exact persisted active Spec/project context. Require
+`SMOKE_IMPLEMENT_HANDOFF_ACCEPTED`. Before accepting that result,
+`smoke_resume.py record-handoff` must prove the prepared working-tree digest
+is still unchanged; then record the evidence and restore. Do not implement the feature
+again and do not continue into verification/review for this probe.
+
+After all seven probes have been restored, require:
+
+```text
+smoke_resume.py ... status
+→ result=PASS
+→ completed_probes contains all seven opaque IDs
+```
+
+Only then mark `arbitrary-stage-resume` complete in canonical smoke state.
 
 Do not replace the routing decision with a deterministic lookup table. Helpers
-may prepare/verify checkpoint state and freshness, but the workflow reasoning
-under test must choose the continuation stage.
+may prepare, validate, score, snapshot, and restore persisted state, but only a
+fresh Luna `resume-router` chooses the continuation stage.
 
 ## Repository safety
 

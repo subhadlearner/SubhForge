@@ -85,9 +85,11 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
         read(f"command:{name}", config / "commands" / f"{name}.md")
     worker = read("agent:planning-worker", config / "agents/planning-worker.md")
     orchestrator = read("agent:smoke-orchestrator", config / "agents/smoke-orchestrator.md")
+    router = read("agent:resume-router", config / "agents/resume-router.md")
     executor = read("agent:smoke-executor", config / "agents/smoke-executor.md")
     read("helper:smoke-handoff", config / "scripts/smoke_handoff.py")
     mechanics = read("helper:smoke-mechanics", config / "scripts/smoke_mechanics.py")
+    resume = read("helper:smoke-resume", config / "scripts/smoke_resume.py")
     policy = read("policy:global", config / "AGENTS.md")
     architecture = read("policy:architecture", config / "commands/architect.md")
     contract = read("contract:installed", config / "contracts/implementation-state-evidence-v1.md")
@@ -110,6 +112,30 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
     checks["routing:claude-denied-autonomous"] = all(
         '"{}": deny'.format(name) in orchestrator
         for name in ("adversary-sonnet", "adversary-opus"))
+    checks["routing:resume-router"] = (
+        '"resume-router": allow' in orchestrator
+        and "model: openai/gpt-5.6-luna" in router
+        and "RESUME_STAGE:" in router
+        and "task: deny" in router
+        and "HANDOFF_PROBE_ONLY: true" in executor
+        and "SMOKE_IMPLEMENT_HANDOFF_ACCEPTED" in executor
+    )
+    checks["routing:resume-router-no-leak"] = (
+        router.count('"docs/verification/smoke/**": deny') >= 3
+        and '"git status*": allow' not in router
+        and all(term in router for term in (
+            "read:",
+            "glob:",
+            "grep:",
+            "smoke state, timing, mechanics, resume-probe, or checkpoint ledgers",
+        ))
+    )
+    checks["resume:mechanics"] = all(term in resume for term in (
+        "PROBE_EXPECTED",
+        "prepared_snapshot_sha256",
+        "record_handoff",
+        "def status(",
+    ))
     checks["verification:mutation-hook"] = (
         all(term in executor for term in (
             "VERIFICATION_MUTATION_ID",

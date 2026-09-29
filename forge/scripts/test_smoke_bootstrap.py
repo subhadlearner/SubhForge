@@ -20,6 +20,7 @@ class SmokeBootstrapTests(unittest.TestCase):
         (config / "scripts").mkdir()
         shutil.copy2(source / "scripts/smoke_handoff.py", config / "scripts/smoke_handoff.py")
         shutil.copy2(source / "scripts/smoke_mechanics.py", config / "scripts/smoke_mechanics.py")
+        shutil.copy2(source / "scripts/smoke_resume.py", config / "scripts/smoke_resume.py")
         shutil.copy2(source / "AGENTS.md", config / "AGENTS.md")
         return config
 

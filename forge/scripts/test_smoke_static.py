@@ -23,6 +23,7 @@ class SmokeStaticTests(unittest.TestCase):
         (config / "scripts").mkdir()
         shutil.copy2(source / "scripts/smoke_handoff.py", config / "scripts/smoke_handoff.py")
         shutil.copy2(source / "scripts/smoke_mechanics.py", config / "scripts/smoke_mechanics.py")
+        shutil.copy2(source / "scripts/smoke_resume.py", config / "scripts/smoke_resume.py")
         shutil.copy2(source / "AGENTS.md", config / "AGENTS.md")
         repo = root / "repo"
         evidence = repo / "docs/verification/smoke"
@@ -124,6 +125,80 @@ class SmokeStaticTests(unittest.TestCase):
             self.assertFalse(result["ok"])
             self.assertIn("helper:smoke-mechanics", result["failures"])
             self.assertIn("verification:mutation-hook", result["failures"])
+
+    def test_release_gate_blocks_missing_resume_router_contract(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            router = config / "agents/resume-router.md"
+            router.write_text(
+                router.read_text(encoding="utf-8").replace(
+                    "model: openai/gpt-5.6-luna",
+                    "model: deepseek/deepseek-flash",
+                ),
+                encoding="utf-8",
+            )
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("routing:resume-router", result["failures"])
+
+    def test_release_gate_blocks_resume_router_smoke_ledger_read_access(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            router = config / "agents/resume-router.md"
+            router.write_text(
+                router.read_text(encoding="utf-8").replace(
+                    '"docs/verification/smoke/**": deny',
+                    '"docs/verification/smoke/**": allow',
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            result = smoke_static.release_gate(config, repo, run_id)
+
+            self.assertFalse(result["ok"])
+            self.assertIn("routing:resume-router-no-leak", result["failures"])
+
+    def test_release_gate_blocks_resume_router_git_status_leak_surface(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            router = config / "agents/resume-router.md"
+            router.write_text(
+                router.read_text(encoding="utf-8").replace(
+                    '    "git branch --show-current*": allow',
+                    '    "git status*": allow\n    "git branch --show-current*": allow',
+                ),
+                encoding="utf-8",
+            )
+
+            result = smoke_static.release_gate(config, repo, run_id)
+
+            self.assertFalse(result["ok"])
+            self.assertIn("routing:resume-router-no-leak", result["failures"])
+
+    def test_release_gate_blocks_missing_resume_helper(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            (config / "scripts/smoke_resume.py").unlink()
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("helper:smoke-resume", result["failures"])
+            self.assertIn("resume:mechanics", result["failures"])
+
+    def test_release_gate_blocks_missing_resume_handoff_contract(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            executor = config / "agents/smoke-executor.md"
+            executor.write_text(
+                executor.read_text(encoding="utf-8").replace(
+                    "SMOKE_IMPLEMENT_HANDOFF_ACCEPTED",
+                    "MISSING_HANDOFF_ACCEPTED_TOKEN",
+                ),
+                encoding="utf-8",
+            )
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("routing:resume-router", result["failures"])
 
     def test_release_gate_detects_broken_agent_model_route(self):
         with tempfile.TemporaryDirectory() as temp:

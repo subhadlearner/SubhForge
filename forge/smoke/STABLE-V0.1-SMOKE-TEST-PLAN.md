@@ -3052,32 +3052,111 @@ conversation must not be required.
 
 Each subcase must start from a deterministic known repository/checkpoint state.
 
-Before the routing probe:
+H05 uses the installed `scripts/smoke_resume.py` helper. The helper owns
+preparation, validation, scoring, snapshotting, and restoration only; it does
+not choose the continuation stage.
 
-1. restore/prepare the exact intended persisted state
-2. verify checkpoint identity deterministically
-3. start a fresh bounded routing context with no prior conversational answers
-4. provide repository root plus only normal persisted repository evidence
-5. do not provide the expected stage or a semantic hint that reveals it
+Use seven opaque harness IDs (`r01` through `r07`). Their mapping to the
+seven subcases/expected stages remains inside deterministic harness code and
+must not be written into the prepared repository or resume ledger before the
+routing decision.
 
-After the routing decision:
+### Preparation source
 
-1. persist actual selected stage and concise reason
-2. compare actual stage to the harness-owned expected stage
-3. for routing-only cases, stop there and restore the next checkpoint
-4. for Scenario C only, perform the real command handoff described above
+Start every probe from the same applicable clean reviewed/repaired checkpoint
+unless a later clean checkpoint is explicitly selected. Supply the helper with:
+
+- the checkpoint label
+- disposable baseline HEAD
+- exact active Spec path
+- exact implementation/test/config paths that constitute the implemented change
+- exact applicable fresh verification path
+
+The helper snapshots all Git-tracked and non-ignored untracked files except
+`docs/verification/smoke/**`, then constructs the required persisted state:
+
+- architecture-ready/project-init-incomplete restores project-init-owned
+  project instructions/rules/workflow files to the disposable baseline and
+  hides downstream Spec/implementation/evidence
+- project-init-ready hides Spec/implementation/evidence
+- Spec-ready hides implementation/evidence
+- implementation/no-verification keeps implementation and hides verification/review
+- fresh-verification keeps only the applicable verification and requires the
+  clean checkpoint identity to remain `MATCH`
+- stale-verification keeps that historical verification and creates a
+  deterministic identity change in one supplied implementation path, requiring
+  checkpoint `MISMATCH`
+- review-blocked keeps fresh verification and writes one normal blocking
+  review artifact with `CHANGES_REQUIRED`/senior `NOT_RUN`
+
+The prepared state may contain the normal workflow status/next-action fields
+that a genuine persisted artifact would contain. Those are the evidence under
+test, not harness answer leakage.
+
+### Fresh routing context
+
+For every probe start a new GPT-5.6 Luna `resume-router` task.
+
+The routing task receives only:
+
+- the already-rooted disposable repository
+- the deterministic manifest helper path as infrastructure
+- the generic request to determine the earliest correct normal continuation
+  stage from persisted repository evidence
+
+It receives none of:
+
+- opaque probe ID
+- expected stage
+- expected-route text
+- checkpoint label
+- prior probe stage/reason/result
+- resume helper/scoring ledger
+- canonical smoke state
+- global smoke runbook/profiles/fixtures/failure recipes
+
+The router may inspect normal project evidence only. It is read-only and must
+not invoke the selected workflow. Access to `docs/verification/smoke/**` must
+also be denied mechanically for `read`, `glob`, and `grep`; do not expose a
+general `git status` permission that could reveal smoke-ledger/snapshot
+filenames.
+
+When applicable verification evidence exists, it must establish freshness from
+the persisted Contract-v1 identity rather than trusting report existence.
+
+### Scoring and restoration
+
+After the routing child returns exactly one selected stage and concise reason:
+
+1. persist only that **actual** stage/reason through
+   `smoke_resume.py score`
+2. let the helper compare it with its internal harness-owned expectation
+3. on mismatch, restore exactly and stop the scenario as failed
+4. for six routing-only cases, restore immediately after a passing score
+5. for the approved-Spec case only, perform one DeepSeek
+   `WORKFLOW: /implement` request with `HANDOFF_PROBE_ONLY: true`; require
+   `SMOKE_IMPLEMENT_HANDOFF_ACCEPTED`, record the handoff result, then restore
+6. after restoration require both the helper's complete snapshot digest and the
+   declared Contract-v1 checkpoint to reproduce exactly
+
+Do not carry one probe's prepared state into the next.
 
 ## 26.4 Pass condition
 
 The `arbitrary-stage-resume` scenario passes only when:
 
 - all seven subcases choose the correct continuation stage
-- none relies on chat history
+- none relies on chat history or smoke-ledger answer leakage
+- every prepared state passes deterministic validation
+- every probe is isolated from the next and restores the exact clean snapshot
+  plus Contract-v1 checkpoint
 - no subcase reruns already-valid upstream ceremony
-- stale verification routes to fresh `/verify`
+- stale verification is a real deterministic identity `MISMATCH` and routes
+  to fresh `/verify`
 - review-blocker state routes to `/fix`
-- Scenario C successfully hands off into the normal `/implement` workflow
-  using persisted Spec/context evidence
+- Scenario C successfully hands off into the normal DeepSeek `/implement`
+  owner using persisted Spec/context evidence without implementing again
+- `smoke_resume.py status` reports all seven opaque probes passing and restored
 
 The scenario does **not** require seven repeated downstream lifecycle
 executions.
