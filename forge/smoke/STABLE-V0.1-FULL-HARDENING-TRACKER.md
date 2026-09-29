@@ -142,15 +142,19 @@ explicitly and intentionally changes them:
   a separate user-authorized interactive action.
 - **Qualification budget remains authoritative:** the 30-minute FULL
   qualification budget is not silently raised. Transport/process timeouts are
-  not permission to extend qualification time. Human-wait semantics and the
-  final invocation/runtime model remain unresolved until H07/H08.
+  not permission to extend qualification time. Effective qualification time
+  excludes only deterministic, allow-listed human-authorization wait intervals.
+  Stable v0.1 currently enables only `WAIVER_AUTHORIZATION`; bare
+  `WAITING_FOR_USER`, crashes, retries, debugging, transport delay, and
+  ordinary inactivity do not pause the budget. H08 still owns the final
+  invocation/runtime model reconciliation.
 - **No premature FULL:** another release-qualifying FULL is forbidden until
   H01-H12 are closed and H13's small real Kilo integration probe passes.
 - **H13 is the integration catch-all, not a substitute for unit hardening:**
   deterministic items should be proven cheaply first; H13 then proves the
   assembled real Kilo path with minimal model spend.
 
-### Closed decision record — H01 through H05
+### Closed decision record — H01 through H07
 
 #### H01 — real disposable-workspace rooting
 
@@ -343,14 +347,63 @@ Closed decision:
 - The accepted full-suite runtime baseline after H06 is **236.188s**. The
   temporary H06-H11 ceiling remains 300s, while H12 still requires <=180s.
 
+#### H07 — human authorization wait versus qualification clock
+
+Closed decision:
+
+- The budget helper owns a generic human-authorization wait primitive; Stable
+  v0.1 allow-lists only `WAIVER_AUTHORIZATION`.
+- `WAITING_FOR_USER` by itself never pauses qualification time.
+- The human-wait ledger is append-only for completed intervals, permits at most
+  one open interval, and sums all completed/open allow-listed wait duration out
+  of the active qualification clock.
+- A wait can be opened only from the rooted disposable FULL smoke workspace,
+  only for canonical `waive-review-loop` state, at the waiver
+  verification/waive boundary, with latest verification exactly
+  `NOT_DONE / BLOCKED / MATCH`.
+- `gate_id` is helper-derived from canonical identity containing run ID, gate
+  type, exact verification-report path, SHA-256 of the exact verification
+  report bytes, Contract-v1 implementation-state fingerprint, canonically
+  ordered exact failure set, and waiver classification.
+- Repeating the same still-open request is idempotent and preserves the
+  original wait start. A different request cannot replace it, and a completed
+  gate ID cannot reopen.
+- No model stage may start while a human-authorization wait is open.
+- A later human authorization must be supplied in the same `/smoke RESUME`
+  user message. Bare RESUME is a no-op while the gate remains open; earlier
+  chat history and Kilo `--auto` are not authorization.
+- Source-root authorization capture validates the disposable workspace,
+  canonical FULL waiver state, matching `WAITING_FOR_USER`
+  `gate_type/gate_id`, unchanged verification-report bytes, exact waiver
+  scope/classification, `ACCEPTED_TEMPORARILY`, and all required human
+  decision fields before mutating the interval.
+- Invalid/rejected RESUME attempts are pure bookkeeping no-ops: they do not
+  close, replace, split, or restart the open interval.
+- The closed helper-persisted authorization receipt is the only permitted
+  cross-handoff substitute for live Stage-2 `/waive` input. Normal waiver
+  freshness, applicability, policy, classification, and expiry checks remain
+  mandatory.
+- Deliberate human decline does not call `human-wait-authorize`; the gate
+  remains open. `/smoke ABANDON <run-id>` is the explicit termination path.
+- Final accepted Windows evidence on H07 head
+  `616ca4d7605c134ce4e1f62066de27f9a27a8404`: focused
+  `test_smoke_budget.py` 36 tests / 0.473s; full `forge/scripts` 171 tests /
+  238.704s with 2 expected Windows skips; `tools` 7 tests / 16.145s;
+  `git diff --check` clean; working tree clean.
+- H07 squash-merged as
+  `bbfc157f4e288342d67732066176118640c7206e`.
+- The accepted full-suite runtime baseline after H07 is **238.704s**. The
+  temporary H06-H11 ceiling remains 300s, while H12 still requires <=180s.
+
 ### Current hardening boundary
 
-H07 is the only current implementation target.
+H08 is the only current implementation target.
 
-Do not pull H08+ work into H07 merely because the waiver timing decision
-interacts with the broader FULL runtime budget. In particular:
+H07 is closed. Do not reopen its authorization/wait semantics merely to make
+H08's invocation/runtime plan fit. In particular:
 
-- H07 owns human waiver waiting/authorization versus the 30-minute clock.
+- H07 owns the now-closed human waiver waiting/authorization semantics versus
+  the 30-minute active qualification clock.
 - H08 owns the real FULL invocation/runtime budget reconciliation.
 - H09/H10 own containment/target-identity strengthening.
 - H11 owns the dry orchestration/contract validator.
@@ -382,8 +435,8 @@ qualification until the blocking items below are addressed.
 | H04 | Required `verification-mutation` scenario lacks a deterministic verification-time mutation primitive | CRITICAL | A registered mutation occurs deterministically during `/verify`; post-check identity becomes `MISMATCH`/blocked as required; restoration reproduces the exact checkpoint | DONE — deterministic ARMED→APPLIED→RESTORED verification-mutation hook fires after checks and before the post-check Contract-v1 manifest, proves `MISMATCH`, preserves zero-reviewer behavior, restores the exact checkpoint, and is protected by the static release gate; verified on Windows with 3 bootstrap tests, 9 mechanics tests plus 1 expected Windows mode skip, 11 static-gate tests, 112 forge-script tests (2 skipped), 7 tooling tests, clean diff check, and clean worktree | `139bf4212d4e2ab9467803fb561657ce6600d3f1` |
 | H05 | `arbitrary-stage-resume` lacks deterministic preparation/restoration of its seven persisted-state probes | CRITICAL | All seven resume states can be constructed, validated, isolated, scored, and restored deterministically without leaking the expected routing answer to the reasoning context | DONE — seven opaque persisted-state probes use deterministic snapshot/prepare/validate/score/restore mechanics while fresh Luna routing remains probabilistic; stale verification is a real Contract-v1 `MISMATCH`; smoke-ledger access is mechanically denied to the router; Scenario C proves bounded DeepSeek `/implement` handoff acceptance without implementation replay; all requested focused, static, bootstrap, full forge-script, tooling, diff-check, and clean-worktree verification passed locally on Windows | `1d78d1df4bec2abb11f92ea42c722486bd1cc072` |
 | H06 | `upstream-rerouting` lacks deterministic blocked-state preparation/restoration | CRITICAL | Required PRD/architecture/project-init/spec/fix authority-boundary cases have reproducible setup, scoring, and restoration without agent-invented fixture state | DONE — eight opaque deterministic authority-boundary probes cover all required planning/fix destinations with hidden expectations, exact restoration, one bounded `/architect` handoff, restartable `RESTORED + NOT_SCORED` probe recovery, static no-leak protection, and Contract-v1-preserving runtime optimizations; final Windows evidence: H05 focused 15 tests / 74.722s, full `forge/scripts` 156 tests / 236.188s (2 expected skips), `tools` 7 tests / 13.762s, clean diff check and worktree | `1119b84a82d7cee66ec3eadc7eacfd65644ac196` |
-| H07 | Required human waiver interaction conflicts with the continuously running 30-minute qualification clock | DESIGN BLOCKER | Human authorization, waiting, resume, and qualification-time semantics are explicitly agreed; command/orchestrator/runbook/budget implementation and tests all describe the same behavior; authorization is never fabricated | TODO — NEXT | — |
-| H08 | FULL runtime/invocation budget does not match the authoritative required scenario matrix | DESIGN BLOCKER | Derive the real minimum/expected invocation plan from all required scenarios; runtime target/ceiling and invocation matrix become mutually consistent and realistically executable; no timeout is silently raised | TODO | — |
+| H07 | Required human waiver interaction conflicts with the continuously running 30-minute qualification clock | DESIGN BLOCKER | Human authorization, waiting, resume, and qualification-time semantics are explicitly agreed; command/orchestrator/runbook/budget implementation and tests all describe the same behavior; authorization is never fabricated | DONE — deterministic allow-listed human-authorization waits pause only active qualification time; exact report bytes/scope bind the gate; invalid RESUME is a no-op; final Windows evidence: 36 focused budget tests / 0.473s, full `forge/scripts` 171 tests / 238.704s (2 expected skips), `tools` 7 tests / 16.145s, clean diff/worktree | `bbfc157f4e288342d67732066176118640c7206e` |
+| H08 | FULL runtime/invocation budget does not match the authoritative required scenario matrix | DESIGN BLOCKER | Derive the real minimum/expected invocation plan from all required scenarios; runtime target/ceiling and invocation matrix become mutually consistent and realistically executable; no timeout is silently raised | TODO — NEXT | — |
 | H09 | Workspace locate/resume path handling is weaker than create/destroy containment | HIGH | Malformed/traversal run IDs are rejected; create/locate/destroy remain confined to the smoke-run root; negative path-containment tests pass | TODO | — |
 | H10 | Mutating deterministic helpers need stronger proof that they target only the disposable smoke repository | HIGH | Every mutating helper fails closed when pointed at the source checkout/wrong branch/wrong repository identity where applicable; valid `smoke-run` behavior remains unchanged | TODO | — |
 | H11 | No design-time workflow contract validator / dry orchestration simulator exists | CRITICAL | A cheap deterministic validator walks FAST/FULL contracts and detects missing helper references, invalid state transitions, model/owner mismatch, missing handoff fields, invalid checkpoint/restoration plans, scenario budget violations, zero-reviewer rule violations, and contradictory orchestration instructions before model execution | TODO | — |
@@ -414,7 +467,7 @@ feature merely to make FULL smoke easier.
 
 ## Next action
 
-Start with **H07 only**.
+Start with **H08 only**.
 
 H01 is closed by merged implementation commit
 `9b5bfe0d034d41252fecd9b5ba5b787a5e73c778` and real Kilo probe
@@ -444,6 +497,14 @@ bootstrap tests, full forge-script regression suite, tooling suite, diff check,
 and clean working tree all passed. GitHub review confirmed one commit ahead,
 zero behind, clean/rebaseable merge state, and no review threads before merge.
 
-Do not make H07+ implementation changes in the H06 commit unless they are
-strictly necessary to make H06 correct; if such coupling is discovered, record
-it before changing scope.
+H06 remains closed. H07 is closed by squash-merge commit
+`bbfc157f4e288342d67732066176118640c7206e` after deterministic Windows
+verification: 36 focused budget tests, 171 full forge-script tests
+(2 expected Windows skips), 7 tooling tests, clean diff check, and clean
+working tree. Final review confirmed exact report-byte gate binding, canonical
+waiver-state enforcement, invalid-RESUME no-op semantics, explicit decline
+handling, and no open review threads.
+
+Do not make H09+ implementation changes while H08 is active unless they are
+strictly necessary to make H08 correct; record such coupling before expanding
+scope.
