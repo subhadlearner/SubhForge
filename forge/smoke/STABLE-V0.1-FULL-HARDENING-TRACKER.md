@@ -64,7 +64,7 @@ For each hardening item:
    alone are not sufficient.
 8. Move the PR out of Draft only after the invariant and verification evidence
    are both satisfactory.
-9. Squash-merge the PR into `harden/v0.1-full-smoke`.
+9. Squash-merge the PR into `harden/v0.1-full-smoke` **only after explicit user authorization to merge that specific PR**.
 10. Only after the real squash SHA exists, update this tracker on the hardening
     branch: mark the item `DONE`, record the merge SHA/evidence, and promote
     the next item to `TODO — NEXT`.
@@ -397,18 +397,21 @@ Closed decision:
 
 ### Current hardening boundary
 
-H08 is the only current implementation target.
+H08 is the only current implementation target. H08b starts only after H08 is closed; H09+ must not start before H08b is closed or explicitly deferred under the governing rules.
+
+The complete, agreed design for both items is [H08 Consolidated Design v6](H08-CONSOLIDATED-DESIGN.md). This link is a design authority, not evidence that either item has been implemented.
 
 H07 is closed. Do not reopen its authorization/wait semantics merely to make
 H08's invocation/runtime plan fit. In particular:
 
 - H07 owns the now-closed human waiver waiting/authorization semantics versus
   the 30-minute active qualification clock.
-- H08 owns the real FULL invocation/runtime budget reconciliation.
+- H08 owns segmented FULL qualification infrastructure, invocation specification, pinned budget configuration, timing and integrity enforcement, and the declared H03/H07 coupling.
+- H08b owns early-lifecycle behavioral acceptance probes and narrow `/grill` and `/waive` command corrections, including policy-first waiver rejection. H08b must not begin until H08 closes.
 - H09/H10 own containment/target-identity strengthening.
 - H11 owns the dry orchestration/contract validator.
 - H12 is the final deterministic/system consistency gate.
-- H13 is the small real Kilo integration probe.
+- H13 is the small real Kilo integration probe with targeted routing/handoff timing calibration and a recorded configuration revision before H14; it is not another FULL run.
 - H14 is the next release-qualifying FULL.
 
 Existing ceremony-bypass support for valid pre-existing upstream authority
@@ -436,12 +439,13 @@ qualification until the blocking items below are addressed.
 | H05 | `arbitrary-stage-resume` lacks deterministic preparation/restoration of its seven persisted-state probes | CRITICAL | All seven resume states can be constructed, validated, isolated, scored, and restored deterministically without leaking the expected routing answer to the reasoning context | DONE — seven opaque persisted-state probes use deterministic snapshot/prepare/validate/score/restore mechanics while fresh Luna routing remains probabilistic; stale verification is a real Contract-v1 `MISMATCH`; smoke-ledger access is mechanically denied to the router; Scenario C proves bounded DeepSeek `/implement` handoff acceptance without implementation replay; all requested focused, static, bootstrap, full forge-script, tooling, diff-check, and clean-worktree verification passed locally on Windows | `1d78d1df4bec2abb11f92ea42c722486bd1cc072` |
 | H06 | `upstream-rerouting` lacks deterministic blocked-state preparation/restoration | CRITICAL | Required PRD/architecture/project-init/spec/fix authority-boundary cases have reproducible setup, scoring, and restoration without agent-invented fixture state | DONE — eight opaque deterministic authority-boundary probes cover all required planning/fix destinations with hidden expectations, exact restoration, one bounded `/architect` handoff, restartable `RESTORED + NOT_SCORED` probe recovery, static no-leak protection, and Contract-v1-preserving runtime optimizations; final Windows evidence: H05 focused 15 tests / 74.722s, full `forge/scripts` 156 tests / 236.188s (2 expected skips), `tools` 7 tests / 13.762s, clean diff check and worktree | `1119b84a82d7cee66ec3eadc7eacfd65644ac196` |
 | H07 | Required human waiver interaction conflicts with the continuously running 30-minute qualification clock | DESIGN BLOCKER | Human authorization, waiting, resume, and qualification-time semantics are explicitly agreed; command/orchestrator/runbook/budget implementation and tests all describe the same behavior; authorization is never fabricated | DONE — deterministic allow-listed human-authorization waits pause only active qualification time; exact report bytes/scope bind the gate; invalid RESUME is a no-op; final Windows evidence: 36 focused budget tests / 0.473s, full `forge/scripts` 171 tests / 238.704s (2 expected skips), `tools` 7 tests / 16.145s, clean diff/worktree | `bbfc157f4e288342d67732066176118640c7206e` |
-| H08 | FULL runtime/invocation budget does not match the authoritative required scenario matrix | DESIGN BLOCKER | Derive the real minimum/expected invocation plan from all required scenarios; runtime target/ceiling and invocation matrix become mutually consistent and realistically executable; no timeout is silently raised | TODO — NEXT | — |
+| H08 | Segmented FULL qualification infrastructure and invocation/runtime budget reconciliation | DESIGN BLOCKER | Implement the agreed six checkpoint-bound sequential segments and versioned invocation specification; update authoritative runbook §3.5 so `direct-fix-loop` declares the additional Luna policy-refusal call before H08b executes it; pin the profile configuration by value at bootstrap; enforce helper-owned segment clocks, atomic lifecycle, validated boundary gaps, and ledger/evidence integrity; record H03/H07 coupling; ship worksheet-derived positive PROVISIONAL limits; preserve the full required scenario contract and pass deterministic regression gates. H08b behavioral probes remain separate. See [consolidated H08 design](H08-CONSOLIDATED-DESIGN.md). | TODO — NEXT | — |
+| H08b | Missing early lifecycle acceptance evidence and narrowly scoped `/grill` and `/waive` command corrections | CRITICAL | Prove seeded blocked/resumed discovery without reopening settled decisions, user-selected direct PRD without discovery, blocked/resumed PRD, Luna project-init blocked behavior, and policy-first Luna non-waivable refusal against the existing S2 failed behavioural-test report that fixed policy makes non-waivable; persist normal discovery decision IDs and machine-readable waiver-refusal evidence outside active-waiver lookup; protect hidden scoring; implement and test the declared `/grill` and `/waive` behavior, static-gate protections, and H05 compatibility without redefining H08's invocation matrix. Start only after H08 closes. See [consolidated H08 design](H08-CONSOLIDATED-DESIGN.md). | BLOCKED BY H08 | — |
 | H09 | Workspace locate/resume path handling is weaker than create/destroy containment | HIGH | Malformed/traversal run IDs are rejected; create/locate/destroy remain confined to the smoke-run root; negative path-containment tests pass | TODO | — |
 | H10 | Mutating deterministic helpers need stronger proof that they target only the disposable smoke repository | HIGH | Every mutating helper fails closed when pointed at the source checkout/wrong branch/wrong repository identity where applicable; valid `smoke-run` behavior remains unchanged | TODO | — |
 | H11 | No design-time workflow contract validator / dry orchestration simulator exists | CRITICAL | A cheap deterministic validator walks FAST/FULL contracts and detects missing helper references, invalid state transitions, model/owner mismatch, missing handoff fields, invalid checkpoint/restoration plans, scenario budget violations, zero-reviewer rule violations, and contradictory orchestration instructions before model execution | TODO | — |
 | H12 | Final cross-file/system consistency validation is missing | RELEASE GATE | Commands, agents, profiles, fixtures, failure recipes, runbook, helpers, and tests agree; all deterministic/unit/integration gates are green; full `forge/scripts` runtime is <=180s and `tools` runtime is <=30s on the reference Windows host; `git diff --check` is clean; dry FAST/FULL plans are green | BLOCKED by H01–H11 | — |
-| H13 | Small real Kilo integration probe is required before another FULL | RELEASE GATE | Minimal model-bearing probe proves real disposable-workspace rooting, child handoff, source isolation, state/timing lifecycle, and interruption-safe cleanup with minimal model spend | BLOCKED by H01–H12 | — |
+| H13 | Small real Kilo integration and targeted runtime calibration before another FULL | RELEASE GATE | Minimal model-bearing probe proves disposable-workspace rooting, child handoff, source isolation, state/timing lifecycle, and interruption-safe cleanup; capture targeted timing evidence for the previously unmeasured routing/handoff classes and record any required provisional-budget revision before H14, without recreating a FULL run | BLOCKED by H01–H12, including H08b | — |
 | H14 | Fresh release-qualifying FULL smoke | FINAL | All required FULL scenarios complete under the agreed qualification contract with no harness defect and with evidence/state consistency intact | BLOCKED by H13 | — |
 
 ## Existing deferred work not pulled into this tracker
@@ -467,7 +471,7 @@ feature merely to make FULL smoke easier.
 
 ## Next action
 
-Start with **H08 only**.
+Start with **H08 only**. Open its PR as Draft for the design/tracker update and subsequent H08 implementation. **Start H08b only after H08 closes.**
 
 H01 is closed by merged implementation commit
 `9b5bfe0d034d41252fecd9b5ba5b787a5e73c778` and real Kilo probe
@@ -505,6 +509,7 @@ working tree. Final review confirmed exact report-byte gate binding, canonical
 waiver-state enforcement, invalid-RESUME no-op semantics, explicit decline
 handling, and no open review threads.
 
-Do not make H09+ implementation changes while H08 is active unless they are
-strictly necessary to make H08 correct; record such coupling before expanding
-scope.
+Do not make H08b or H09+ implementation changes while H08 is active unless
+strictly necessary for H08 correctness and explicitly recorded as coupling.
+After H08 closes, start H08b as its own branch and PR; keep H09+ blocked until
+H08b closes or is explicitly deferred under the governing rules.
