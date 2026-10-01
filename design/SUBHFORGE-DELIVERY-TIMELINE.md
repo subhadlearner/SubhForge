@@ -1,5 +1,8 @@
 # SubhForge Delivery Timeline --- Sep 29 to Nov 30, 2026
 
+> Document authority and stable-section policy: see `design/README.md`.
+
+
 ## Fixed Objective
 
 **Target: VidyaBeacon starts on December 1, 2026. Architecture correctness and required dogfood evidence are not sacrificed to force this date.**
@@ -18,7 +21,7 @@ releases.
 | Sep 29 -- Oct 4 | 5--6 | Complete planned v0.1.0 hardening | `stable_v0.1.0` |
 | Oct 5 -- Oct 10 | 5--6 | Develop and harden the two already-defined v0.1.1 items | `stable_v0.1.1` |
 | Oct 11 -- Oct 17 | 5--7 | Architecture Fitness Review for v0.2.0 | Architecture decision report |
-| Oct 18 -- Oct 22 | 4--5 | Reconcile accepted architecture changes into the consolidated v0.2 architecture plan; freeze RC1--RC3 exit criteria | Revised v0.2 architecture plan and RC exit criteria accepted and frozen |
+| Oct 18 -- Oct 22 | 4--5 | Promote accepted review decisions into the owning v0.2 Architecture / Workflow / Qualification documents; freeze RC1--RC3 exit criteria | Normative v0.2 design authorities and RC exit criteria accepted and frozen |
 | Oct 23 -- Nov 5 | 11--12 | Use stable v0.1.1 to implement and harden revised LARGE workflow; build behavioural canary baseline | `v0.2.0-rc1` |
 | Nov 6 -- Nov 12 | 5--6 | MediBot greenfield LARGE dogfood and resilience qualification | `v0.2.0-rc2` |
 | Nov 13 -- Nov 18 | 4--5 | MediBot Evaluation Guardrails reconciliation/re-verification dogfood | `v0.2.0-rc3` |
@@ -42,7 +45,7 @@ dogfood evidence is not an option.
 |---|---|---|
 | Review outcome | Oct 17 | Review returns `REWORK` and the correction materially consumes the v0.2 implementation/dogfood window |
 | RC1 checkpoint | Nov 8 | `v0.2.0-rc1` has not met its frozen exit criteria **or reconciliation implementation is not far enough along to run the shared fixture** |
-| Reconciliation readiness | Nov 12 | Mandatory fixture scenarios **6 (protected invariant conflict), 7 (partial APPLY/halted verdict), and 10 (traceability gap)** do not pass end to end |
+| Reconciliation readiness | Nov 12 | `V0.2-QUALIFICATION.md` §30.2 scenarios **6, 7 and 10** do not pass end to end |
 | RC3 checkpoint | Nov 18 | `v0.2.0-rc3` has not met its frozen exit criteria, or dogfooding produced an accepted `ADD`/`MODIFY` not yet implemented |
 
 Checkpoints judge against the RC exit criteria frozen on October 22.
