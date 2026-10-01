@@ -42,7 +42,7 @@ dogfood evidence is not an option.
 | Checkpoint | Date | Fires when |
 |---|---|---|
 | Review outcome | Oct 17 | Review returns `REWORK` and the correction materially consumes the v0.2 implementation/dogfood window |
-| RC1 checkpoint | Nov 8 | `v0.2.0-rc1` has not met its frozen exit criteria |
+| RC1 checkpoint | Nov 8 | `v0.2.0-rc1` has not met its frozen exit criteria **or reconciliation implementation has not started** |
 | RC3 checkpoint | Nov 18 | `v0.2.0-rc3` has not met its frozen exit criteria, or dogfooding produced an accepted `ADD`/`MODIFY` not yet implemented |
 
 Checkpoints judge against the RC exit criteria frozen on October 22.
