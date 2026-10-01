@@ -29,7 +29,7 @@ releases.
 | Nov 25 -- Nov 30 | Protected buffer | Emergency stabilization only; no planned features | Protect Dec 1 |
 | Dec 1 | --- | Begin VidyaBeacon | SubhForge becomes delivery infrastructure |
 
-> **v0.1.1 scope is intentionally singular:** Ceremony Bypass for valid existing upstream authority. Design-time workflow contract validation + dry orchestration simulation remains wholly in v0.1.0 hardening (H11).
+> **v0.1.1 implementation bridge:** add a new `/specbypassceremony` command for projects that already have valid PRD + Architecture authority. The existing `/spec` command is **not modified**. `/specbypassceremony` validates the supplied/canonical upstream authority and repository readiness, then performs the normal specification-decomposition contract without requiring replay of `/prd` or `/architect` merely for provenance. Design-time workflow contract validation + dry orchestration simulation remains wholly in v0.1.0 hardening (H11).
 
 ## Milestone Sequence
 
