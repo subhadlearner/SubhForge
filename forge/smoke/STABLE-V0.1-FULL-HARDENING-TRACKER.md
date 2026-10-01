@@ -414,9 +414,11 @@ H08's invocation/runtime plan fit. In particular:
 - H13 is the small real Kilo integration probe with targeted routing/handoff timing calibration and a recorded configuration revision before H14; it is not another FULL run.
 - H14 is the next release-qualifying FULL.
 
-Existing ceremony-bypass support for valid pre-existing upstream authority
-remains deferred and must not be pulled into Stable-v0.1 hardening merely to
-make smoke easier.
+The v0.1.1 existing-authority bypass remains deferred and must not be pulled
+into Stable-v0.1 hardening merely to make smoke easier.
+
+The agreed v0.1.1 implementation is a **new additive command,
+`/specbypassceremony`**. The existing `/spec` command remains unchanged.
 
 ## Audit baseline
 
@@ -450,13 +452,36 @@ qualification until the blocking items below are addressed.
 
 ## Existing deferred work not pulled into this tracker
 
-The following existing item remains intentionally separate unless a tracker
-issue proves it must be changed:
+The following v0.1.1 item remains intentionally separate from Stable-v0.1
+hardening:
 
-- ceremony-bypass support for valid existing upstream authority
+### v0.1.1 — `/specbypassceremony`
 
-Do not expand the current Stable-v0.1 hardening effort into that deferred
-feature merely to make FULL smoke easier.
+Purpose:
+
+- support projects where a valid PRD and Architecture already exist in Git;
+- avoid replaying `/prd` and `/architect` merely to reproduce ceremony or
+  provenance.
+
+Required behavior:
+
+- add a new `/specbypassceremony` command;
+- **do not modify the existing `/spec` command or its current preconditions**;
+- validate the supplied/canonical PRD and Architecture before decomposition;
+- validate that the approved technology baseline is present;
+- validate actual repository readiness needed for safe implementation;
+- when those checks pass, create normal `SPEC-###` artifacts using the same
+  specification content, dependency and readiness contract as `/spec`;
+- if repository initialization is genuinely incomplete, block and route to
+  `/project-init`;
+- do not require `/project-init`, `/prd` or `/architect` merely to prove
+  historical workflow execution when the required state/authority is already
+  valid;
+- fail closed when the PRD/Architecture are incomplete, contradictory, or would
+  require the Planner to invent product/architecture intent.
+
+This requirement is for v0.1.1 only. Do not expand the current Stable-v0.1
+hardening effort into this feature merely to make FULL smoke easier.
 
 ## Status definitions
 
