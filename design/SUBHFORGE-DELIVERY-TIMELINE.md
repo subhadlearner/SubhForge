@@ -1,5 +1,7 @@
 # SubhForge Delivery Timeline --- Sep 29 to Nov 30, 2026
 
+> Document authority and stable-section policy: see `design/README.md`.
+
 
 ## Fixed Objective
 
