@@ -21,7 +21,7 @@ releases.
 | Sep 29 -- Oct 4 | 5--6 | Complete planned v0.1.0 hardening | `stable_v0.1.0` |
 | Oct 5 -- Oct 10 | 5--6 | Develop and harden the two already-defined v0.1.1 items | `stable_v0.1.1` |
 | Oct 11 -- Oct 17 | 5--7 | Architecture Fitness Review for v0.2.0 | Architecture decision report |
-| Oct 18 -- Oct 22 | 4--5 | Reconcile accepted architecture changes into the consolidated v0.2 architecture plan; freeze RC1--RC3 exit criteria | Revised v0.2 architecture plan and RC exit criteria accepted and frozen |
+| Oct 18 -- Oct 22 | 4--5 | Promote accepted review decisions into the owning v0.2 Architecture / Workflow / Qualification documents; freeze RC1--RC3 exit criteria | Normative v0.2 design authorities and RC exit criteria accepted and frozen |
 | Oct 23 -- Nov 5 | 11--12 | Use stable v0.1.1 to implement and harden revised LARGE workflow; build behavioural canary baseline | `v0.2.0-rc1` |
 | Nov 6 -- Nov 12 | 5--6 | MediBot greenfield LARGE dogfood and resilience qualification | `v0.2.0-rc2` |
 | Nov 13 -- Nov 18 | 4--5 | MediBot Evaluation Guardrails reconciliation/re-verification dogfood | `v0.2.0-rc3` |
