@@ -1,5 +1,7 @@
 # SubhForge Delivery Timeline --- Sep 29 to Nov 30, 2026
 
+> **Normative-home rule:** this file owns dates, milestones and schedule checkpoints only. Architecture rules live in `V0.2-ARCHITECTURE.md`, workflow semantics in `V0.2-WORKFLOW-CONTRACTS.md`, review evidence in `V0.2-ARCHITECTURE-REVIEW.md`, and qualification definitions in `V0.2-QUALIFICATION.md`.
+
 ## Fixed Objective
 
 **Target: VidyaBeacon starts on December 1, 2026. Architecture correctness and required dogfood evidence are not sacrificed to force this date.**
@@ -42,7 +44,7 @@ dogfood evidence is not an option.
 |---|---|---|
 | Review outcome | Oct 17 | Review returns `REWORK` and the correction materially consumes the v0.2 implementation/dogfood window |
 | RC1 checkpoint | Nov 8 | `v0.2.0-rc1` has not met its frozen exit criteria **or reconciliation implementation is not far enough along to run the shared fixture** |
-| Reconciliation readiness | Nov 12 | Mandatory fixture scenarios **6 (protected invariant conflict), 7 (partial APPLY/halted verdict), and 10 (traceability gap)** do not pass end to end |
+| Reconciliation readiness | Nov 12 | `V0.2-QUALIFICATION.md` §30.2 scenarios **6, 7 and 10** do not pass end to end |
 | RC3 checkpoint | Nov 18 | `v0.2.0-rc3` has not met its frozen exit criteria, or dogfooding produced an accepted `ADD`/`MODIFY` not yet implemented |
 
 Checkpoints judge against the RC exit criteria frozen on October 22.
