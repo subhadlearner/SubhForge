@@ -1,6 +1,5 @@
 # SubhForge Delivery Timeline --- Sep 29 to Nov 30, 2026
 
-> **Normative-home rule:** this file owns dates, milestones and schedule checkpoints only. Architecture rules live in `V0.2-ARCHITECTURE.md`, workflow semantics in `V0.2-WORKFLOW-CONTRACTS.md`, review evidence in `V0.2-ARCHITECTURE-REVIEW.md`, temporary review execution tooling in `V0.2-ARCHITECTURE-REVIEW-TOOLING.md`, and qualification definitions in `V0.2-QUALIFICATION.md`.
 
 ## Fixed Objective
 
