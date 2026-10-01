@@ -15,6 +15,18 @@ This directory uses a **single-normative-home** rule:
 | `V0.2-QUALIFICATION.md` | Validation strategy, fixtures, scenario pass criteria, dogfood, adversarial qualification, RC/stable-release evidence |
 | `SUBHFORGE-DELIVERY-TIMELINE.md` | Dates, milestones, schedule checkpoints only |
 
+## Shared Decision Status Vocabulary
+
+| Status | Meaning |
+|---|---|
+| **ACCEPTED** | Agreed direction/contract. Reopen only through explicit review with evidence/rationale. |
+| **REVIEW** | Must be validated before architecture/implementation freeze. |
+| **DEFERRED** | Deliberately outside current scope unless evidence reopens it. |
+| **NON-GOAL** | Explicitly rejected scope for v0.2. |
+
+These status meanings apply across the v0.2 design documents and ledgers.
+
+---
 ## Review Promotion Rule
 
 During Architecture Fitness Review:
@@ -22,9 +34,8 @@ During Architecture Fitness Review:
 1. the AR case and evidence live in `V0.2-ARCHITECTURE-REVIEW.md`;
 2. temporary review execution follows `V0.2-ARCHITECTURE-REVIEW-TOOLING.md`;
 3. Subhadeep makes the consequential decision;
-4. the accepted normative result is promoted to its owning Architecture or Workflow document;
-5. Qualification is updated only when proof obligations/scenario expectations change;
-6. Timeline is updated only when dates/checkpoints change.
+4. the accepted result is promoted to its **single owning document**: Architecture/Workflow for product-delivery semantics, Qualification for proof/release obligations, or Timeline for schedule-only decisions;
+5. other documents keep only cross-references/evidence, never a second normative copy.
 
 The Review document therefore preserves **why** a decision was made; it does not become a second copy of the final rule.
 
