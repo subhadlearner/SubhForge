@@ -12,6 +12,7 @@ This directory uses a **single-normative-home** rule:
 | `V0.2-WORKFLOW-CONTRACTS.md` | Lifecycle semantics, readiness/grooming, work-plan behavior, verification/evidence semantics, escalation, reconciliation, status/resume, project-version upgrade behavior |
 | `V0.2-ARCHITECTURE-REVIEW.md` | AR backlog, case evidence, POC results, human decisions, review history, cross-reference ledger |
 | `V0.2-ARCHITECTURE-REVIEW-TOOLING.md` | **Temporary** one-time Architecture Fitness Review execution tooling: `/arch-*` agents/capabilities, durable AR state contract, review workflow, model routing, safety/removal rules |
+| `V0.2-IMPLEMENTATION-TOOLING.md` | v0.2 implementation handoff: Architecture Review deliverables, v0.1.1 Existing Authority Admission requirement, and the `/spec → /implement → /verify → /review` execution flow |
 | `V0.2-QUALIFICATION.md` | Validation strategy, fixtures, scenario pass criteria, dogfood, adversarial qualification, RC/stable-release evidence |
 | `SUBHFORGE-DELIVERY-TIMELINE.md` | Dates, milestones, schedule checkpoints only |
 
