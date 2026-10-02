@@ -86,6 +86,21 @@ class SmokeStaticTests(unittest.TestCase):
             self.assertFalse(result["ok"])
             self.assertIn("h08b:grill-stable-decisions", result["failures"])
 
+    def test_release_gate_blocks_refusal_records_becoming_active_waivers(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            review = config / "commands/review.md"
+            review.write_text(
+                review.read_text(encoding="utf-8").replace(
+                    "never treat records under the sibling",
+                    "consider records under the sibling",
+                ),
+                encoding="utf-8",
+            )
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("h08b:refusal-not-active-waiver", result["failures"])
+
     def test_release_gate_blocks_missing_verify_failure_type_contract(self):
         with tempfile.TemporaryDirectory() as temp:
             config, repo, run_id = self._gate_fixture(Path(temp))
