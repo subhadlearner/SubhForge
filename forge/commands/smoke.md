@@ -745,7 +745,9 @@ No extra/fallback verification is permitted.
 
 For every H08b scorer action, register its returned immutable `score_path`
 with `smoke_segments.py register-evidence` for the matching required subprobe.
-For direct PRD also register the returned immutable `prd_evidence_path`.
+For discovery also register the seeded immutable `hidden_expectation_path`;
+both discovery scores must bind its unchanged hash. For direct PRD also register
+the returned immutable `prd_evidence_path`.
 S1/S2 close validates the required H08b score files as schema-valid `PASS`
 before the segment can close; a file-backed `FAIL` score is not acceptable.
 
