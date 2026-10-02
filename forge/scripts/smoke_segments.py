@@ -1104,6 +1104,15 @@ def open_next_segment(
     if checkpoint_result.get("result") != "MATCH":
         _disqualify_gap(repo, run_id, "CHECKPOINT_DRIFT")
         raise SegmentError("Required start checkpoint drifted: {}".format(segment["start_checkpoint"]))
+    current_checkpoint_fingerprint = (
+        checkpoint_result.get("current_fingerprint")
+        or checkpoint_result.get("expected_fingerprint")
+    )
+    if current_checkpoint_fingerprint != last_close.get("checkpoint_fingerprint"):
+        _disqualify_gap(repo, run_id, "CHECKPOINT_FINGERPRINT_DRIFT")
+        raise SegmentError(
+            "Start checkpoint fingerprint does not match the preceding immutable close"
+        )
 
     current = now or _now()
     if current.tzinfo is None:
