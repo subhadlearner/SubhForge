@@ -698,6 +698,29 @@ completion semantics.
 
 For the default Stable-v0.1 smoke path, use GPT-5.6 Sol for these planning stages.
 
+### H08b bounded early-lifecycle procedure
+
+For FULL S1, the orchestrator MUST use `smoke_h08b.py` to seed and score the
+normal blocked/resumed discovery artifact without exposing hidden expectations.
+The first `/grill` blocks only on the deliberately absent referenced evidence;
+after `restore-evidence`, the second `/grill` must preserve settled decision
+IDs/values and complete discovery. The separate direct-to-PRD branch is
+user-selected and uses no discovery artifact. The main PRD negative/resume uses
+a withheld approved product decision instead of missing evidence.
+
+The project-init negative uses the already-declared extra Luna call and must be
+independently backed by `project_init_mechanics.py` failing on unavailable
+canonical-contract evidence.
+
+For S2 `direct-fix-loop`, the exact sequence remains:
+
+`DeepSeek /verify (behavioral-test NOT_DONE) → Luna /waive
+(POLICY_INELIGIBLE, persisted refusal, zero H07 wait) → DeepSeek /fix →
+DeepSeek /verify → DeepSeek pre-review → Sol senior review when ready`.
+
+Validate the refusal with `smoke_h08b.py validate-refusal --run-id <run-id>`.
+No extra/fallback verification is permitted.
+
 The predefined smoke fixture product brief is required to be sufficient for
 planning. Do not turn a framework smoke run into an interactive product
 discovery session.
