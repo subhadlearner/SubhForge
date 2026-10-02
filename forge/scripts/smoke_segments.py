@@ -322,8 +322,8 @@ def active_segment(repo: Path, run_id: str, config_root: Optional[Path] = None) 
         raise SegmentError("Active segments exist only for FULL qualification")
     runtime = _runtime(context)
     segment_id = runtime.get("active_segment")
-    if segment_id is None or runtime.get("active_status") != SEGMENT_ACTIVE:
-        raise SegmentError("No FULL segment is ACTIVE")
+    if segment_id is None or runtime.get("active_status") not in {SEGMENT_ACTIVE, SEGMENT_BUDGET_EXCEEDED}:
+        raise SegmentError("No FULL segment is active or budget-exceeded")
     matches = [item for item in pinned["segments"] if item["id"] == segment_id]
     if len(matches) != 1:
         raise SegmentError("ACTIVE segment is not in pinned configuration")
