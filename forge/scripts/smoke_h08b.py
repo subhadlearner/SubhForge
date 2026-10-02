@@ -326,6 +326,9 @@ def begin_direct_prd_probe(repo: Path, run_id: str) -> dict[str, object]:
     discovery = _path(repo, DISCOVERY_PATH)
     if not discovery.is_file():
         raise H08bError("Direct PRD probe requires existing DISC-001 to isolate")
+    register = _parse_register(discovery.read_text(encoding="utf-8"))
+    if any(item.get("status") != "SETTLED" for item in register.values()):
+        raise H08bError("Direct PRD probe requires DISCOVERY_READY state")
     direct = _path(repo, DIRECT_PRD_PATH)
     if direct.exists():
         raise H08bError("Direct PRD output path already exists")
@@ -467,6 +470,14 @@ def _product_decision_hidden_path(repo: Path, run_id: str) -> Path:
 
 def seed_product_decision(repo: Path, run_id: str) -> dict[str, object]:
     repo = _repo(repo)
+    discovery = _path(repo, DISCOVERY_PATH)
+    if not discovery.is_file():
+        raise H08bError("Main PRD probe requires restored discovery evidence")
+    register = _parse_register(discovery.read_text(encoding="utf-8"))
+    if any(item.get("status") != "SETTLED" for item in register.values()):
+        raise H08bError("Main PRD probe requires DISCOVERY_READY state")
+    if _direct_prd_snapshot_path(repo, run_id).exists():
+        raise H08bError("Direct PRD probe must be restored before main PRD probe")
     hidden = _product_decision_hidden_path(repo, run_id)
     target = _path(repo, PRODUCT_DECISION_PATH)
     if hidden.exists() or target.exists():
