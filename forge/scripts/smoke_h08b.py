@@ -323,12 +323,23 @@ def begin_direct_prd_probe(repo: Path, run_id: str) -> dict[str, object]:
     hidden = _direct_prd_snapshot_path(repo, run_id)
     if hidden.exists():
         raise H08bError("Direct PRD probe snapshot already exists")
+    prd_dir = repo / "docs" / "prd"
+    preexisting_prds = []
+    if prd_dir.is_dir():
+        for item in sorted(prd_dir.glob("*.md")):
+            preexisting_prds.append(
+                {
+                    "path": item.relative_to(repo).as_posix(),
+                    "sha256": _sha_bytes(item.read_bytes()),
+                }
+            )
     payload = {
         "schema_version": SCHEMA_VERSION,
         "discovery_path": DISCOVERY_PATH,
         "discovery_sha256": _sha_bytes(discovery.read_bytes()),
         "discovery_b64": base64.b64encode(discovery.read_bytes()).decode("ascii"),
         "direct_prd_path": DIRECT_PRD_PATH,
+        "preexisting_prds": preexisting_prds,
     }
     hidden.parent.mkdir(parents=True, exist_ok=True)
     hidden.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -361,6 +372,18 @@ def score_direct_prd(repo: Path, run_id: str, status: str) -> dict[str, object]:
     prd = _path(repo, DIRECT_PRD_PATH)
     if not prd.is_file():
         failures.append("direct PRD artifact is missing")
+    expected_prd_paths = {
+        item.get("path")
+        for item in payload.get("preexisting_prds", [])
+        if isinstance(item, dict)
+    }
+    expected_prd_paths.add(DIRECT_PRD_PATH)
+    current_prd_paths = {
+        item.relative_to(repo).as_posix()
+        for item in (repo / "docs" / "prd").glob("*.md")
+    } if (repo / "docs" / "prd").is_dir() else set()
+    if current_prd_paths != expected_prd_paths:
+        failures.append("direct PRD probe changed unexpected PRD artifacts")
     payload: dict[str, object] = {
         "result": "PASS" if not failures else "FAIL",
         "status": status,
@@ -396,6 +419,24 @@ def restore_direct_prd_probe(repo: Path, run_id: str) -> dict[str, object]:
     direct = _path(repo, payload.get("direct_prd_path"))
     if direct.exists():
         direct.unlink()
+    expected_prds = payload.get("preexisting_prds")
+    if not isinstance(expected_prds, list):
+        raise H08bError("Direct PRD snapshot has invalid preexisting PRD set")
+    expected_paths = set()
+    for item in expected_prds:
+        if not isinstance(item, dict):
+            raise H08bError("Direct PRD preexisting PRD record is malformed")
+        rel = _safe_rel(item.get("path"))
+        expected_paths.add(rel)
+        existing = _path(repo, rel)
+        if not existing.is_file() or _sha_bytes(existing.read_bytes()) != item.get("sha256"):
+            raise H08bError("Direct PRD probe changed preexisting PRD evidence")
+    current_paths = {
+        item.relative_to(repo).as_posix()
+        for item in (repo / "docs" / "prd").glob("*.md")
+    } if (repo / "docs" / "prd").is_dir() else set()
+    if current_paths != expected_paths:
+        raise H08bError("Direct PRD probe left unexpected PRD artifacts")
     discovery.parent.mkdir(parents=True, exist_ok=True)
     discovery.write_bytes(original)
     hidden.unlink()
