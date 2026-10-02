@@ -202,6 +202,11 @@ class SmokeBudgetTests(unittest.TestCase):
         self.assertEqual("PERFORMANCE_BUDGET_EXCEEDED", at_limit["result"])
         self.assertEqual(0.0, at_limit["remaining_seconds"])
 
+    def test_numeric_budget_override_is_rejected(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        with self.assertRaises(smoke_budget.BudgetError):
+            smoke_budget.check(self.repo, self.run_id, 30)
+
     def test_duplicate_start_fails_closed(self):
         smoke_budget.start(self.repo, self.run_id, self.started)
         with self.assertRaises(smoke_budget.BudgetError):
