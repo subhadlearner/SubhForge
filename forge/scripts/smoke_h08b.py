@@ -958,7 +958,13 @@ def score_project_init_policy_propagation(
     policy = _path(repo, POLICY_PATH)
     agents = repo / "AGENTS.md"
     expected = _policy_expectation_path(repo, run_id)
-    if not policy.is_file() or not agents.is_file() or not expected.is_file():
+    canonical = _path(repo, CANONICAL_CONTRACT_PATH)
+    if (
+        not policy.is_file()
+        or not agents.is_file()
+        or not expected.is_file()
+        or not canonical.is_file()
+    ):
         raise H08bError("Project-init policy propagation evidence is incomplete")
     try:
         policy_data = json.loads(policy.read_text(encoding="utf-8"))
@@ -1208,9 +1214,11 @@ def main() -> int:
     prd_score.add_argument("--status", required=True)
     pi_policy = actions.add_parser("score-project-init-policy")
     pi_policy.add_argument("--status", required=True)
+    actions.add_parser("begin-project-init-negative")
     actions.add_parser("score-project-init-helper")
     pi_luna = actions.add_parser("score-project-init-luna")
     pi_luna.add_argument("--status", required=True)
+    actions.add_parser("restore-project-init-negative")
     score = actions.add_parser("score-discovery")
     score.add_argument("--phase", choices=["blocked", "resumed"], required=True)
     score.add_argument("--status", required=True)
@@ -1262,6 +1270,10 @@ def main() -> int:
             result = score_project_init_policy_propagation(
                 args.repo, args.run_id, args.status
             )
+        elif args.action == "begin-project-init-negative":
+            if not args.run_id:
+                raise H08bError("--run-id is required")
+            result = begin_project_init_negative(args.repo, args.run_id)
         elif args.action == "score-project-init-helper":
             if not args.run_id:
                 raise H08bError("--run-id is required")
@@ -1274,6 +1286,10 @@ def main() -> int:
             result = score_project_init_luna(
                 args.repo, args.run_id, args.status
             )
+        elif args.action == "restore-project-init-negative":
+            if not args.run_id:
+                raise H08bError("--run-id is required")
+            result = restore_project_init_negative(args.repo, args.run_id)
         else:
             result = validate_refusal(args.repo, args.path, args.run_id)
         print(json.dumps({"ok": True, **result}))
