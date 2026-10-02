@@ -19,6 +19,8 @@ from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import smoke_mechanics
+import smoke_reroute
+import smoke_resume
 import smoke_state
 import smoke_workspace
 
@@ -34,6 +36,7 @@ SEGMENT_ACTIVE = "ACTIVE"
 SEGMENT_COMPLETED = "COMPLETED"
 SEGMENT_BUDGET_EXCEEDED = "BUDGET_EXCEEDED"
 BETWEEN_SEGMENTS = "BETWEEN_SEGMENTS"
+ALLOWED_LIMIT_STATUSES = {"PROVISIONAL", "CALIBRATED"}
 
 
 def _now() -> dt.datetime:
@@ -105,8 +108,12 @@ def _validate_profile_definition(profile: str, definition: dict) -> None:
         limit = definition.get("limit_minutes")
         if isinstance(limit, bool) or not isinstance(limit, int) or limit <= 0:
             raise SegmentError("FAST limit_minutes must be a positive integer")
-        if definition.get("limit_status") != "PROVISIONAL":
-            raise SegmentError("FAST limit_status must be PROVISIONAL")
+        if definition.get("limit_status") not in ALLOWED_LIMIT_STATUSES:
+            raise SegmentError(
+                "FAST limit_status must be one of: {}".format(
+                    ", ".join(sorted(ALLOWED_LIMIT_STATUSES))
+                )
+            )
         return
 
     segments = definition.get("segments")
@@ -133,8 +140,12 @@ def _validate_profile_definition(profile: str, definition: dict) -> None:
         limit = segment.get("limit_minutes")
         if isinstance(limit, bool) or not isinstance(limit, int) or limit <= 0:
             raise SegmentError("Segment {} limit_minutes must be positive".format(segment.get("id")))
-        if segment.get("limit_status") != "PROVISIONAL":
-            raise SegmentError("Segment {} limit_status must be PROVISIONAL".format(segment.get("id")))
+        if segment.get("limit_status") not in ALLOWED_LIMIT_STATUSES:
+            raise SegmentError(
+                "Segment {} limit_status must be one of: {}".format(
+                    segment.get("id"), ", ".join(sorted(ALLOWED_LIMIT_STATUSES))
+                )
+            )
         start_checkpoint = segment.get("start_checkpoint")
         close_checkpoint = segment.get("close_checkpoint")
         if not isinstance(start_checkpoint, str) or not start_checkpoint:
@@ -221,12 +232,16 @@ def _validate_invocation_spec(spec: dict, required_scenarios: list[str]) -> None
 
     if optional != ["S4.adversarial-reconcile-only.optional-adversary-recheck"]:
         raise SegmentError("Only the S4 adversarial recheck may be optional")
-    if sum(baseline_by_owner.values()) != 50:
-        raise SegmentError("FULL invocation baseline must contain exactly 50 required calls")
-    if baseline_by_owner != {"GPT-5.6 Sol": 16, "GPT-5.6 Luna": 11, "DeepSeek": 23}:
-        raise SegmentError("FULL invocation owner totals must be 16 Sol / 11 Luna / 23 DeepSeek")
-    if baseline_by_segment != {"S1": 13, "S2": 7, "S3": 6, "S4": 7, "S5": 8, "S6": 9}:
-        raise SegmentError("FULL invocation segment totals must be 13/7/6/7/8/9")
+    expected_owner = budget.get("baseline_by_owner")
+    expected_segment = budget.get("baseline_by_segment")
+    if not isinstance(expected_owner, dict) or not isinstance(expected_segment, dict):
+        raise SegmentError("FULL invocation spec must declare baseline owner/segment totals")
+    if baseline_by_owner != expected_owner:
+        raise SegmentError("FULL invocation owner totals do not match versioned spec metadata")
+    if baseline_by_segment != expected_segment:
+        raise SegmentError("FULL invocation segment totals do not match versioned spec metadata")
+    if sum(baseline_by_owner.values()) != budget.get("baseline_total"):
+        raise SegmentError("FULL invocation baseline total does not match versioned spec metadata")
 
 
 def build_snapshot(config_root: Optional[Path], profile: str) -> dict:
