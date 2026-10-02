@@ -244,7 +244,12 @@ def _parse_register(text: str) -> dict[str, dict[str, str]]:
     return result
 
 
-def score_discovery(repo: Path, run_id: str, phase: str) -> dict[str, object]:
+def score_discovery(
+    repo: Path,
+    run_id: str,
+    phase: str,
+    status: str,
+) -> dict[str, object]:
     if phase not in {"blocked", "resumed"}:
         raise H08bError("Discovery score phase must be blocked or resumed")
     repo = _repo(repo)
@@ -255,6 +260,15 @@ def score_discovery(repo: Path, run_id: str, phase: str) -> dict[str, object]:
     register = _parse_register(discovery.read_text(encoding="utf-8"))
 
     failures: list[str] = []
+    expected_status = (
+        "DISCOVERY_BLOCKED" if phase == "blocked" else "DISCOVERY_READY"
+    )
+    if status != expected_status:
+        failures.append(
+            "discovery status {} does not match {}".format(
+                status, expected_status
+            )
+        )
     for decision_id, expected in hidden["settled_expectations"].items():
         actual = register.get(decision_id)
         if actual is None:
@@ -291,6 +305,7 @@ def score_discovery(repo: Path, run_id: str, phase: str) -> dict[str, object]:
         {
             "result": "PASS" if not failures else "FAIL",
             "phase": phase,
+            "status": status,
             "discovery_path": hidden["discovery_path"],
             "discovery_sha256": _sha_bytes(discovery.read_bytes()),
             "settled_decision_ids": sorted(hidden["settled_expectations"]),
@@ -742,6 +757,7 @@ def validate_refusal(
 def score_project_init_policy_propagation(
     repo: Path,
     run_id: str,
+    status: str,
 ) -> dict[str, object]:
     repo = _repo(repo)
     policy = _path(repo, POLICY_PATH)
@@ -773,12 +789,19 @@ def score_project_init_policy_propagation(
         "Waivable Failure Types: {}".format(", ".join(waivable)),
     ]
     missing = [item for item in required if item not in text]
+    if status != "PROJECT_INIT_READY":
+        missing.append(
+            "project-init status {} does not match PROJECT_INIT_READY".format(
+                status
+            )
+        )
     return _persist_score(
         repo,
         run_id,
         "project-init-policy-propagation",
         {
             "result": "PASS" if not missing else "FAIL",
+            "status": status,
             "policy_path": POLICY_PATH,
             "policy_sha256": policy_digest,
             "missing_agents_contracts": missing,
@@ -913,12 +936,14 @@ def main() -> int:
     prd_score = actions.add_parser("score-prd")
     prd_score.add_argument("--phase", choices=["blocked", "resumed"], required=True)
     prd_score.add_argument("--status", required=True)
-    actions.add_parser("score-project-init-policy")
+    pi_policy = actions.add_parser("score-project-init-policy")
+    pi_policy.add_argument("--status", required=True)
     actions.add_parser("score-project-init-helper")
     pi_luna = actions.add_parser("score-project-init-luna")
     pi_luna.add_argument("--status", required=True)
     score = actions.add_parser("score-discovery")
     score.add_argument("--phase", choices=["blocked", "resumed"], required=True)
+    score.add_argument("--status", required=True)
     refusal = actions.add_parser("validate-refusal")
     refusal.add_argument("--path", required=True)
     args = parser.parse_args()
@@ -932,7 +957,9 @@ def main() -> int:
         elif args.action == "score-discovery":
             if not args.run_id:
                 raise H08bError("--run-id is required")
-            result = score_discovery(args.repo, args.run_id, args.phase)
+            result = score_discovery(
+                args.repo, args.run_id, args.phase, args.status
+            )
         elif args.action == "begin-direct-prd":
             if not args.run_id:
                 raise H08bError("--run-id is required")
@@ -963,7 +990,7 @@ def main() -> int:
             if not args.run_id:
                 raise H08bError("--run-id is required")
             result = score_project_init_policy_propagation(
-                args.repo, args.run_id
+                args.repo, args.run_id, args.status
             )
         elif args.action == "score-project-init-helper":
             if not args.run_id:
