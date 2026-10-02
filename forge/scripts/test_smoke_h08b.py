@@ -59,7 +59,12 @@ class SmokeH08bTests(unittest.TestCase):
     def _write_refusal(self, reason):
         report = self.repo / "docs/verification/VERIFY-SPEC-001-001.md"
         report.parent.mkdir(parents=True, exist_ok=True)
-        report.write_text("Verification Result: NOT_DONE\nFailure: BEHAVIORAL_TEST\n", encoding="utf-8")
+        report.write_text(
+            "Verification Result: NOT_DONE\n"
+            "Failed Check: behavioral-test\n"
+            "Failure Type: BEHAVIORAL_TEST\n",
+            encoding="utf-8",
+        )
 
         policy = self.repo / smoke_h08b.POLICY_PATH
         policy.parent.mkdir(parents=True, exist_ok=True)
