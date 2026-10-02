@@ -166,9 +166,11 @@ Pass only the exact normal verification report and project waiver-policy context
 Do not tell the child the expected terminal status or refusal reason. Parse the
 actual returned status and discover only the normal refusal artifact it created.
 
-Run `smoke_h08b.py validate-refusal --run-id <run-id> --path <refusal>`.
-The scorer—not the child prompt—requires the H08b S2 result to be
-`POLICY_INELIGIBLE`, bound to the exact report/policy, with no H07 wait.
+Parse the fresh Luna child's actual terminal status. Run
+`smoke_h08b.py validate-refusal --run-id <run-id> --status <actual> --path <refusal>`.
+The scorer—not the child prompt—requires the H08b S2 result to be actual
+`WAIVER_BLOCKED` with reason `POLICY_INELIGIBLE`, bound to the exact
+report/policy, with no H07 wait.
 Any digest/policy/reason/no-wait failure blocks H08b. Then continue the
 predeclared direct-fix sequence with DeepSeek `/fix`, fresh `/verify`,
 DeepSeek pre-review, and Sol senior review only when ready.
