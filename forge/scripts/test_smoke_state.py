@@ -165,6 +165,25 @@ class SmokeStateTests(unittest.TestCase):
         with self.assertRaises(smoke_state.SmokeStateError):
             smoke_state.load(self.repo, self.run_id)
 
+    def test_closed_segment_record_exact_schema_fails_closed(self):
+        self.init_full()
+        self.mark_all_segments_closed()
+        original = smoke_state.load(self.repo, self.run_id)
+
+        state = json.loads(json.dumps(original))
+        state["context_index"]["segment_runtime"]["closed_segments"][0]["surprise"] = True
+        self.state_file().write_text(json.dumps(state), encoding="utf-8")
+        with self.assertRaises(smoke_state.SmokeStateError):
+            smoke_state.load(self.repo, self.run_id)
+
+        state = json.loads(json.dumps(original))
+        state["context_index"]["segment_runtime"]["closed_segments"][0].pop(
+            "ledger_projection_sha256"
+        )
+        self.state_file().write_text(json.dumps(state), encoding="utf-8")
+        with self.assertRaises(smoke_state.SmokeStateError):
+            smoke_state.load(self.repo, self.run_id)
+
     def test_invalid_profile_or_run_state_fails_closed(self):
         with self.assertRaises(smoke_state.SmokeStateError):
             smoke_state.init(
