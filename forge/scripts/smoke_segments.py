@@ -229,6 +229,29 @@ def _validate_invocation_spec(spec: dict, required_scenarios: list[str]) -> None
             raise SegmentError("Scenario calls must be a list")
         if scenario["id"] in expected_zero and calls:
             raise SegmentError("Zero-call scenario unexpectedly declares substantive calls")
+        subprobes = scenario.get("subprobes")
+        if not isinstance(subprobes, list) or not subprobes:
+            raise SegmentError("Scenario subprobes must be a non-empty list")
+        for subprobe in subprobes:
+            if not isinstance(subprobe, dict) or not isinstance(
+                subprobe.get("requires_evidence_file"), bool
+            ):
+                raise SegmentError(
+                    "Every subprobe must declare requires_evidence_file"
+                )
+            deterministic_helper = (
+                scenario["id"] == "project-init-contract-propagation"
+                and subprobe.get("id") == "unavailable-contract-helper-rejection"
+            )
+            if (
+                calls
+                and subprobe.get("required") is True
+                and not deterministic_helper
+                and subprobe.get("requires_evidence_file") is not True
+            ):
+                raise SegmentError(
+                    "Required model-bearing subprobes must require file evidence"
+                )
         for call in calls:
             if not isinstance(call, dict):
                 raise SegmentError("Invocation call entries must be objects")
