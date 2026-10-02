@@ -224,9 +224,20 @@ class SmokeResumeTests(unittest.TestCase):
             + "\n",
             encoding="utf-8",
         )
+        active_waiver = (
+            self.repo
+            / "docs/verification/waivers"
+            / "WAIVER-SPEC-001-001.md"
+        )
+        active_waiver.parent.mkdir(parents=True, exist_ok=True)
+        active_waiver.write_text(
+            "# Active waiver fixture\n",
+            encoding="utf-8",
+        )
 
         self.prepare("r05")
         self.assertTrue(refusal.is_file())
+        self.assertFalse(active_waiver.exists())
         self.score_and_restore("r05")
 
         self.assertTrue(refusal.is_file())
