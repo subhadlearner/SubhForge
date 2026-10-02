@@ -1208,23 +1208,27 @@ def validate_terminal_integrity(
     state, context = _state_context(repo, run_id)
     if state.get("profile") != "FULL":
         return {"result": "NOT_APPLICABLE", "profile": state.get("profile")}
-    pinned = assert_config_intact(repo, run_id, config_root)
-    runtime = _runtime(context)
     if context.get("qualification_eligible") is not True:
         raise SegmentError("Qualification is permanently ineligible for PASS")
-    if runtime.get("active_segment") is not None or runtime.get("gap") is not None:
-        raise SegmentError("FULL terminal integrity requires no active segment or open gap")
-    closed_ids = [
-        item.get("segment_id")
-        for item in runtime["closed_segments"]
-        if isinstance(item, dict) and item.get("status") == SEGMENT_COMPLETED
-    ]
-    expected_ids = [item["id"] for item in pinned["segments"]]
-    if closed_ids != expected_ids:
-        raise SegmentError("FULL terminal integrity requires completed S1 through S6")
-    if runtime["closed_segments"][-1].get("checkpoint") != "QUALIFICATION_EVIDENCE_READY":
-        raise SegmentError("S6 must close at QUALIFICATION_EVIDENCE_READY")
-    validate_closed_chain(repo, run_id, runtime)
+    try:
+        pinned = assert_config_intact(repo, run_id, config_root)
+        runtime = _runtime(context)
+        if runtime.get("active_segment") is not None or runtime.get("gap") is not None:
+            raise SegmentError("FULL terminal integrity requires no active segment or open gap")
+        closed_ids = [
+            item.get("segment_id")
+            for item in runtime["closed_segments"]
+            if isinstance(item, dict) and item.get("status") == SEGMENT_COMPLETED
+        ]
+        expected_ids = [item["id"] for item in pinned["segments"]]
+        if closed_ids != expected_ids:
+            raise SegmentError("FULL terminal integrity requires completed S1 through S6")
+        if runtime["closed_segments"][-1].get("checkpoint") != "QUALIFICATION_EVIDENCE_READY":
+            raise SegmentError("S6 must close at QUALIFICATION_EVIDENCE_READY")
+        validate_closed_chain(repo, run_id, runtime)
+    except SegmentError:
+        _disqualify_gap(repo, run_id, "FINAL_INTEGRITY_DRIFT")
+        raise
     return {
         "result": "PASS",
         "closed_segments": closed_ids,
