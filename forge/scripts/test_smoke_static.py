@@ -11,6 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import smoke_static
 import smoke_budget
+import smoke_segments
 import smoke_state
 
 
@@ -38,6 +39,12 @@ class SmokeStaticTests(unittest.TestCase):
             repo,
             run_id,
             now=dt.datetime.now(dt.timezone.utc) - dt.timedelta(seconds=42),
+        )
+        smoke_segments.pin_qualification(
+            repo,
+            run_id,
+            config,
+            budget["started_at_utc"],
         )
         smoke_state.set_values(
             repo,
@@ -79,11 +86,20 @@ class SmokeStaticTests(unittest.TestCase):
             config, repo, run_id = self._gate_fixture(Path(temp))
             project = repo / "docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md"
             project.write_text("drift", encoding="utf-8")
-            budget_path = repo / f"docs/verification/smoke/{run_id}.budget.json"
-            budget_path.write_text(json.dumps({"started_at_utc": (dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=31)).isoformat()}), encoding="utf-8")
+            state = smoke_state.load(repo, run_id)
+            context = dict(state["context_index"])
+            runtime = dict(context["segment_runtime"])
+            runtime["active_started_at_utc"] = (
+                dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=81)
+            ).isoformat()
+            context["segment_runtime"] = runtime
+            state["context_index"] = context
+            smoke_state._validate_full_state(state, expected_run_id=run_id)
+            smoke_state._save(smoke_state.state_path(repo, run_id), state)
+
             result = smoke_static.release_gate(config, repo, run_id)
             self.assertIn("contract:parity", result["failures"])
-            self.assertIn("budget:30-minutes", result["failures"])
+            self.assertIn("budget:S1:pinned-limit", result["failures"])
 
     def test_release_gate_blocks_missing_smoke_handoff_helper(self):
         with tempfile.TemporaryDirectory() as temp:
