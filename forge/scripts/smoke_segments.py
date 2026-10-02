@@ -303,6 +303,7 @@ def pin_qualification(
     run_id: str,
     config_root: Optional[Path],
     started_at_utc: str,
+    source_fingerprint: Optional[str] = None,
 ) -> dict:
     state, context = _state_context(repo, run_id)
     if any(key in context for key in ("qualification_config", "segment_runtime", "qualification_eligible")):
@@ -311,6 +312,14 @@ def pin_qualification(
     if snapshot["profile"] != state["profile"]:
         raise SegmentError("Pinned profile does not match canonical smoke state")
     started = _aware(started_at_utc, "Qualification start timestamp")
+    if source_fingerprint is not None:
+        if (
+            not isinstance(source_fingerprint, str)
+            or len(source_fingerprint) != 64
+            or not all(ch in "0123456789abcdefABCDEF" for ch in source_fingerprint)
+        ):
+            raise SegmentError("Source fingerprint must be a 64-character SHA-256 digest")
+        source_fingerprint = source_fingerprint.lower()
 
     context = dict(context)
     context["qualification_config"] = snapshot
@@ -322,6 +331,7 @@ def pin_qualification(
             "active_segment": first["id"],
             "active_status": SEGMENT_ACTIVE,
             "active_started_at_utc": started.isoformat(),
+            "active_source_fingerprint": source_fingerprint,
             "closed_segments": [],
             "gap": None,
         }
@@ -372,6 +382,8 @@ def active_segment(repo: Path, run_id: str, config_root: Optional[Path] = None) 
         "segment": matches[0],
         "started_at_utc": runtime.get("active_started_at_utc"),
         "qualification_eligible": context.get("qualification_eligible") is True,
+        "source_fingerprint": runtime.get("active_source_fingerprint"),
+        "status": runtime.get("active_status"),
     }
 
 
@@ -856,6 +868,19 @@ def close_segment(
             raise SegmentError(
                 "Caller-supplied evidence set must exactly match the canonical scenario-evidence index"
             )
+    expected_source = runtime.get("active_source_fingerprint")
+    if not isinstance(expected_source, str):
+        raise SegmentError("ACTIVE segment is missing its protected source fingerprint")
+    actual_source = _source_fingerprint(source)
+    if actual_source != expected_source:
+        context = dict(context)
+        context["qualification_eligible"] = False
+        runtime_failed = json.loads(json.dumps(runtime))
+        runtime_failed["source_drift_detected"] = True
+        context["segment_runtime"] = runtime_failed
+        _persist_context(repo, run_id, state, context)
+        raise SegmentError("Protected source checkout drifted during ACTIVE segment")
+
     manifest = evidence_manifest(repo, derived_evidence_paths)
     projection = _segment_ledger_projection(data, segment_id)
     current = now or _now()
@@ -873,7 +898,7 @@ def close_segment(
         "completed_scenarios": [item for item in segment["scenarios"] if item in state["completed_scenarios"]],
         "checkpoint": checkpoint,
         "checkpoint_fingerprint": checkpoint_result.get("current_fingerprint") or checkpoint_result.get("expected_fingerprint"),
-        "source_fingerprint": _source_fingerprint(source),
+        "source_fingerprint": actual_source,
         "evidence_manifest": manifest,
         "ledger_projection_sha256": _sha256_object(projection),
     }
@@ -882,6 +907,7 @@ def close_segment(
     runtime["active_segment"] = None
     runtime["active_status"] = None
     runtime["active_started_at_utc"] = None
+    runtime["active_source_fingerprint"] = None
     runtime["gap"] = {
         "state": BETWEEN_SEGMENTS,
         "after_segment": segment_id,
@@ -957,6 +983,7 @@ def open_next_segment(
     runtime["active_segment"] = segment["id"]
     runtime["active_status"] = SEGMENT_ACTIVE
     runtime["active_started_at_utc"] = current.isoformat()
+    runtime["active_source_fingerprint"] = last_close["source_fingerprint"]
     runtime["gap"] = None
     context = dict(context)
     context["segment_runtime"] = runtime
