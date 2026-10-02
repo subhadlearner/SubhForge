@@ -248,6 +248,24 @@ For each acceptance criterion report:
 - criterion ID
 - evidence
 - result: `PASS` or `FAIL`
+- for `FAIL`, one persisted `Failure Type` selected from the bounded taxonomy below
+
+### Failure Type taxonomy
+
+Every failed deterministic check or failed acceptance criterion that can block
+delivery must persist exactly one failure type in the verification report:
+
+- `BEHAVIORAL_TEST` — unit/integration/end-to-end/acceptance behavior is wrong
+- `DOCUMENTATION_QUALITY` — required documentation evidence/content is deficient
+- `LINT_QUALITY` — required lint/static quality gate failed without a security/data classification
+- `ENVIRONMENT_FAILURE` — the required check cannot execute because of environment/tooling availability
+- `SECURITY` — security verification produced a blocking failure
+- `DATA_INTEGRITY` — data-integrity verification produced a blocking failure
+- `COMPLIANCE` — compliance verification produced a blocking failure
+- `OTHER_QUALITY` — a blocking quality failure not covered above
+
+Failure type is factual verification metadata, not waiver eligibility. `/verify`
+must not decide whether a type is waivable; it only records what failed.
 
 If a required acceptance criterion has no deterministic evidence, mark it `FAIL`.
 
@@ -386,6 +404,12 @@ List only blockers preventing completion.
 If none:
 
 `None.`
+
+### Failure Summary
+
+For every blocker when the result is `NOT_DONE`, include the exact failed
+check/criterion ID and its persisted `Failure Type`. Do not leave a blocking
+failure untyped and do not infer waiver policy here.
 
 ### Verification Result
 
