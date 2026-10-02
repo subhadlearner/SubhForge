@@ -1,0 +1,477 @@
+{
+  "schema_version": 1,
+  "qualification_profile": "FULL",
+  "call_budget": {
+    "baseline_total": 50,
+    "maximum_total": 51,
+    "only_optional_extra": "S4.adversarial-reconcile-only.optional-adversary-recheck"
+  },
+  "zero_substantive_call_scenarios": [
+    "static-release-gate",
+    "identical-commit-freshness",
+    "content-mutation-stale-evidence",
+    "mode-type-identity",
+    "verification-mutation",
+    "malformed-evidence",
+    "evidence-exclusion",
+    "static-claude-routing"
+  ],
+  "segment_order": [
+    "S1",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S6"
+  ],
+  "scenarios": [
+    {
+      "id": "static-release-gate",
+      "segment": "S1",
+      "checkpoint_before": "BOOTSTRAP",
+      "checkpoint_after": null,
+      "calls": [],
+      "zero_substantive_calls": true,
+      "evidence": [
+        "static-release-gate metric"
+      ]
+    },
+    {
+      "id": "grill",
+      "segment": "S1",
+      "calls": [
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "discovery/evidence-first grill",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "resume grill after evidence/access block",
+          "required": true
+        }
+      ],
+      "contracts": [
+        "Evidence/access-blocked state must be resumable.",
+        "Stable decision IDs are H08b behavioral proof; H08 declares the contract only."
+      ]
+    },
+    {
+      "id": "prd",
+      "segment": "S1",
+      "calls": [
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "primary PRD authoring",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "direct user-selected PRD path",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "resume PRD after upstream block",
+          "required": true
+        }
+      ],
+      "contracts": [
+        "Direct user-selected PRD without discovery is declared for H08b proof.",
+        "Blocked/resumed main PRD is declared for H08b proof."
+      ]
+    },
+    {
+      "id": "architect",
+      "segment": "S1",
+      "calls": [
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "architecture authoring",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "architecture continuation/reconciliation",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "project-init-contract-propagation",
+      "segment": "S1",
+      "calls": [
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "project-init contract propagation",
+          "required": true
+        }
+      ],
+      "contracts": [
+        "Live PROJECT_INIT_BLOCKED behavior is H08b proof."
+      ]
+    },
+    {
+      "id": "spec",
+      "segment": "S1",
+      "calls": [
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "spec authoring",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "implement",
+      "segment": "S1",
+      "calls": [
+        {
+          "owner": "DeepSeek",
+          "purpose": "implementation",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "first-uncommitted-verify",
+      "segment": "S1",
+      "calls": [
+        {
+          "owner": "DeepSeek",
+          "purpose": "verification",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "pre-review",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "senior review",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "review-before-commit",
+      "segment": "S1",
+      "checkpoint_after": "CP-REVIEWED",
+      "calls": [
+        {
+          "owner": "DeepSeek",
+          "purpose": "review-before-commit verification",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "identical-commit-freshness",
+      "segment": "S2",
+      "checkpoint_before": "CP-REVIEWED",
+      "calls": [],
+      "zero_substantive_calls": true
+    },
+    {
+      "id": "content-mutation-stale-evidence",
+      "segment": "S2",
+      "calls": [],
+      "zero_substantive_calls": true
+    },
+    {
+      "id": "mode-type-identity",
+      "segment": "S2",
+      "calls": [],
+      "zero_substantive_calls": true
+    },
+    {
+      "id": "verification-mutation",
+      "segment": "S2",
+      "calls": [],
+      "zero_substantive_calls": true
+    },
+    {
+      "id": "direct-fix-loop",
+      "segment": "S2",
+      "calls": [
+        {
+          "owner": "DeepSeek",
+          "purpose": "verify real behavioral-test NOT_DONE",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "waive early POLICY_INELIGIBLE declaration",
+          "required": true,
+          "behavioral_proof": "H08b"
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "fix",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "verify after fix",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "pre-review",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "senior review only when ready",
+          "required": true
+        }
+      ],
+      "contracts": [
+        "No authorization wait occurs for the early policy-ineligible declaration.",
+        "Persisted WAIVER_BLOCKED behavioral proof is H08b.",
+        "No extra/fallback S2 verification call is permitted."
+      ]
+    },
+    {
+      "id": "malformed-evidence",
+      "segment": "S2",
+      "calls": [],
+      "zero_substantive_calls": true
+    },
+    {
+      "id": "evidence-exclusion",
+      "segment": "S2",
+      "checkpoint_after": "CP-REPAIRED-V1",
+      "calls": [],
+      "zero_substantive_calls": true
+    },
+    {
+      "id": "diagnose-fix-loop",
+      "segment": "S3",
+      "checkpoint_before": "CP-REPAIRED-V1",
+      "checkpoint_after": "CP-REPAIRED-V2",
+      "calls": [
+        {
+          "owner": "DeepSeek",
+          "purpose": "diagnose",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "fix",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "verify",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "pre-review",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "senior review",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "repair/reconciliation judgment",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "waive-review-loop",
+      "segment": "S4",
+      "checkpoint_before": "CP-REPAIRED-V2",
+      "calls": [
+        {
+          "owner": "DeepSeek",
+          "purpose": "verify fixed failure-type report",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "waiver policy decision",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "pre-review",
+          "required": true
+        }
+      ],
+      "contracts": [
+        "Fixed-policy report reuse is required.",
+        "Reason-coded refusal contract is declared; behavioral proof is H08b.",
+        "Waiver policy eligibility must precede authorization in H08b."
+      ]
+    },
+    {
+      "id": "stale-waiver",
+      "segment": "S4",
+      "depends_on": [
+        "waive-review-loop"
+      ],
+      "calls": [
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "stale-waiver negative judgment",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "adversarial-reconcile-only",
+      "segment": "S4",
+      "calls": [
+        {
+          "owner": "DeepSeek",
+          "purpose": "adversarial check",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "reconcile-only classification",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "optional adversary recheck",
+          "required": false,
+          "optional_call_id": "S4.adversarial-reconcile-only.optional-adversary-recheck"
+        }
+      ]
+    },
+    {
+      "id": "pre-review-blocker",
+      "segment": "S4",
+      "calls": [
+        {
+          "owner": "DeepSeek",
+          "purpose": "pre-review blocker",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "static-claude-routing",
+      "segment": "S4",
+      "checkpoint_after": "CP-REPAIRED-STABLE",
+      "calls": [],
+      "zero_substantive_calls": true
+    },
+    {
+      "id": "arbitrary-stage-resume",
+      "segment": "S5",
+      "checkpoint_before": "CP-REPAIRED-STABLE",
+      "checkpoint_after": "CP-REPAIRED-STABLE",
+      "calls": [
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "resume routing",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "resume handoff",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "resume route judgment",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "resumed execution",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "verification",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "pre-review",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "senior review",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "resume handoff acceptance",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "upstream-rerouting",
+      "segment": "S6",
+      "checkpoint_before": "CP-REPAIRED-STABLE",
+      "checkpoint_after": "QUALIFICATION_EVIDENCE_READY",
+      "calls": [
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "upstream reroute",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "upstream handoff",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "route judgment",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "fix/continuation",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "verification",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "pre-review",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "senior review",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "upstream handoff acceptance",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "final route/handoff check",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "deterministic_contracts": {
+    "unavailable_contract_helper_check": true,
+    "scenario_evidence_index_required": true,
+    "canonical_hash_algorithm": "SHA-256",
+    "hidden_visible_boundaries_are_explicit": true,
+    "zero_reviewer_scenarios_must_not_gain_substantive_calls": true
+  }
+}
