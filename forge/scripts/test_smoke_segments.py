@@ -276,6 +276,127 @@ class SmokeSegmentsTests(unittest.TestCase):
                 rooted_guard=lambda repo, run_id: None,
             )
 
+    def test_multi_day_gap_is_persisted_and_reported(self):
+        self._init_full()
+        _s1, _evidence = self._complete_s1()
+        source_guard = {"source_checkout_path": str(self.root), "fingerprint": "a" * 64}
+        checkpoint = {
+            "checkpoint": "CP-REVIEWED",
+            "result": "MATCH",
+            "expected_fingerprint": "f" * 64,
+            "current_fingerprint": "f" * 64,
+        }
+        with mock.patch.object(smoke_segments.smoke_workspace, "source_guard",
+                               return_value=source_guard), \
+             mock.patch.object(smoke_segments.smoke_mechanics, "check_checkpoint",
+                               return_value=checkpoint):
+            smoke_segments.close_segment(
+                self.repo,
+                self.run_id,
+                self.root,
+                None,
+                self.started + dt.timedelta(minutes=20),
+            )
+            smoke_segments.record_gap_activity(
+                self.repo,
+                self.run_id,
+                "READ_ONLY_STATUS",
+                "Operator checked status only.",
+                self.started + dt.timedelta(days=1),
+            )
+            smoke_segments.open_next_segment(
+                self.repo,
+                self.run_id,
+                self.root,
+                self.started + dt.timedelta(days=2),
+            )
+
+        report = smoke_segments.qualification_report(
+            self.repo,
+            self.run_id,
+            self.started + dt.timedelta(days=2, minutes=5),
+        )
+        self.assertEqual(1, len(report["gaps"]))
+        self.assertEqual(
+            2 * 24 * 60 * 60 - 20 * 60,
+            report["inter_segment_gap_seconds"],
+        )
+        self.assertEqual(
+            "READ_ONLY_STATUS",
+            report["gaps"][0]["activities"][0]["type"],
+        )
+
+    def test_gap_source_drift_disqualifies_qualification(self):
+        self._init_full()
+        _s1, _evidence = self._complete_s1()
+        checkpoint = {
+            "checkpoint": "CP-REVIEWED",
+            "result": "MATCH",
+            "expected_fingerprint": "f" * 64,
+            "current_fingerprint": "f" * 64,
+        }
+        with mock.patch.object(
+            smoke_segments.smoke_workspace,
+            "source_guard",
+            return_value={"source_checkout_path": str(self.root), "fingerprint": "a" * 64},
+        ), mock.patch.object(
+            smoke_segments.smoke_mechanics,
+            "check_checkpoint",
+            return_value=checkpoint,
+        ):
+            smoke_segments.close_segment(
+                self.repo,
+                self.run_id,
+                self.root,
+                None,
+                self.started + dt.timedelta(minutes=20),
+            )
+
+        with mock.patch.object(
+            smoke_segments.smoke_workspace,
+            "source_guard",
+            return_value={"source_checkout_path": str(self.root), "fingerprint": "b" * 64},
+        ):
+            with self.assertRaises(smoke_segments.SegmentError):
+                smoke_segments.open_next_segment(
+                    self.repo,
+                    self.run_id,
+                    self.root,
+                    self.started + dt.timedelta(hours=1),
+                )
+
+        state = smoke_state.load(self.repo, self.run_id)
+        self.assertFalse(state["context_index"]["qualification_eligible"])
+        self.assertEqual(
+            "SOURCE_DRIFT",
+            state["context_index"]["segment_runtime"]["gap"]["disqualification_reason"],
+        )
+
+    def test_gap_activity_rejects_substantive_work(self):
+        self._init_full()
+        _s1, _evidence = self._complete_s1()
+        source_guard = {"source_checkout_path": str(self.root), "fingerprint": "a" * 64}
+        checkpoint = {"checkpoint": "CP-REVIEWED", "result": "MATCH"}
+        with mock.patch.object(smoke_segments.smoke_workspace, "source_guard",
+                               return_value=source_guard), \
+             mock.patch.object(smoke_segments.smoke_mechanics, "check_checkpoint",
+                               return_value=checkpoint):
+            smoke_segments.close_segment(
+                self.repo,
+                self.run_id,
+                self.root,
+                None,
+                self.started + dt.timedelta(minutes=20),
+            )
+
+        with self.assertRaises(smoke_segments.SegmentError):
+            smoke_segments.record_gap_activity(
+                self.repo,
+                self.run_id,
+                "MODEL_CALL",
+                "This must never be accepted.",
+            )
+
     def test_closed_evidence_tamper_is_detected_cumulatively(self):
         self._init_full()
         _s1, evidence = self._complete_s1()
