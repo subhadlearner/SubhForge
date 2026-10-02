@@ -72,6 +72,22 @@ class SmokeStaticTests(unittest.TestCase):
             self.assertNotIn("static-release-gate", state["pending_scenarios"])
             self.assertEqual("grill", state["current_stage"])
 
+    def test_release_gate_blocks_h08b_luna_hidden_scorer_access(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            agent = config / "agents/h08b-luna-probe.md"
+            agent.write_text(
+                agent.read_text(encoding="utf-8").replace(
+                    '"**/smoke_h08b.py": deny',
+                    '"**/smoke_h08b.py": allow',
+                    1,
+                ),
+                encoding="utf-8",
+            )
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("h08b:luna-probe-isolation", result["failures"])
+
     def test_release_gate_blocks_grill_decision_id_contract_drift(self):
         with tempfile.TemporaryDirectory() as temp:
             config, repo, run_id = self._gate_fixture(Path(temp))
