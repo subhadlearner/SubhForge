@@ -1416,6 +1416,23 @@ DISCOVERY_READY → /prd
 
 # 9. Phase 2 — /prd
 
+## H08b isolated direct and blocked/resumed probes
+
+Before the normal main PRD path, prove the explicit ceremony-skip branch with
+`smoke_h08b.py begin-direct-prd`. The harness temporarily protects/removes
+`DISC-001`; invoke exactly one user-selected clear-intent Sol `/prd` targeting
+`docs/prd/PRD-H08B-DIRECT.md`, require `score-direct-prd` PASS with zero
+discovery artifacts, then `restore-direct-prd` to restore exact discovery bytes.
+
+For the main PRD path, `seed-product-decision` stores the approved answer only
+in protected smoke data. The first Sol PRD call receives the ambiguous product
+context but not that answer and must block normally. Score its actual status with
+`score-prd --phase blocked`. Then `reveal-product-decision` writes the normal
+approved decision artifact; provide that exact path to the second Sol PRD call and
+require `score-prd --phase resumed` with actual `PRD_READY`.
+
+These are the already-declared H08 calls. Do not add a planning retry.
+
 ## When to run
 
 Run when:
