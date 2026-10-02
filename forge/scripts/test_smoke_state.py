@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import smoke_segments
 import smoke_state
 
 
@@ -19,9 +20,34 @@ class SmokeStateTests(unittest.TestCase):
         self.run_id = "SMOKE-FULL-test-20260927T000000Z-12345678"
 
     def init_full(self):
-        return smoke_state.init(
+        smoke_state.init(
             self.repo, self.run_id, "FULL", "full-minimal-api", "abc123", "base123"
         )
+        smoke_segments.pin_qualification(
+            self.repo,
+            self.run_id,
+            None,
+            "2026-09-27T00:00:00+00:00",
+        )
+        return smoke_state.load(self.repo, self.run_id)
+
+    def mark_all_segments_closed(self):
+        state = smoke_state.load(self.repo, self.run_id)
+        context = dict(state["context_index"])
+        runtime = dict(context["segment_runtime"])
+        runtime["active_segment"] = None
+        runtime["active_status"] = None
+        runtime["active_started_at_utc"] = None
+        runtime["gap"] = None
+        runtime["closed_segments"] = [
+            {"segment_id": segment_id, "status": "COMPLETED"}
+            for segment_id in ("S1", "S2", "S3", "S4", "S5", "S6")
+        ]
+        context["segment_runtime"] = runtime
+        context["qualification_eligible"] = True
+        state["context_index"] = context
+        smoke_state._validate_full_state(state, expected_run_id=self.run_id)
+        smoke_state._save(smoke_state.state_path(self.repo, self.run_id), state)
 
     def state_file(self):
         return self.repo / "docs/verification/smoke" / f"{self.run_id}.state.json"
@@ -526,6 +552,7 @@ class SmokeStateTests(unittest.TestCase):
 
         required, _optional, _all = smoke_state._profile_scenarios("FULL")
         completed = sorted(required)
+        self.mark_all_segments_closed()
         passed = smoke_state.set_values(
             self.repo,
             self.run_id,
@@ -544,6 +571,7 @@ class SmokeStateTests(unittest.TestCase):
     def test_terminal_result_token_must_match_state_and_profile(self):
         self.init_full()
         required, _optional, _all = smoke_state._profile_scenarios("FULL")
+        self.mark_all_segments_closed()
         base = {
             "context_index": self.bootstrap_context(),
             "completed_scenarios": sorted(required),
