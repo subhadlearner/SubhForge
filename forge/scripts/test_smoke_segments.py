@@ -76,7 +76,22 @@ class SmokeSegmentsTests(unittest.TestCase):
         evidence = self.repo / "docs/verification/S1-EVIDENCE.json"
         evidence.parent.mkdir(parents=True, exist_ok=True)
         evidence.write_text('{"result":"PASS"}\n', encoding="utf-8")
-        return s1, "docs/verification/S1-EVIDENCE.json"
+        evidence_rel = "docs/verification/S1-EVIDENCE.json"
+        spec = smoke_segments._load_full_invocation_spec()
+        for scenario_id in s1["scenarios"]:
+            scenario = smoke_segments._scenario_definition(spec, scenario_id)
+            for subprobe in scenario["subprobes"]:
+                if subprobe["required"]:
+                    smoke_segments.register_scenario_evidence(
+                        self.repo,
+                        self.run_id,
+                        scenario_id,
+                        subprobe["id"],
+                        ["scored PASS for focused H08 test"],
+                        [evidence_rel],
+                        self.started + dt.timedelta(minutes=1),
+                    )
+        return s1, evidence_rel
 
     def test_snapshot_pins_six_segments_and_derived_allowance(self):
         self._init_full()
@@ -154,14 +169,14 @@ class SmokeSegmentsTests(unittest.TestCase):
                 self.repo,
                 self.run_id,
                 self.root,
-                [evidence],
+                None,
                 self.started + dt.timedelta(minutes=20),
             )
             replay = smoke_segments.close_segment(
                 self.repo,
                 self.run_id,
                 self.root,
-                [evidence],
+                None,
                 self.started + dt.timedelta(minutes=21),
             )
             opened = smoke_segments.open_next_segment(
@@ -184,6 +199,54 @@ class SmokeSegmentsTests(unittest.TestCase):
         state = smoke_state.load(self.repo, self.run_id)
         self.assertIsNone(state["context_index"]["segment_runtime"]["gap"])
 
+    def test_close_rejects_unscored_required_subprobe(self):
+        self._init_full()
+        pinned = smoke_segments.assert_config_intact(self.repo, self.run_id)
+        s1 = pinned["segments"][0]
+        smoke_state.set_values(
+            self.repo,
+            self.run_id,
+            {
+                "completed_scenarios": list(s1["scenarios"]),
+                "pending_scenarios": [],
+            },
+        )
+        evidence = self.repo / "docs/verification/S1-EVIDENCE.json"
+        evidence.parent.mkdir(parents=True, exist_ok=True)
+        evidence.write_text('{"result":"PASS"}\n', encoding="utf-8")
+        spec = smoke_segments._load_full_invocation_spec()
+        skipped = False
+        for scenario_id in s1["scenarios"]:
+            scenario = smoke_segments._scenario_definition(spec, scenario_id)
+            for subprobe in scenario["subprobes"]:
+                if subprobe["required"]:
+                    if not skipped:
+                        skipped = True
+                        continue
+                    smoke_segments.register_scenario_evidence(
+                        self.repo,
+                        self.run_id,
+                        scenario_id,
+                        subprobe["id"],
+                        ["scored PASS except one intentionally missing subprobe"],
+                        ["docs/verification/S1-EVIDENCE.json"],
+                        self.started + dt.timedelta(minutes=1),
+                    )
+        source_guard = {"source_checkout_path": str(self.root), "fingerprint": "a" * 64}
+        checkpoint = {"checkpoint": "CP-REVIEWED", "result": "MATCH"}
+        with mock.patch.object(smoke_segments.smoke_workspace, "source_guard",
+                               return_value=source_guard), \
+             mock.patch.object(smoke_segments.smoke_mechanics, "check_checkpoint",
+                               return_value=checkpoint):
+            with self.assertRaises(smoke_segments.SegmentError):
+                smoke_segments.close_segment(
+                    self.repo,
+                    self.run_id,
+                    self.root,
+                    None,
+                    self.started + dt.timedelta(minutes=20),
+                )
+
     def test_stage_start_is_blocked_between_segments(self):
         self._init_full()
         _s1, evidence = self._complete_s1()
@@ -197,7 +260,7 @@ class SmokeSegmentsTests(unittest.TestCase):
                 self.repo,
                 self.run_id,
                 self.root,
-                [evidence],
+                None,
                 self.started + dt.timedelta(minutes=20),
             )
 
@@ -225,7 +288,7 @@ class SmokeSegmentsTests(unittest.TestCase):
                 self.repo,
                 self.run_id,
                 self.root,
-                [evidence],
+                None,
                 self.started + dt.timedelta(minutes=20),
             )
 
@@ -246,7 +309,7 @@ class SmokeSegmentsTests(unittest.TestCase):
                 self.repo,
                 self.run_id,
                 self.root,
-                [evidence],
+                None,
                 self.started + dt.timedelta(minutes=20),
             )
 
