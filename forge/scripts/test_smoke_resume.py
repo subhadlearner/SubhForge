@@ -245,13 +245,13 @@ class SmokeResumeTests(unittest.TestCase):
             '"status": "WAIVER_BLOCKED"',
             refusal.read_text(encoding="utf-8"),
         )
-        self.assertFalse(
-            any(
-                path.name.startswith("WAIVER-")
-                for path in (self.repo / "docs/verification/waivers").glob("*")
-            )
-            if (self.repo / "docs/verification/waivers").exists()
-            else False
+        # restore() must return the exact pre-probe snapshot. The active-waiver
+        # fixture was intentionally present before prepare(), so it reappears
+        # only after restoration; it was already asserted absent during routing.
+        self.assertTrue(active_waiver.is_file())
+        self.assertEqual(
+            "# Active waiver fixture\n",
+            active_waiver.read_text(encoding="utf-8"),
         )
 
     def test_r06_stale_verification_is_real_identity_mismatch(self):
