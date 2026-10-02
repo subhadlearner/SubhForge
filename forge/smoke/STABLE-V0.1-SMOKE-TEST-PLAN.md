@@ -1395,11 +1395,16 @@ referenced evidence/access, **not** by an unanswered product decision.
 
 1. preseed normal `DISC-001` with stable settled decision IDs plus one
    `BLOCKED_ON_EVIDENCE` decision using `smoke_h08b.py seed-discovery`
-2. run `/grill` and require `DISCOVERY_BLOCKED`
-3. score the blocked artifact with `smoke_h08b.py score-discovery --phase blocked --status DISCOVERY_BLOCKED`
+2. bracket a real `/grill` child with the normal smoke invocation ledger
+   (`scenario=grill`, `stage=grill`) and parse its actual terminal status
+3. score the blocked artifact with
+   `smoke_h08b.py score-discovery --phase blocked --status <actual>`; never
+   substitute the expected status for the child's returned value
 4. restore exactly the referenced evidence with `smoke_h08b.py restore-evidence`
-5. rerun `/grill` in continuation mode without renumbering/reopening settled decisions
-6. score the resumed artifact with `--phase resumed --status DISCOVERY_READY`
+5. rerun a second real `/grill` child in continuation mode, again ledgered as
+   `scenario=grill`, `stage=grill`, without renumbering/reopening settled decisions
+6. parse that child's actual status and score with
+   `--phase resumed --status <actual>`
 
 A separate PRD probe, not the discovery probe, withholds an approved product
 decision and proves PRD block/resume behavior.
@@ -1420,9 +1425,13 @@ DISCOVERY_READY → /prd
 
 Before the normal main PRD path, prove the explicit ceremony-skip branch with
 `smoke_h08b.py begin-direct-prd`. The harness temporarily protects/removes
-`DISC-001`; invoke exactly one user-selected clear-intent Sol `/prd` targeting
-`docs/prd/PRD-H08B-DIRECT.md`, require `score-direct-prd` PASS with zero
-discovery artifacts, then `restore-direct-prd` to restore exact discovery bytes.
+`DISC-001`; invoke exactly one user-selected clear-intent Sol `/prd`, ledgered
+as `scenario=grill`, `stage=prd`, targeting
+`docs/prd/PRD-H08B-DIRECT.md`. Parse the actual status and require
+`score-direct-prd` PASS with zero discovery artifacts. The scorer retains the
+actual PRD bytes under protected smoke evidence before `restore-direct-prd`
+deletes the isolated normal artifact and restores exact discovery bytes. Register
+both the score path and retained PRD evidence path for S1 close.
 
 For the main PRD path, `seed-product-decision` stores the approved answer only
 in protected smoke data. The first Sol PRD call receives the ambiguous product
@@ -1662,11 +1671,21 @@ or:
 PROJECT_INIT_BLOCKED
 ```
 
-For H08b, after a successful Luna result of `PROJECT_INIT_READY`, run
-`smoke_h08b.py score-project-init-policy --status PROJECT_INIT_READY`.
+For H08b, use a fresh `h08b-luna-probe` for the successful
+`/project-init` call, ledgered as
+`scenario=project-init-contract-propagation`, `stage=project-init`.
+Do not tell the child the expected terminal status. Parse the actual result and
+run `smoke_h08b.py score-project-init-policy --status <actual>`.
 It must prove the project `AGENTS.md` records the exact bootstrap-pinned
-waiver policy source, SHA-256, non-waivable failure types, and waivable failure
-types before the successful project-init subprobe is accepted.
+waiver policy source, SHA-256, failure-type mappings, and synchronized canonical
+Contract-v1.
+
+For the independent negative, run
+`begin-project-init-negative → score-project-init-helper → fresh h08b-luna-probe
+/project-init → score-project-init-luna --status <actual> →
+restore-project-init-negative`. The prepared branch removes the project
+canonical Contract-v1 file. The negative must remain blocked and must not invent
+a substitute contract.
 
 ## Blocked routing
 
@@ -2395,9 +2414,12 @@ The verification report should identify the failing test and acceptance criterio
 
 ### Required policy-ineligible /waive probe before /fix
 
-Before repair, invoke the single H08-budgeted Luna `/waive` call against this
-same behavioral-test `NOT_DONE` report. The fixed FULL fixture policy must make
-`BEHAVIORAL_TEST` non-waivable.
+Before repair, invoke the single H08-budgeted Luna `/waive` call through a
+fresh `h08b-luna-probe`, ledgered as `scenario=direct-fix-loop`,
+`stage=waive`, against this same behavioral-test `NOT_DONE` report. Do not
+provide the expected terminal status or reason to the child. The fixed FULL
+fixture policy must make `BEHAVIORAL_TEST` non-waivable; the run-scoped scorer
+must independently require `POLICY_INELIGIBLE`.
 
 Expected:
 
