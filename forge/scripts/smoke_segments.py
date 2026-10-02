@@ -264,6 +264,17 @@ def _validate_invocation_spec(spec: dict, required_scenarios: list[str]) -> None
             baseline_by_owner[owner] += 1
             baseline_by_segment[scenario["segment"]] += 1
 
+    evidence_contract = spec.get("scenario_evidence_contract")
+    if not isinstance(evidence_contract, dict):
+        raise SegmentError("FULL invocation spec must declare scenario_evidence_contract")
+    if evidence_contract.get("model_bearing_subprobes_require_file_evidence") is not True:
+        raise SegmentError("Model-bearing subprobes must require file evidence")
+    if evidence_contract.get("helper_bound_segments") != {
+        "S5": "docs/verification/smoke/<run-id>.resume.json",
+        "S6": "docs/verification/smoke/<run-id>.reroute.json",
+    }:
+        raise SegmentError("S5/S6 helper-bound evidence contract is invalid")
+
     if optional != ["S4.adversarial-reconcile-only.optional-adversary-recheck"]:
         raise SegmentError("Only the S4 adversarial recheck may be optional")
     if budget.get("only_optional_extra") != optional[0]:
