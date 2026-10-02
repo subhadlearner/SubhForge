@@ -220,7 +220,6 @@ class SmokeBudgetTests(unittest.TestCase):
         during = smoke_budget.check(
             self.repo,
             self.run_id,
-            30,
             self.started + dt.timedelta(hours=2, minutes=10),
         )
         self.assertEqual("WITHIN_BUDGET", during["result"])
@@ -238,7 +237,6 @@ class SmokeBudgetTests(unittest.TestCase):
         after = smoke_budget.check(
             self.repo,
             self.run_id,
-            30,
             self.started + dt.timedelta(hours=2, minutes=15),
         )
         self.assertEqual("WITHIN_BUDGET", after["result"])
@@ -273,7 +271,6 @@ class SmokeBudgetTests(unittest.TestCase):
         result = smoke_budget.check(
             self.repo,
             self.run_id,
-            30,
             self.started + dt.timedelta(minutes=60),
         )
         self.assertEqual("WITHIN_BUDGET", result["result"])
@@ -542,7 +539,6 @@ class SmokeBudgetTests(unittest.TestCase):
             smoke_budget.check(
                 self.repo,
                 self.run_id,
-                30,
                 self.started + dt.timedelta(minutes=30),
             )
 
@@ -558,7 +554,6 @@ class SmokeBudgetTests(unittest.TestCase):
             smoke_budget.check(
                 self.repo,
                 self.run_id,
-                30,
                 self.started + dt.timedelta(minutes=10),
             )
 
@@ -619,19 +614,19 @@ class SmokeBudgetTests(unittest.TestCase):
                 rooted_guard=self.rooted,
             )
 
-    def test_old_budget_file_without_stage_ledger_remains_compatible(self):
+    def test_old_budget_file_without_stage_ledger_fails_closed_for_segmented_full(self):
         path = self.repo / "docs/verification/smoke" / f"{self.run_id}.budget.json"
         path.write_text(
             json.dumps({"started_at_utc": self.started.isoformat()}),
             encoding="utf-8",
         )
 
-        result = smoke_budget.stage_start(
-            self.repo, self.run_id, "grill", "openai/gpt-5.6-sol", self.started,
-            source_fingerprint=self.source_fingerprint,
-            rooted_guard=self.rooted,
-        )
-        self.assertEqual("grill-001", result["invocation_id"])
+        with self.assertRaises(smoke_budget.BudgetError):
+            smoke_budget.stage_start(
+                self.repo, self.run_id, "grill", "openai/gpt-5.6-sol", self.started,
+                source_fingerprint=self.source_fingerprint,
+                rooted_guard=self.rooted,
+            )
 
     def _budget_file(self):
         return json.loads((self.repo / "docs/verification/smoke" /
