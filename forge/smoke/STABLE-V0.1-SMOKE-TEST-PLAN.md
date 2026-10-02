@@ -1662,6 +1662,12 @@ or:
 PROJECT_INIT_BLOCKED
 ```
 
+For H08b, after a successful Luna result of `PROJECT_INIT_READY`, run
+`smoke_h08b.py score-project-init-policy --status PROJECT_INIT_READY`.
+It must prove the project `AGENTS.md` records the exact bootstrap-pinned
+waiver policy source, SHA-256, non-waivable failure types, and waivable failure
+types before the successful project-init subprobe is accepted.
+
 ## Blocked routing
 
 Architecture conflict/missing decision:
@@ -1718,11 +1724,6 @@ Require:
 - `ARCHITECTURE_READY`
 - `PROJECT_INIT_READY`
 
-For H08b, immediately score the successful initialization with
-`smoke_h08b.py score-project-init-policy`. It must prove the project
-`AGENTS.md` records the exact bootstrap-pinned waiver policy source, SHA-256,
-non-waivable failure types, and waivable failure types before the successful
-project-init subprobe is accepted.
 - project `AGENTS.md` aligned with approved stack
 
 ## Expected behavior
