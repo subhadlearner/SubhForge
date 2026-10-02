@@ -117,6 +117,7 @@ class SmokeH08bTests(unittest.TestCase):
         seeded = smoke_h08b.seed_discovery(self.repo, self.run_id)
         self.assertFalse((self.repo / seeded["required_evidence_path"]).exists())
 
+        self._complete_stage("grill", "grill")
         blocked = smoke_h08b.score_discovery(
             self.repo, self.run_id, "blocked", "DISCOVERY_BLOCKED"
         )
@@ -133,6 +134,7 @@ class SmokeH08bTests(unittest.TestCase):
             "| DEC-001 | OPEN | Changed value | - |",
         )
         discovery.write_text(text, encoding="utf-8")
+        self._complete_stage("grill", "grill")
 
         result = smoke_h08b.score_discovery(
             self.repo, self.run_id, "blocked", "DISCOVERY_BLOCKED"
@@ -152,6 +154,13 @@ class SmokeH08bTests(unittest.TestCase):
         self.assertTrue(score_path.is_file())
         self.assertTrue((self.repo / smoke_h08b.DISCOVERY_PATH).is_file())
         self.assertFalse((self.repo / smoke_h08b.DIRECT_PRD_PATH).exists())
+        self.assertTrue((self.repo / scored["prd_evidence_path"]).is_file())
+        self.assertEqual(
+            scored["prd_evidence_sha256"],
+            hashlib.sha256(
+                (self.repo / scored["prd_evidence_path"]).read_bytes()
+            ).hexdigest(),
+        )
 
     def test_main_prd_blocks_until_approved_product_decision_is_revealed(self):
         self._make_discovery_ready()
@@ -222,17 +231,64 @@ class SmokeH08bTests(unittest.TestCase):
         self.assertTrue((self.repo / scored["score_path"]).is_file())
 
     def test_project_init_negative_scores_helper_and_luna_separately(self):
+        policy = {
+            "policy_id": "SMOKE-FULL-WAIVER-POLICY-V1",
+            "non_waivable_failure_types": ["BEHAVIORAL_TEST"],
+            "waivable_failure_types": ["DOCUMENTATION_QUALITY", "LINT_QUALITY"],
+            "purpose": "H08b fixed failure-type waiver policy.",
+        }
+        written = smoke_h08b.write_fixture_policy(
+            self.repo, policy, self.run_id
+        )
+        agents = self.repo / "AGENTS.md"
+        agents.write_text(
+            "Waiver Policy Source: {}\n"
+            "Waiver Policy SHA-256: {}\n"
+            "Non-waivable Failure Types: BEHAVIORAL_TEST\n"
+            "Waivable Failure Types: DOCUMENTATION_QUALITY, LINT_QUALITY\n".format(
+                smoke_h08b.POLICY_PATH,
+                written["sha256"],
+            ),
+            encoding="utf-8",
+        )
+        canonical = self.repo / smoke_h08b.CANONICAL_CONTRACT_PATH
+        canonical.parent.mkdir(parents=True, exist_ok=True)
+        canonical.write_text("implementation-state-evidence-v1\n", encoding="utf-8")
+        self._complete_stage(
+            "project-init-contract-propagation", "project-init"
+        )
+        positive = smoke_h08b.score_project_init_policy_propagation(
+            self.repo, self.run_id, "PROJECT_INIT_READY"
+        )
+        self.assertEqual("PASS", positive["result"])
+
+        self._init_git_smoke_run()
+        prepared = smoke_h08b.begin_project_init_negative(
+            self.repo, self.run_id
+        )
+        self.assertTrue(prepared["canonical_contract_absent"])
+        self.assertFalse(canonical.exists())
+
         helper = smoke_h08b.score_project_init_helper_rejection(
             self.repo, self.run_id
         )
         self.assertEqual("PASS", helper["result"])
         self.assertTrue((self.repo / helper["score_path"]).is_file())
 
+        self._complete_stage(
+            "project-init-contract-propagation", "project-init"
+        )
         luna = smoke_h08b.score_project_init_luna(
             self.repo, self.run_id, "PROJECT_INIT_BLOCKED"
         )
         self.assertEqual("PASS", luna["result"])
         self.assertTrue((self.repo / luna["score_path"]).is_file())
+
+        restored = smoke_h08b.restore_project_init_negative(
+            self.repo, self.run_id
+        )
+        self.assertEqual("MATCH", restored["result"])
+        self.assertTrue(canonical.is_file())
 
     def test_prd_scoring_requires_harness_preparation(self):
         prd = self.repo / smoke_h08b.DIRECT_PRD_PATH
@@ -285,19 +341,7 @@ class SmokeH08bTests(unittest.TestCase):
 
     def test_policy_ineligible_refusal_binds_report_policy_and_has_no_auth_or_wait(self):
         refusal = self._write_refusal("POLICY_INELIGIBLE")
-        budget = self.repo / "docs/verification/smoke" / f"{self.run_id}.budget.json"
-        budget.write_text(
-            json.dumps(
-                {
-                    "started_at_utc": "2026-10-02T00:00:00+00:00",
-                    "stage_invocations": [],
-                    "human_wait_intervals": [],
-                    "continuation_blocker": None,
-                }
-            )
-            + "\n",
-            encoding="utf-8",
-        )
+        self._complete_stage("direct-fix-loop", "waive")
 
         result = smoke_h08b.validate_refusal(
             self.repo, refusal.relative_to(self.repo).as_posix(), self.run_id
@@ -306,7 +350,7 @@ class SmokeH08bTests(unittest.TestCase):
         self.assertEqual("PASS", result["result"])
         self.assertEqual("POLICY_INELIGIBLE", result["reason_code"])
 
-        data = json.loads(budget.read_text(encoding="utf-8"))
+        data = json.loads(self.budget.read_text(encoding="utf-8"))
         data["human_wait_intervals"].append(
             {
                 "gate_type": "WAIVER_AUTHORIZATION",
@@ -315,10 +359,43 @@ class SmokeH08bTests(unittest.TestCase):
                 },
             }
         )
-        budget.write_text(json.dumps(data) + "\n", encoding="utf-8")
+        self.budget.write_text(json.dumps(data) + "\n", encoding="utf-8")
         with self.assertRaises(smoke_h08b.H08bError):
             smoke_h08b.validate_refusal(
                 self.repo, refusal.relative_to(self.repo).as_posix(), self.run_id
+            )
+
+    def test_discovery_score_requires_completed_grill_invocation(self):
+        smoke_h08b.seed_discovery(self.repo, self.run_id)
+        with self.assertRaises(smoke_h08b.H08bError):
+            smoke_h08b.score_discovery(
+                self.repo, self.run_id, "blocked", "DISCOVERY_BLOCKED"
+            )
+
+    def test_run_scoped_refusal_rejects_authorization_missing_reason(self):
+        refusal = self._write_refusal("AUTHORIZATION_MISSING")
+        self._complete_stage("direct-fix-loop", "waive")
+        with self.assertRaises(smoke_h08b.H08bError):
+            smoke_h08b.validate_refusal(
+                self.repo, refusal.relative_to(self.repo).as_posix(), self.run_id
+            )
+
+    def test_resumed_prd_requires_prior_blocked_pass_and_revealed_decision(self):
+        self._make_discovery_ready()
+        self._complete_direct_prd_probe()
+        smoke_h08b.seed_product_decision(self.repo, self.run_id)
+        smoke_h08b.reveal_product_decision(self.repo, self.run_id)
+        prd = self.repo / smoke_h08b.MAIN_PRD_PATH
+        prd.parent.mkdir(parents=True, exist_ok=True)
+        prd.write_text(
+            "# Main PRD\nStatus: PRD_READY\n",
+            encoding="utf-8",
+        )
+        self._complete_stage("prd", "prd")
+        self._complete_stage("prd", "prd")
+        with self.assertRaises(smoke_h08b.H08bError):
+            smoke_h08b.score_prd_phase(
+                self.repo, self.run_id, "resumed", "PRD_READY"
             )
 
     def test_authorization_missing_refusal_is_distinct(self):
