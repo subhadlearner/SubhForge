@@ -64,6 +64,17 @@
         "language": "Python",
         "minimum_version": "3.8",
         "dependency_policy": "standard-library-preferred"
+      },
+      "waiver_policy": {
+        "policy_id": "SMOKE-FULL-WAIVER-POLICY-V1",
+        "non_waivable_failure_types": [
+          "BEHAVIORAL_TEST"
+        ],
+        "waivable_failure_types": [
+          "DOCUMENTATION_QUALITY",
+          "LINT_QUALITY"
+        ],
+        "purpose": "Fixed H08b policy proving that behavioral-test failures are rejected before human authorization while a separate safe quality failure remains waivable."
       }
     },
     {
