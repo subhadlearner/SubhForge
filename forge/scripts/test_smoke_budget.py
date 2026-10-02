@@ -49,6 +49,7 @@ class SmokeBudgetTests(unittest.TestCase):
             self.run_id,
             None,
             self.started.isoformat(),
+            source_fingerprint="a" * 64,
         )
         smoke_state.set_values(
             self.repo,
