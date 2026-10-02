@@ -211,6 +211,7 @@ It must also ensure the standard workflow artifact directories exist, including:
 - `docs/diagnostics/`
 - `docs/verification/`
 - `docs/verification/waivers/`
+- `docs/verification/waiver-refusals/`
 - `docs/verification/smoke/`
 - `docs/reviews/`
 - `docs/workflow/`
@@ -658,6 +659,11 @@ RUN_VERIFY
 ```
 
 A waiver never turns a failed check into a pass.
+
+Blocked waiver attempts are historical evidence under
+`docs/verification/waiver-refusals/`. They are never active waivers and never
+establish `CLEAR_WITH_EXCEPTION`; active-waiver lookup remains restricted to
+`docs/verification/waivers/`.
 
 ## Review Workflow
 
