@@ -518,6 +518,10 @@ def start(repo: Path, run_id: str, now: Optional[dt.datetime] = None) -> dict:
 def check(repo: Path, run_id: str,
           now: Optional[dt.datetime] = None) -> dict:
     """Check the pinned qualification budget; callers cannot supply a limit."""
+    if isinstance(now, (int, float)) and not isinstance(now, bool):
+        raise BudgetError(
+            "Numeric performance-budget overrides are not supported; use the pinned profile limit"
+        )
     _, data = _load(repo, run_id)
     state = smoke_state.load(repo, run_id)
     current = _current_time(now, "Budget check timestamp")
@@ -755,6 +759,14 @@ def stage_start(repo: Path, run_id: str, stage: str, model: str,
         raise BudgetError("Pinned smoke performance budget is exhausted")
     try:
         segment_id, scenario_id = smoke_segments.stage_ownership(repo, run_id)
+        state = smoke_state.load(repo, run_id)
+        if state.get("profile") == "FULL":
+            active = smoke_segments.active_segment(repo, run_id)
+            expected_source = active.get("source_fingerprint")
+            if not isinstance(expected_source, str):
+                raise BudgetError("ACTIVE FULL segment is missing its protected source fingerprint")
+            if source_fingerprint.lower() != expected_source:
+                raise BudgetError("Stage source fingerprint does not match ACTIVE segment source identity")
     except smoke_segments.SegmentError as exc:
         raise BudgetError(str(exc)) from exc
     path, data = _load(repo, run_id)
