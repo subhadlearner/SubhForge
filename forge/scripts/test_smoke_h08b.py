@@ -23,7 +23,9 @@ class SmokeH08bTests(unittest.TestCase):
         seeded = smoke_h08b.seed_discovery(self.repo, self.run_id)
         self.assertFalse((self.repo / seeded["required_evidence_path"]).exists())
 
-        blocked = smoke_h08b.score_discovery(self.repo, self.run_id, "blocked")
+        blocked = smoke_h08b.score_discovery(
+            self.repo, self.run_id, "blocked", "DISCOVERY_BLOCKED"
+        )
 
         self.assertEqual("PASS", blocked["result"])
         self.assertEqual(["DEC-001"], blocked["settled_decision_ids"])
@@ -53,7 +55,9 @@ class SmokeH08bTests(unittest.TestCase):
         )
         discovery.write_text(text, encoding="utf-8")
 
-        result = smoke_h08b.score_discovery(self.repo, self.run_id, "resumed")
+        result = smoke_h08b.score_discovery(
+            self.repo, self.run_id, "resumed", "DISCOVERY_READY"
+        )
 
         self.assertEqual("PASS", result["result"])
 
@@ -129,7 +133,7 @@ class SmokeH08bTests(unittest.TestCase):
         )
 
         scored = smoke_h08b.score_project_init_policy_propagation(
-            self.repo, self.run_id
+            self.repo, self.run_id, "PROJECT_INIT_READY"
         )
 
         self.assertEqual("PASS", scored["result"])
