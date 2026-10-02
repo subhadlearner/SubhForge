@@ -1227,8 +1227,12 @@ orchestrator MUST:
    ledger drift disqualifies the qualification and must not be repaired in-gap
 7. use `smoke_segments.py ... report` for configured allowance, aggregate charged
    active time, excluded H07 waits, recorded inter-segment gaps, and total wall time.
-   The report revalidates the complete closed evidence/ledger chain; a terminal FULL
-   PASS transition performs the same byte-level revalidation again.
+   The report revalidates the complete closed evidence/ledger chain. Integrity drift
+   disqualifies the qualification but does not suppress diagnostics: the report still
+   returns `qualification_eligible: false`, the persisted disqualification reason,
+   `integrity_status: FAILED`, and the integrity error alongside safely reconstructable
+   timing/gap data. A terminal FULL PASS transition performs byte-level revalidation
+   again and remains fail-closed.
 
 The complete accepted evidence membership is derived from the immutable per-segment
 scenario-evidence index; callers do not select a smaller close manifest. A segment
