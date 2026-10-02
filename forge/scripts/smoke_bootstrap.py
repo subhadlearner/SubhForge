@@ -90,7 +90,7 @@ def bootstrap(
             raise SmokeBootstrapError(
                 "FULL smoke fixture must define a fixed waiver_policy"
             )
-        smoke_h08b.write_fixture_policy(repo, waiver_policy)
+        smoke_h08b.write_fixture_policy(repo, waiver_policy, run_id)
 
     budget = smoke_budget.start(repo, run_id)
     smoke_segments.pin_qualification(
