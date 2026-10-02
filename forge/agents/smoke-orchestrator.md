@@ -101,8 +101,11 @@ behavior.
 7. For the separate user-selected clear-intent direct-PRD branch, run
    `smoke_h08b.py begin-direct-prd`. This temporarily removes only the normal
    discovery artifact into protected smoke snapshot evidence. Invoke one GPT-5.6
-   Sol `/prd` with the explicit user-selected clear intent and exact expected
-   path `docs/prd/PRD-H08B-DIRECT.md`. Parse its actual terminal status and run
+   Sol `/prd` with an explicit harness-owned clear-intent packet representing
+   user-selected requirements, including the complete valid-input behavior, and
+   exact expected path `docs/prd/PRD-H08B-DIRECT.md`. This packet is scoped only
+   to the isolated direct branch and must not be carried into the later main PRD
+   negative. Parse its actual terminal status and run
    `score-direct-prd --status <actual>`; require PASS and zero discovery
    artifacts. Then run `restore-direct-prd` to delete the isolated PRD and
    restore the exact discovery bytes. This proves an explicitly selected skip,
@@ -115,8 +118,11 @@ behavior.
    call with that exact path, and require `score-prd --phase resumed` PASS
    with actual `PRD_READY`. Do not turn missing evidence into a user-decision
    blocker or vice versa.
-9. For project-init contract propagation, retain the successful Luna call. Immediately
-   after it returns `PROJECT_INIT_READY`, run
+9. For project-init contract propagation, retain the successful Luna call and include
+   `docs/workflow/H08B-FIXTURE-WAIVER-POLICY.json` as an exact authoritative
+   `CONTEXT_PATHS` input alongside the canonical evidence contract. The Luna
+   child must not rediscover or reinterpret that mapping. Immediately after it
+   returns `PROJECT_INIT_READY`, run
    `smoke_h08b.py score-project-init-policy --status PROJECT_INIT_READY` and require PASS so the project
    `AGENTS.md` is proven to preserve the bootstrap-pinned waiver-policy path,
    digest, and exact failure-type mappings. For the negative pair, first run
