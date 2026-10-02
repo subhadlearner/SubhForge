@@ -141,6 +141,8 @@ class SmokeH08bTests(unittest.TestCase):
         policy_data = {
             "policy_id": "SMOKE-FULL-WAIVER-POLICY-V1",
             "non_waivable_failure_types": ["BEHAVIORAL_TEST"],
+            "waivable_failure_types": ["DOCUMENTATION_QUALITY", "LINT_QUALITY"],
+            "purpose": "H08b fixed failure-type waiver policy.",
         }
         smoke_h08b.write_fixture_policy(self.repo, policy_data, self.run_id)
         policy = self.repo / smoke_h08b.POLICY_PATH
@@ -245,6 +247,8 @@ class SmokeH08bTests(unittest.TestCase):
             {
                 "policy_id": "SMOKE-FULL-WAIVER-POLICY-V1",
                 "non_waivable_failure_types": ["BEHAVIORAL_TEST"],
+                "waivable_failure_types": ["DOCUMENTATION_QUALITY", "LINT_QUALITY"],
+                "purpose": "H08b fixed failure-type waiver policy.",
             },
         )
         self.assertEqual(smoke_h08b.POLICY_PATH, result["path"])
