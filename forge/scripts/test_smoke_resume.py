@@ -205,6 +205,44 @@ class SmokeResumeTests(unittest.TestCase):
         )
         self.score_and_restore("r05")
 
+    def test_h05_resume_preserves_historical_waiver_refusal_as_non_active_evidence(self):
+        refusal = (
+            self.repo
+            / "docs/verification/waiver-refusals"
+            / "WAIVER-REFUSAL-SPEC-001-001.json"
+        )
+        refusal.parent.mkdir(parents=True, exist_ok=True)
+        refusal.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "status": "WAIVER_BLOCKED",
+                    "reason_code": "POLICY_INELIGIBLE",
+                },
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        self.prepare("r05")
+        self.assertTrue(refusal.is_file())
+        self.score_and_restore("r05")
+
+        self.assertTrue(refusal.is_file())
+        self.assertIn(
+            '"status": "WAIVER_BLOCKED"',
+            refusal.read_text(encoding="utf-8"),
+        )
+        self.assertFalse(
+            any(
+                path.name.startswith("WAIVER-")
+                for path in (self.repo / "docs/verification/waivers").glob("*")
+            )
+            if (self.repo / "docs/verification/waivers").exists()
+            else False
+        )
+
     def test_r06_stale_verification_is_real_identity_mismatch(self):
         before = (self.repo / "app.py").read_bytes()
         self.prepare("r06")
