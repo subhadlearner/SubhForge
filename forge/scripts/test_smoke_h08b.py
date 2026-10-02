@@ -219,6 +219,9 @@ class SmokeH08bTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
+        canonical = self.repo / smoke_h08b.CANONICAL_CONTRACT_PATH
+        canonical.parent.mkdir(parents=True, exist_ok=True)
+        canonical.write_text("implementation-state-evidence-v1\n", encoding="utf-8")
 
         self._complete_stage(
             "project-init-contract-propagation", "project-init"
@@ -408,6 +411,22 @@ class SmokeH08bTests(unittest.TestCase):
         self.assertEqual("PASS", result["result"])
         self.assertEqual("AUTHORIZATION_MISSING", result["reason_code"])
 
+    def test_failure_type_unavailable_is_valid_generic_refusal_reason(self):
+        refusal = self._write_refusal("AUTHORIZATION_MISSING")
+        record = json.loads(refusal.read_text(encoding="utf-8"))
+        record["reason_code"] = "FAILURE_TYPE_UNAVAILABLE"
+        record["requested_failure_types"] = []
+        record["authorization_requested"] = False
+        record["classification"] = None
+        refusal.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+
+        result = smoke_h08b.validate_refusal(
+            self.repo, refusal.relative_to(self.repo).as_posix()
+        )
+
+        self.assertEqual("PASS", result["result"])
+        self.assertEqual("FAILURE_TYPE_UNAVAILABLE", result["reason_code"])
+
     def test_policy_mutation_after_bootstrap_fails_closed(self):
         refusal = self._write_refusal("POLICY_INELIGIBLE")
         policy = self.repo / smoke_h08b.POLICY_PATH
@@ -417,6 +436,7 @@ class SmokeH08bTests(unittest.TestCase):
         record = json.loads(refusal.read_text(encoding="utf-8"))
         record["policy_sha256"] = hashlib.sha256(policy.read_bytes()).hexdigest()
         refusal.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+        self._complete_stage("direct-fix-loop", "waive")
 
         with self.assertRaises(smoke_h08b.H08bError):
             smoke_h08b.validate_refusal(
