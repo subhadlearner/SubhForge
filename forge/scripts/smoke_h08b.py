@@ -770,8 +770,25 @@ def validate_refusal(
     if record.get("schema_version") != 1 or record.get("status") != "WAIVER_BLOCKED":
         raise H08bError("Waiver refusal status/schema is invalid")
     reason = record.get("reason_code")
-    if reason not in {"POLICY_INELIGIBLE", "AUTHORIZATION_MISSING"}:
+    supported_reasons = {
+        "POLICY_INELIGIBLE",
+        "AUTHORIZATION_MISSING",
+        "FAILURE_TYPE_UNAVAILABLE",
+    }
+    if reason not in supported_reasons:
         raise H08bError("Waiver refusal reason_code is unsupported")
+    if run_id is not None:
+        if reason != "POLICY_INELIGIBLE":
+            raise H08bError(
+                "H08b S2 refusal score requires reason_code POLICY_INELIGIBLE"
+            )
+        _require_completed_invocations(
+            repo,
+            run_id,
+            scenario_id="direct-fix-loop",
+            stage="waive",
+            minimum_count=1,
+        )
 
     report_rel = _safe_rel(record.get("verification_report"))
     report = _path(repo, report_rel)
@@ -795,9 +812,12 @@ def validate_refusal(
         or len(ids) != len(set(ids))
         or not all(isinstance(item, str) and item for item in ids)
         or not isinstance(types, list)
-        or not types
         or len(types) != len(set(types))
         or not all(isinstance(item, str) and item for item in types)
+        or (
+            reason != "FAILURE_TYPE_UNAVAILABLE"
+            and not types
+        )
     ):
         raise H08bError("Waiver refusal failure identity is invalid")
     for failure_id in ids:
@@ -880,10 +900,16 @@ def validate_refusal(
             raise H08bError(
                 "POLICY_INELIGIBLE refusal is not supported by the fixed failure-type policy"
             )
-    elif auth_requested is not True or receipt is not False:
-        raise H08bError(
-            "AUTHORIZATION_MISSING must record that authorization was requested without a receipt"
-        )
+    elif reason == "AUTHORIZATION_MISSING":
+        if auth_requested is not True or receipt is not False:
+            raise H08bError(
+                "AUTHORIZATION_MISSING must record that authorization was requested without a receipt"
+            )
+    else:
+        if auth_requested is not False or receipt is not False:
+            raise H08bError(
+                "FAILURE_TYPE_UNAVAILABLE must stop before authorization"
+            )
 
     fingerprint = record.get("implementation_state_fingerprint")
     if fingerprint is not None and (
