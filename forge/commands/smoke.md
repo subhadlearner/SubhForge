@@ -206,6 +206,7 @@ For a new run:
      --run-id <run-id> \
      --profile <FAST|FULL> \
      --fixture <fixture-id> \
+     --source <source_checkout_path> \
      --source-commit <source_commit> \
      --baseline-head <baseline_head> \
      --required-contract <global-config>/contracts/implementation-state-evidence-v1.md \
@@ -215,6 +216,8 @@ For a new run:
    This single helper is authoritative for:
    - path-aware Contract-v1 parity
    - canonical `<run-id>.state.json` initialization
+   - source-checkout fingerprint pinning
+   - pinned profile/invocation snapshot and S1 ACTIVE transition
    - elapsed-time budget initialization
    - deterministic Phase 0 static release validation
    - persistence of the `static-release-gate` scenario transition and timing
