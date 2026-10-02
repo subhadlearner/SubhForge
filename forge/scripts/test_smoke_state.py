@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import smoke_segments
@@ -39,11 +40,42 @@ class SmokeStateTests(unittest.TestCase):
         runtime["active_segment"] = None
         runtime["active_status"] = None
         runtime["active_started_at_utc"] = None
+        runtime["active_source_fingerprint"] = None
         runtime["gap"] = None
-        runtime["closed_segments"] = [
-            {"segment_id": segment_id, "status": "COMPLETED"}
-            for segment_id in ("S1", "S2", "S3", "S4", "S5", "S6")
-        ]
+        runtime["gaps"] = []
+        runtime["disqualification_reason"] = None
+        closed = []
+        for index, segment in enumerate(context["qualification_config"]["segments"]):
+            checkpoint = segment["close_checkpoint"]
+            verified = (
+                segment["start_checkpoint"]
+                if checkpoint == "QUALIFICATION_EVIDENCE_READY"
+                else checkpoint
+            )
+            closed.append({
+                "segment_id": segment["id"],
+                "status": "COMPLETED",
+                "started_at_utc": "2026-09-27T00:00:00+00:00",
+                "closed_at_utc": "2026-09-27T00:10:00+00:00",
+                "charged_elapsed_seconds": 600.0,
+                "excluded_human_wait_seconds": 0.0,
+                "configured_limit_minutes": segment["limit_minutes"],
+                "assigned_scenarios": list(segment["scenarios"]),
+                "completed_scenarios": list(segment["scenarios"]),
+                "checkpoint": checkpoint,
+                "verified_checkpoint": verified,
+                "checkpoint_fingerprint": "b" * 64,
+                "source_fingerprint": "a" * 64,
+                "evidence_manifest": {
+                    "entries": [{
+                        "path": "docs/verification/smoke/fake-{}.json".format(segment["id"]),
+                        "sha256": "c" * 64,
+                    }],
+                    "sha256": "d" * 64,
+                },
+                "ledger_projection_sha256": "e" * 64,
+            })
+        runtime["closed_segments"] = closed
         context["segment_runtime"] = runtime
         context["qualification_eligible"] = True
         state["context_index"] = context
@@ -110,6 +142,23 @@ class SmokeStateTests(unittest.TestCase):
 
         state.pop("surprise")
         state.pop("current_stage")
+        self.state_file().write_text(json.dumps(state), encoding="utf-8")
+        with self.assertRaises(smoke_state.SmokeStateError):
+            smoke_state.load(self.repo, self.run_id)
+
+    def test_segment_runtime_exact_schema_fails_closed_on_unknown_or_missing_field(self):
+        state = self.init_full()
+        runtime = dict(state["context_index"]["segment_runtime"])
+        runtime["surprise"] = True
+        state["context_index"]["segment_runtime"] = runtime
+        self.state_file().write_text(json.dumps(state), encoding="utf-8")
+        with self.assertRaises(smoke_state.SmokeStateError):
+            smoke_state.load(self.repo, self.run_id)
+
+        state = self.init_full()
+        runtime = dict(state["context_index"]["segment_runtime"])
+        runtime.pop("disqualification_reason")
+        state["context_index"]["segment_runtime"] = runtime
         self.state_file().write_text(json.dumps(state), encoding="utf-8")
         with self.assertRaises(smoke_state.SmokeStateError):
             smoke_state.load(self.repo, self.run_id)
@@ -554,18 +603,23 @@ class SmokeStateTests(unittest.TestCase):
         required, _optional, _all = smoke_state._profile_scenarios("FULL")
         completed = sorted(required)
         self.mark_all_segments_closed()
-        passed = smoke_state.set_values(
-            self.repo,
-            self.run_id,
-            {
-                "context_index": self.bootstrap_context(),
-                "completed_scenarios": completed,
-                "pending_scenarios": [],
-                "current_stage": "COMPLETE",
-                "state": "PASS",
-                "final_result": "FULL_SMOKE_PASS",
-            },
-        )
+        with mock.patch.object(
+            smoke_segments,
+            "validate_terminal_integrity",
+            return_value={"result": "PASS"},
+        ):
+            passed = smoke_state.set_values(
+                self.repo,
+                self.run_id,
+                {
+                    "context_index": self.bootstrap_context(),
+                    "completed_scenarios": completed,
+                    "pending_scenarios": [],
+                    "current_stage": "COMPLETE",
+                    "state": "PASS",
+                    "final_result": "FULL_SMOKE_PASS",
+                },
+            )
         self.assertEqual("PASS", passed["state"])
         self.assertEqual("FULL_SMOKE_PASS", passed["final_result"])
 
