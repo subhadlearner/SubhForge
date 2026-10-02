@@ -482,12 +482,19 @@ class SmokeSegmentsTests(unittest.TestCase):
             '{"segment":"S1","result":"CHANGED"}\n',
             encoding="utf-8",
         )
-        with self.assertRaises(smoke_segments.SegmentError):
-            smoke_segments.qualification_report(
-                self.repo,
-                self.run_id,
-                self.started + dt.timedelta(hours=1, minutes=1),
-            )
+        failed_report = smoke_segments.qualification_report(
+            self.repo,
+            self.run_id,
+            self.started + dt.timedelta(hours=1, minutes=1),
+        )
+        self.assertFalse(failed_report["qualification_eligible"])
+        self.assertEqual(
+            "FINAL_INTEGRITY_DRIFT",
+            failed_report["disqualification_reason"],
+        )
+        self.assertEqual("FAILED", failed_report["integrity_status"])
+        self.assertIn("Committed evidence changed", failed_report["integrity_error"])
+        self.assertGreater(failed_report["aggregate_active_seconds"], 0)
         state = smoke_state.load(self.repo, self.run_id)
         self.assertFalse(state["context_index"]["qualification_eligible"])
 
@@ -506,6 +513,37 @@ class SmokeSegmentsTests(unittest.TestCase):
                     "final_result": "FULL_SMOKE_PASS",
                 },
             )
+
+    def test_report_survives_live_config_drift_for_diagnosis(self):
+        config = self._config_copy()
+        self._init_full(config=config)
+        profile_path = config / "smoke/profiles.json"
+        payload = json.loads(profile_path.read_text(encoding="utf-8"))
+        payload["profiles"]["FULL"]["segments"][0]["limit_minutes"] = 81
+        profile_path.write_text(
+            json.dumps(payload, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+        with mock.patch.object(
+            smoke_segments,
+            "_config_root",
+            return_value=config,
+        ):
+            report = smoke_segments.qualification_report(
+                self.repo,
+                self.run_id,
+                self.started + dt.timedelta(minutes=5),
+            )
+
+        self.assertFalse(report["qualification_eligible"])
+        self.assertEqual("FINAL_INTEGRITY_DRIFT", report["disqualification_reason"])
+        self.assertEqual("FAILED", report["integrity_status"])
+        self.assertIn(
+            "Live smoke profile/invocation configuration changed",
+            report["integrity_error"],
+        )
+        self.assertEqual(300.0, report["aggregate_active_seconds"])
 
     def test_snapshot_pins_six_segments_and_derived_allowance(self):
         self._init_full()
