@@ -961,15 +961,19 @@ def open_next_segment(
         raise SegmentError("Segment open is only valid for FULL")
     runtime = _runtime(context)
 
+    if context.get("qualification_eligible") is not True:
+        raise SegmentError("Qualification is permanently ineligible for PASS")
     if runtime.get("active_segment") is not None:
+        if runtime.get("active_status") != SEGMENT_ACTIVE:
+            raise SegmentError(
+                "Only an eligible ACTIVE segment may be returned as an idempotent open"
+            )
         # Lost acknowledgement after a committed open returns the original start.
         return {
             "segment_id": runtime["active_segment"],
             "started_at_utc": runtime["active_started_at_utc"],
             "status": runtime["active_status"],
         }
-    if context.get("qualification_eligible") is not True:
-        raise SegmentError("Qualification is permanently ineligible for PASS")
     if not runtime["closed_segments"]:
         raise SegmentError("S1 is opened only by bootstrap")
 
