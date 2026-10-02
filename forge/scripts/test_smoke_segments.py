@@ -94,6 +94,419 @@ class SmokeSegmentsTests(unittest.TestCase):
                     )
         return s1, evidence_rel
 
+    def _force_all_segments_closed(self):
+        state = smoke_state.load(self.repo, self.run_id)
+        context = dict(state["context_index"])
+        pinned = context["qualification_config"]
+        budget = json.loads(self._budget_file().read_text(encoding="utf-8"))
+        runtime = dict(context["segment_runtime"])
+        runtime.update({
+            "active_segment": None,
+            "active_status": None,
+            "active_started_at_utc": None,
+            "active_source_fingerprint": None,
+            "gaps": [],
+            "gap": None,
+            "disqualification_reason": None,
+        })
+        closes = []
+        evidence_paths = []
+        for index, segment in enumerate(pinned["segments"], start=1):
+            rel = "docs/verification/terminal-S{}.json".format(index)
+            path = self.repo / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(
+                json.dumps({"segment": segment["id"], "result": "PASS"}) + "\n",
+                encoding="utf-8",
+            )
+            evidence_paths.append(rel)
+            manifest = smoke_segments.evidence_manifest(self.repo, [rel])
+            projection = smoke_segments._segment_ledger_projection(
+                budget, segment["id"]
+            )
+            checkpoint = segment["close_checkpoint"]
+            verified = (
+                segment["start_checkpoint"]
+                if checkpoint == "QUALIFICATION_EVIDENCE_READY"
+                else checkpoint
+            )
+            closes.append({
+                "segment_id": segment["id"],
+                "status": "COMPLETED",
+                "started_at_utc": self.started.isoformat(),
+                "closed_at_utc": (
+                    self.started + dt.timedelta(minutes=index * 5)
+                ).isoformat(),
+                "charged_elapsed_seconds": float(index * 300),
+                "excluded_human_wait_seconds": 0.0,
+                "configured_limit_minutes": segment["limit_minutes"],
+                "assigned_scenarios": list(segment["scenarios"]),
+                "completed_scenarios": list(segment["scenarios"]),
+                "checkpoint": checkpoint,
+                "verified_checkpoint": verified,
+                "checkpoint_fingerprint": "b" * 64,
+                "source_fingerprint": "a" * 64,
+                "evidence_manifest": manifest,
+                "ledger_projection_sha256": smoke_segments._sha256_object(
+                    projection
+                ),
+            })
+        runtime["closed_segments"] = closes
+        context["segment_runtime"] = runtime
+        context["qualification_eligible"] = True
+        state["context_index"] = context
+        state["completed_scenarios"] = list(pinned["required_scenarios"])
+        state["pending_scenarios"] = []
+        state["current_scenario"] = None
+        state["current_stage"] = "COMPLETE"
+        smoke_state._validate_full_state(state, expected_run_id=self.run_id)
+        smoke_state._save(smoke_state.state_path(self.repo, self.run_id), state)
+        return evidence_paths
+
+    def test_model_bearing_subprobe_requires_file_evidence(self):
+        self._init_full()
+        with self.assertRaises(smoke_segments.SegmentError):
+            smoke_segments.register_scenario_evidence(
+                self.repo,
+                self.run_id,
+                "architect",
+                "architecture-authored",
+                ["orchestrator says PASS"],
+                [],
+                self.started + dt.timedelta(minutes=1),
+            )
+
+    def test_calibrated_limit_status_can_be_loaded_without_code_change(self):
+        config = self._config_copy()
+        profile_path = config / "smoke/profiles.json"
+        payload = json.loads(profile_path.read_text(encoding="utf-8"))
+        payload["profiles"]["FULL"]["segments"][0]["limit_status"] = "CALIBRATED"
+        profile_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        snapshot = smoke_segments.build_snapshot(config, "FULL")
+        self.assertEqual("CALIBRATED", snapshot["segments"][0]["limit_status"])
+
+    def test_helper_bound_segments_require_helper_pass_and_ledger_evidence(self):
+        resume_rel = smoke_segments._helper_evidence_path(
+            self.repo, self.run_id, "S5"
+        )
+        reroute_rel = smoke_segments._helper_evidence_path(
+            self.repo, self.run_id, "S6"
+        )
+        with mock.patch.object(
+            smoke_segments.smoke_resume,
+            "status",
+            return_value={"result": "INCOMPLETE"},
+        ):
+            with self.assertRaises(smoke_segments.SegmentError):
+                smoke_segments._validate_helper_bound_segment(
+                    self.repo, self.run_id, "S5", [resume_rel]
+                )
+        with mock.patch.object(
+            smoke_segments.smoke_resume,
+            "status",
+            return_value={"result": "PASS"},
+        ):
+            smoke_segments._validate_helper_bound_segment(
+                self.repo, self.run_id, "S5", [resume_rel]
+            )
+        with mock.patch.object(
+            smoke_segments.smoke_reroute,
+            "status",
+            return_value={"result": "PASS"},
+        ):
+            with self.assertRaises(smoke_segments.SegmentError):
+                smoke_segments._validate_helper_bound_segment(
+                    self.repo, self.run_id, "S6", []
+                )
+            smoke_segments._validate_helper_bound_segment(
+                self.repo, self.run_id, "S6", [reroute_rel]
+            )
+
+    def test_close_rechecks_budget_after_slow_validation(self):
+        self._init_full()
+        self._complete_s1()
+        checkpoint = {
+            "checkpoint": "CP-REVIEWED",
+            "result": "MATCH",
+            "expected_fingerprint": "f" * 64,
+            "current_fingerprint": "f" * 64,
+        }
+        with mock.patch.object(
+            smoke_segments.smoke_workspace,
+            "source_guard",
+            return_value={
+                "source_checkout_path": str(self.root),
+                "fingerprint": "a" * 64,
+            },
+        ), mock.patch.object(
+            smoke_segments.smoke_mechanics,
+            "check_checkpoint",
+            return_value=checkpoint,
+        ), mock.patch.object(
+            smoke_segments,
+            "_now",
+            return_value=self.started + dt.timedelta(minutes=83),
+        ):
+            with self.assertRaises(smoke_segments.SegmentError):
+                smoke_segments.close_segment(
+                    self.repo, self.run_id, self.root
+                )
+        state = smoke_state.load(self.repo, self.run_id)
+        self.assertFalse(state["context_index"]["qualification_eligible"])
+        self.assertEqual(
+            [],
+            state["context_index"]["segment_runtime"]["closed_segments"],
+        )
+
+    def test_source_drift_disqualification_prevents_later_close_after_restore(self):
+        self._init_full()
+        self._complete_s1()
+        checkpoint = {
+            "checkpoint": "CP-REVIEWED",
+            "result": "MATCH",
+            "expected_fingerprint": "f" * 64,
+            "current_fingerprint": "f" * 64,
+        }
+        with mock.patch.object(
+            smoke_segments.smoke_mechanics,
+            "check_checkpoint",
+            return_value=checkpoint,
+        ), mock.patch.object(
+            smoke_segments.smoke_workspace,
+            "source_guard",
+            return_value={
+                "source_checkout_path": str(self.root),
+                "fingerprint": "b" * 64,
+            },
+        ):
+            with self.assertRaises(smoke_segments.SegmentError):
+                smoke_segments.close_segment(
+                    self.repo,
+                    self.run_id,
+                    self.root,
+                    None,
+                    self.started + dt.timedelta(minutes=10),
+                )
+
+        with mock.patch.object(
+            smoke_segments.smoke_mechanics,
+            "check_checkpoint",
+            return_value=checkpoint,
+        ), mock.patch.object(
+            smoke_segments.smoke_workspace,
+            "source_guard",
+            return_value={
+                "source_checkout_path": str(self.root),
+                "fingerprint": "a" * 64,
+            },
+        ):
+            with self.assertRaises(smoke_segments.SegmentError):
+                smoke_segments.close_segment(
+                    self.repo,
+                    self.run_id,
+                    self.root,
+                    None,
+                    self.started + dt.timedelta(minutes=11),
+                )
+        state = smoke_state.load(self.repo, self.run_id)
+        self.assertEqual(
+            [],
+            state["context_index"]["segment_runtime"]["closed_segments"],
+        )
+
+    def test_open_next_rejects_checkpoint_fingerprint_mismatch(self):
+        self._init_full()
+        self._complete_s1()
+        close_checkpoint = {
+            "checkpoint": "CP-REVIEWED",
+            "result": "MATCH",
+            "expected_fingerprint": "f" * 64,
+            "current_fingerprint": "f" * 64,
+        }
+        with mock.patch.object(
+            smoke_segments.smoke_workspace,
+            "source_guard",
+            return_value={
+                "source_checkout_path": str(self.root),
+                "fingerprint": "a" * 64,
+            },
+        ), mock.patch.object(
+            smoke_segments.smoke_mechanics,
+            "check_checkpoint",
+            return_value=close_checkpoint,
+        ):
+            smoke_segments.close_segment(
+                self.repo,
+                self.run_id,
+                self.root,
+                None,
+                self.started + dt.timedelta(minutes=10),
+            )
+
+        drifted_checkpoint = {
+            "checkpoint": "CP-REVIEWED",
+            "result": "MATCH",
+            "expected_fingerprint": "e" * 64,
+            "current_fingerprint": "e" * 64,
+        }
+        with mock.patch.object(
+            smoke_segments.smoke_workspace,
+            "source_guard",
+            return_value={
+                "source_checkout_path": str(self.root),
+                "fingerprint": "a" * 64,
+            },
+        ), mock.patch.object(
+            smoke_segments.smoke_mechanics,
+            "check_checkpoint",
+            return_value=drifted_checkpoint,
+        ):
+            with self.assertRaises(smoke_segments.SegmentError):
+                smoke_segments.open_next_segment(
+                    self.repo,
+                    self.run_id,
+                    self.root,
+                    self.started + dt.timedelta(minutes=20),
+                )
+        state = smoke_state.load(self.repo, self.run_id)
+        self.assertFalse(state["context_index"]["qualification_eligible"])
+        self.assertEqual(
+            "CHECKPOINT_FINGERPRINT_DRIFT",
+            state["context_index"]["segment_runtime"]["disqualification_reason"],
+        )
+
+    def test_s6_close_verifies_repaired_stable_before_evidence_ready(self):
+        segment = {
+            "id": "S6",
+            "scenarios": ["upstream-rerouting"],
+            "limit_minutes": 40,
+            "start_checkpoint": "CP-REPAIRED-STABLE",
+            "close_checkpoint": "QUALIFICATION_EVIDENCE_READY",
+            "limit_status": "PROVISIONAL",
+        }
+        runtime = {
+            "runtime_schema_version": 1,
+            "active_segment": "S6",
+            "active_status": "ACTIVE",
+            "active_started_at_utc": self.started.isoformat(),
+            "active_source_fingerprint": "a" * 64,
+            "closed_segments": [],
+            "gaps": [],
+            "gap": None,
+            "disqualification_reason": None,
+        }
+        state = {
+            "profile": "FULL",
+            "completed_scenarios": ["upstream-rerouting"],
+        }
+        context = {
+            "qualification_eligible": True,
+            "segment_runtime": runtime,
+        }
+        checkpoint = {
+            "checkpoint": "CP-REPAIRED-STABLE",
+            "result": "MATCH",
+            "expected_fingerprint": "f" * 64,
+            "current_fingerprint": "f" * 64,
+        }
+        with mock.patch.object(
+            smoke_segments, "_state_context", return_value=(state, context)
+        ), mock.patch.object(
+            smoke_segments, "assert_config_intact",
+            return_value={"segments": [segment]},
+        ), mock.patch.object(
+            smoke_segments, "_budget_data",
+            return_value={
+                "stage_invocations": [],
+                "human_wait_intervals": [],
+            },
+        ), mock.patch.object(
+            smoke_segments.smoke_mechanics,
+            "check_checkpoint",
+            return_value=checkpoint,
+        ) as check_mock, mock.patch.object(
+            smoke_segments, "_segment_evidence_paths",
+            return_value=["docs/verification/smoke/fake.json"],
+        ), mock.patch.object(
+            smoke_segments, "_validate_helper_bound_segment"
+        ), mock.patch.object(
+            smoke_segments, "_source_fingerprint", return_value="a" * 64
+        ), mock.patch.object(
+            smoke_segments, "evidence_manifest",
+            return_value={
+                "entries": [{
+                    "path": "docs/verification/smoke/fake.json",
+                    "sha256": "b" * 64,
+                }],
+                "sha256": "c" * 64,
+            },
+        ), mock.patch.object(
+            smoke_segments, "_segment_ledger_projection", return_value={}
+        ), mock.patch.object(
+            smoke_segments, "segment_timing",
+            return_value={
+                "result": "WITHIN_BUDGET",
+                "elapsed_seconds": 1.0,
+                "excluded_human_wait_seconds": 0.0,
+            },
+        ), mock.patch.object(
+            smoke_segments, "_persist_context"
+        ):
+            closed = smoke_segments.close_segment(
+                self.repo,
+                self.run_id,
+                self.root,
+                now=self.started + dt.timedelta(minutes=1),
+            )
+        check_mock.assert_called_once_with(
+            self.repo, self.run_id, "CP-REPAIRED-STABLE"
+        )
+        self.assertEqual(
+            "QUALIFICATION_EVIDENCE_READY", closed["checkpoint"]
+        )
+        self.assertEqual(
+            "CP-REPAIRED-STABLE", closed["verified_checkpoint"]
+        )
+
+    def test_final_report_and_terminal_pass_revalidate_all_closed_evidence(self):
+        self._init_full()
+        evidence_paths = self._force_all_segments_closed()
+        report = smoke_segments.qualification_report(
+            self.repo,
+            self.run_id,
+            self.started + dt.timedelta(hours=1),
+        )
+        self.assertTrue(report["qualification_eligible"])
+
+        (self.repo / evidence_paths[0]).write_text(
+            '{"segment":"S1","result":"CHANGED"}\n',
+            encoding="utf-8",
+        )
+        with self.assertRaises(smoke_segments.SegmentError):
+            smoke_segments.qualification_report(
+                self.repo,
+                self.run_id,
+                self.started + dt.timedelta(hours=1, minutes=1),
+            )
+        state = smoke_state.load(self.repo, self.run_id)
+        self.assertFalse(state["context_index"]["qualification_eligible"])
+
+        # Restore only the eligibility bit to reproduce the old terminal-PASS
+        # hole: byte-level validation must still reject the altered evidence.
+        state["context_index"]["qualification_eligible"] = True
+        state["context_index"]["segment_runtime"]["disqualification_reason"] = None
+        smoke_state._validate_full_state(state, expected_run_id=self.run_id)
+        smoke_state._save(smoke_state.state_path(self.repo, self.run_id), state)
+        with self.assertRaises(smoke_state.SmokeStateError):
+            smoke_state.set_values(
+                self.repo,
+                self.run_id,
+                {
+                    "state": "PASS",
+                    "final_result": "FULL_SMOKE_PASS",
+                },
+            )
+
     def test_snapshot_pins_six_segments_and_derived_allowance(self):
         self._init_full()
         state = smoke_state.load(self.repo, self.run_id)
