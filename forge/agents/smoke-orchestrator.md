@@ -144,6 +144,17 @@ Any digest/policy/reason/no-wait failure blocks H08b. Then continue the
 predeclared direct-fix sequence with DeepSeek `/fix`, fresh `/verify`,
 DeepSeek pre-review, and Sol senior review only when ready.
 
+### H08b score evidence registration
+
+Every successful H08b deterministic scorer returns an immutable
+`score_path` under `docs/verification/smoke/**`. Register that exact path as
+accepted file-backed evidence for the corresponding H08 subprobe with
+`smoke_segments.py register-evidence`. For transient states such as blocked
+discovery, direct-PRD isolation, blocked PRD, project-init negative, and the
+policy-ineligible refusal, the immutable scorer artifact is the historical
+proof that must survive after the normal repository state resumes/restores.
+Never substitute free-text facts for these scorer paths.
+
 
 ## Arbitrary-stage resume smoke optimization
 
