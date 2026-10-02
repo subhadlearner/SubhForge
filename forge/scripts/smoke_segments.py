@@ -847,6 +847,29 @@ def _validate_h08b_bound_segment(
         loaded[label] = score
 
     if segment_id == "S1":
+        blocked = loaded["discovery-blocked"]
+        resumed = loaded["discovery-resumed"]
+        hidden_rel = blocked.get("hidden_expectation_path")
+        hidden_sha = blocked.get("hidden_expectation_sha256")
+        if (
+            not isinstance(hidden_rel, str)
+            or hidden_rel not in evidence_paths
+            or not isinstance(hidden_sha, str)
+            or resumed.get("hidden_expectation_path") != hidden_rel
+            or resumed.get("hidden_expectation_sha256") != hidden_sha
+        ):
+            raise SegmentError(
+                "S1 discovery PASS scores must bind one accepted hidden expectation baseline"
+            )
+        hidden_normalized, hidden_path = _normalize_evidence_path(repo, hidden_rel)
+        if (
+            hidden_normalized != hidden_rel
+            or _sha256_file(hidden_path) != hidden_sha
+        ):
+            raise SegmentError(
+                "S1 hidden discovery expectation baseline changed before close"
+            )
+
         direct = loaded["direct-prd"]
         artifact_rel = direct.get("prd_evidence_path")
         artifact_sha = direct.get("prd_evidence_sha256")
