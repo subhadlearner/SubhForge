@@ -916,12 +916,15 @@ def close_segment(
     runtime["active_status"] = None
     runtime["active_started_at_utc"] = None
     runtime["active_source_fingerprint"] = None
-    runtime["gap"] = {
-        "state": BETWEEN_SEGMENTS,
-        "after_segment": segment_id,
-        "started_at_utc": current.isoformat(),
-        "activities": [],
-    }
+    if segment_id == "S6":
+        runtime["gap"] = None
+    else:
+        runtime["gap"] = {
+            "state": BETWEEN_SEGMENTS,
+            "after_segment": segment_id,
+            "started_at_utc": current.isoformat(),
+            "activities": [],
+        }
     context = dict(context)
     context["segment_runtime"] = runtime
     _persist_context(repo, run_id, state, context)
