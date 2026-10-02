@@ -19,6 +19,7 @@ WORKFLOW_DIRS = (
     "docs/diagnostics",
     "docs/verification",
     "docs/verification/waivers",
+    "docs/verification/waiver-refusals",
     "docs/verification/smoke",
     "docs/reviews",
     "docs/workflow",
