@@ -790,6 +790,79 @@ def _validate_helper_bound_segment(
         raise SegmentError("{} helper status must be PASS before segment close".format(segment_id))
 
 
+H08B_REQUIRED_SCORE_LABELS = {
+    "S1": (
+        "discovery-blocked",
+        "discovery-resumed",
+        "direct-prd",
+        "prd-blocked",
+        "prd-resumed",
+        "project-init-policy-propagation",
+        "project-init-helper-rejection",
+        "project-init-luna-rejection",
+    ),
+    "S2": ("waiver-refusal",),
+}
+
+
+def _h08b_score_path(repo: Path, run_id: str, label: str) -> tuple[str, Path]:
+    rel = (
+        Path("docs")
+        / "verification"
+        / "smoke"
+        / "{}.h08b-{}.score.json".format(run_id, label)
+    ).as_posix()
+    return rel, repo.resolve() / rel
+
+
+def _validate_h08b_bound_segment(
+    repo: Path,
+    run_id: str,
+    segment_id: str,
+    evidence_paths: list[str],
+) -> None:
+    labels = H08B_REQUIRED_SCORE_LABELS.get(segment_id)
+    if labels is None:
+        return
+    loaded: dict[str, dict] = {}
+    for label in labels:
+        rel, path = _h08b_score_path(repo, run_id, label)
+        if rel not in evidence_paths:
+            raise SegmentError(
+                "{} close requires H08b PASS score evidence {}".format(
+                    segment_id, rel
+                )
+            )
+        score = _load_json(path, "H08b score {}".format(label))
+        if (
+            score.get("schema_version") != 1
+            or score.get("score_label") != label
+            or score.get("result") != "PASS"
+        ):
+            raise SegmentError(
+                "{} H08b score {} must be schema-valid PASS".format(
+                    segment_id, label
+                )
+            )
+        loaded[label] = score
+
+    if segment_id == "S1":
+        direct = loaded["direct-prd"]
+        artifact_rel = direct.get("prd_evidence_path")
+        artifact_sha = direct.get("prd_evidence_sha256")
+        if (
+            not isinstance(artifact_rel, str)
+            or artifact_rel not in evidence_paths
+            or not isinstance(artifact_sha, str)
+        ):
+            raise SegmentError(
+                "S1 direct-PRD PASS score must bind retained artifact evidence"
+            )
+        normalized, artifact_path = _normalize_evidence_path(repo, artifact_rel)
+        if normalized != artifact_rel or _sha256_file(artifact_path) != artifact_sha:
+            raise SegmentError("S1 retained direct-PRD artifact changed before close")
+
+
 def _budget_path(repo: Path, run_id: str) -> Path:
     return repo.resolve() / "docs" / "verification" / "smoke" / (run_id + ".budget.json")
 
@@ -996,6 +1069,9 @@ def close_segment(
 
     derived_evidence_paths = _segment_evidence_paths(repo, run_id, segment)
     _validate_helper_bound_segment(
+        repo, run_id, segment_id, derived_evidence_paths
+    )
+    _validate_h08b_bound_segment(
         repo, run_id, segment_id, derived_evidence_paths
     )
     if evidence_paths is not None:
