@@ -106,7 +106,14 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
     checks["h08b:helper"] = all(term in h08b for term in (
         "def seed_discovery(",
         "def score_discovery(",
+        "def begin_direct_prd_probe(",
+        "def score_direct_prd(",
+        "def seed_product_decision(",
+        "def score_prd_phase(",
+        "def score_project_init_helper_rejection(",
+        "def score_project_init_luna(",
         "def validate_refusal(",
+        "def _persist_score(",
         "H08B-REQUIRED-EVIDENCE.md",
         "docs/verification/waiver-refusals/",
     ))
