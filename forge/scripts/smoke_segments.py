@@ -949,7 +949,11 @@ def open_next_segment(
     now: Optional[dt.datetime] = None,
 ) -> dict:
     state, context = _state_context(repo, run_id)
-    pinned = assert_config_intact(repo, run_id)
+    try:
+        pinned = assert_config_intact(repo, run_id)
+    except SegmentError:
+        _disqualify_gap(repo, run_id, "CONFIG_DRIFT")
+        raise
     if state.get("profile") != "FULL":
         raise SegmentError("Segment open is only valid for FULL")
     runtime = _runtime(context)
@@ -979,12 +983,7 @@ def open_next_segment(
 
     last_close = runtime["closed_segments"][-1]
     if _source_fingerprint(source) != last_close.get("source_fingerprint"):
-        context = dict(context)
-        context["qualification_eligible"] = False
-        runtime = json.loads(json.dumps(runtime))
-        runtime["gap"] = {**(runtime.get("gap") or {}), "drift_detected": True}
-        context["segment_runtime"] = runtime
-        _persist_context(repo, run_id, state, context)
+        _disqualify_gap(repo, run_id, "SOURCE_DRIFT")
         raise SegmentError("Source drift detected during BETWEEN_SEGMENTS gap")
 
     order = [item["id"] for item in pinned["segments"]]
