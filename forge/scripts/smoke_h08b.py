@@ -349,6 +349,14 @@ def score_discovery(
     if phase not in {"blocked", "resumed"}:
         raise H08bError("Discovery score phase must be blocked or resumed")
     repo = _repo(repo)
+    required_calls = 1 if phase == "blocked" else 2
+    _require_completed_invocations(
+        repo,
+        run_id,
+        scenario_id="grill",
+        stage="grill",
+        minimum_count=required_calls,
+    )
     if phase == "resumed":
         _require_pass_score(repo, run_id, "discovery-blocked")
     hidden = _load_hidden(repo, run_id)
@@ -470,6 +478,13 @@ def begin_direct_prd_probe(repo: Path, run_id: str) -> dict[str, object]:
 
 def score_direct_prd(repo: Path, run_id: str, status: str) -> dict[str, object]:
     repo = _repo(repo)
+    _require_completed_invocations(
+        repo,
+        run_id,
+        scenario_id="grill",
+        stage="prd",
+        minimum_count=1,
+    )
     hidden = _direct_prd_snapshot_path(repo, run_id)
     try:
         payload = json.loads(hidden.read_text(encoding="utf-8"))
@@ -511,7 +526,16 @@ def score_direct_prd(repo: Path, run_id: str, status: str) -> dict[str, object]:
         "failures": failures,
     }
     if prd.is_file():
-        payload["prd_sha256"] = _sha_bytes(prd.read_bytes())
+        prd_bytes = prd.read_bytes()
+        payload["prd_sha256"] = _sha_bytes(prd_bytes)
+        if not failures:
+            retained = _direct_prd_evidence_path(repo, run_id)
+            if retained.exists():
+                raise H08bError("Direct PRD retained evidence already exists")
+            retained.parent.mkdir(parents=True, exist_ok=True)
+            retained.write_bytes(prd_bytes)
+            payload["prd_evidence_path"] = retained.relative_to(repo).as_posix()
+            payload["prd_evidence_sha256"] = _sha_bytes(retained.read_bytes())
     return _persist_score(repo, run_id, "direct-prd", payload)
 
 
@@ -635,6 +659,16 @@ def score_prd_phase(
     if phase not in {"blocked", "resumed"}:
         raise H08bError("PRD score phase must be blocked or resumed")
     repo = _repo(repo)
+    required_calls = 1 if phase == "blocked" else 2
+    _require_completed_invocations(
+        repo,
+        run_id,
+        scenario_id="prd",
+        stage="prd",
+        minimum_count=required_calls,
+    )
+    if phase == "resumed":
+        _require_pass_score(repo, run_id, "prd-blocked")
     hidden = _product_decision_hidden_path(repo, run_id)
     if not hidden.is_file():
         raise H08bError("Hidden approved product decision is missing")
@@ -657,10 +691,16 @@ def score_prd_phase(
             failures.append("main PRD did not return PRD_BLOCKED")
         if normal.exists():
             failures.append("approved product decision was revealed before blocked score")
-        if main_prd.is_file() and "PRD_READY" in main_prd.read_text(
-            encoding="utf-8"
-        ):
-            failures.append("blocked PRD probe persisted an already-ready PRD")
+        if main_prd.is_file():
+            blocked_text = main_prd.read_text(encoding="utf-8")
+            if "PRD_READY" in blocked_text:
+                failures.append("blocked PRD probe persisted an already-ready PRD")
+            if payload["decision_id"] in blocked_text or _canonical_text(
+                payload["decision"]
+            ) in _canonical_text(blocked_text):
+                failures.append(
+                    "blocked PRD already contains the withheld approved product decision"
+                )
     else:
         if not normal.is_file():
             failures.append("approved product decision was not revealed")
@@ -668,6 +708,16 @@ def score_prd_phase(
             failures.append("resumed PRD did not return PRD_READY")
         if not main_prd.is_file():
             failures.append("resumed PRD artifact is missing")
+        else:
+            resumed_text = main_prd.read_text(encoding="utf-8")
+            if payload["decision_id"] not in resumed_text:
+                failures.append("resumed PRD does not reference PROD-DEC-001")
+            if _canonical_text(payload["decision"]) not in _canonical_text(
+                resumed_text
+            ):
+                failures.append(
+                    "resumed PRD does not reflect the revealed approved product decision"
+                )
     payload: dict[str, object] = {
         "result": "PASS" if not failures else "FAIL",
         "phase": phase,
