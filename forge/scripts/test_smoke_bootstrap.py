@@ -46,6 +46,7 @@ class SmokeBootstrapTests(unittest.TestCase):
             result = smoke_bootstrap.bootstrap(
                 repo, run_id, "FULL", "full-minimal-api", "abc123", "base123",
                 [installed_contract, project_contract], [optional], config_root=config,
+                source=Path(__file__).resolve().parents[2],
             )
 
             self.assertTrue(Path(result["state_path"]).is_file())
@@ -75,7 +76,8 @@ class SmokeBootstrapTests(unittest.TestCase):
                     repo, "SMOKE-FULL-test-20260927T000000Z-87654321",
                     "FULL", "full-minimal-api", "abc123", "base123",
                     [a, b], [], config_root=config,
-                )
+                source=Path(__file__).resolve().parents[2],
+            )
 
     def test_bootstrap_persists_blocked_state_when_static_gate_fails(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -93,6 +95,7 @@ class SmokeBootstrapTests(unittest.TestCase):
             result = smoke_bootstrap.bootstrap(
                 repo, run_id, "FULL", "full-minimal-api", "abc123", "base123",
                 [installed_contract, project_contract], [], config_root=config,
+                source=Path(__file__).resolve().parents[2],
             )
 
             self.assertFalse(result["release_gate"]["ok"])
