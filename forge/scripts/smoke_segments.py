@@ -327,6 +327,8 @@ def pin_qualification(
     if snapshot["profile"] != state["profile"]:
         raise SegmentError("Pinned profile does not match canonical smoke state")
     started = _aware(started_at_utc, "Qualification start timestamp")
+    if state["profile"] == "FULL" and source_fingerprint is None:
+        raise SegmentError("FULL qualification requires a protected source fingerprint")
     if source_fingerprint is not None:
         if (
             not isinstance(source_fingerprint, str)
