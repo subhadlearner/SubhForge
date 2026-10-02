@@ -188,8 +188,19 @@ def _validate_invocation_spec(spec: dict, required_scenarios: list[str]) -> None
     if not any("POLICY_INELIGIBLE" in purpose for purpose in purposes):
         raise SegmentError("direct-fix-loop must declare Luna POLICY_INELIGIBLE")
     budget = spec.get("call_budget")
-    if not isinstance(budget, dict) or budget.get("baseline_total") != 50 or budget.get("maximum_total") != 51:
-        raise SegmentError("FULL invocation spec must pin 50/51 call arithmetic")
+    if not isinstance(budget, dict):
+        raise SegmentError("FULL invocation spec must declare call_budget")
+    baseline_total = budget.get("baseline_total")
+    maximum_total = budget.get("maximum_total")
+    if (
+        isinstance(baseline_total, bool)
+        or not isinstance(baseline_total, int)
+        or baseline_total <= 0
+        or isinstance(maximum_total, bool)
+        or not isinstance(maximum_total, int)
+        or maximum_total < baseline_total
+    ):
+        raise SegmentError("FULL invocation call totals must be positive consistent integers")
 
     expected_zero = {
         "static-release-gate",
@@ -232,6 +243,10 @@ def _validate_invocation_spec(spec: dict, required_scenarios: list[str]) -> None
 
     if optional != ["S4.adversarial-reconcile-only.optional-adversary-recheck"]:
         raise SegmentError("Only the S4 adversarial recheck may be optional")
+    if budget.get("only_optional_extra") != optional[0]:
+        raise SegmentError("call_budget optional-call identity does not match declared call")
+    if maximum_total != baseline_total + len(optional):
+        raise SegmentError("FULL invocation maximum_total must equal baseline plus optional calls")
     expected_owner = budget.get("baseline_by_owner")
     expected_segment = budget.get("baseline_by_segment")
     if not isinstance(expected_owner, dict) or not isinstance(expected_segment, dict):
