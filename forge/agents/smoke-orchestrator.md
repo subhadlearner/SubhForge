@@ -92,12 +92,12 @@ behavior.
 2. Invoke GPT-5.6 Sol `/grill` against the normal discovery artifact while the
    referenced required evidence is absent. Require `DISCOVERY_BLOCKED`; the
    blocker must be missing evidence/access, not a withheld user product answer.
-3. Run `smoke_h08b.py score-discovery --phase blocked`. A FAIL blocks H08b.
+3. Run `smoke_h08b.py score-discovery --phase blocked --status DISCOVERY_BLOCKED`. A FAIL blocks H08b.
 4. Restore exactly the referenced evidence with
    `smoke_h08b.py restore-evidence`.
 5. Invoke GPT-5.6 Sol `/grill` again in CONTINUE mode. Require the existing
    settled decision IDs/values to remain unchanged and discovery to become ready.
-6. Run `score-discovery --phase resumed`; a FAIL blocks H08b.
+6. Run `score-discovery --phase resumed --status DISCOVERY_READY`; a FAIL blocks H08b.
 7. For the separate user-selected clear-intent direct-PRD branch, run
    `smoke_h08b.py begin-direct-prd`. This temporarily removes only the normal
    discovery artifact into protected smoke snapshot evidence. Invoke one GPT-5.6
@@ -117,7 +117,7 @@ behavior.
    blocker or vice versa.
 9. For project-init contract propagation, retain the successful Luna call. Immediately
    after it returns `PROJECT_INIT_READY`, run
-   `smoke_h08b.py score-project-init-policy` and require PASS so the project
+   `smoke_h08b.py score-project-init-policy --status PROJECT_INIT_READY` and require PASS so the project
    `AGENTS.md` is proven to preserve the bootstrap-pinned waiver-policy path,
    digest, and exact failure-type mappings. For the negative pair, first run
    `smoke_h08b.py score-project-init-helper` and require PASS from a real
