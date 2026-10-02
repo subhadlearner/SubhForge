@@ -1290,22 +1290,74 @@ def qualification_report(
     gap_seconds = 0.0
     gaps = []
 
+    integrity_status = "NOT_APPLICABLE"
+    integrity_error = None
+
     if state.get("profile") == "FULL":
+        integrity_status = "PASS"
         try:
-            pinned = assert_config_intact(repo, run_id)
+            assert_config_intact(repo, run_id)
             runtime = _runtime(context)
             validate_closed_chain(repo, run_id, runtime)
-        except SegmentError:
+            if (
+                context.get("qualification_eligible") is True
+                and runtime.get("active_segment") is None
+                and runtime.get("gap") is None
+            ):
+                validate_terminal_integrity(repo, run_id)
+        except SegmentError as exc:
+            integrity_status = "FAILED"
+            integrity_error = str(exc)
             _disqualify_gap(repo, run_id, "FINAL_INTEGRITY_DRIFT")
-            raise
-        if runtime.get("active_segment") is None and runtime.get("gap") is None:
-            validate_terminal_integrity(repo, run_id)
+            # Reporting is diagnostic: once the failure is persisted, reload the
+            # canonical state and continue from the pinned snapshot/runtime
+            # instead of suppressing the report that explains the failed run.
+            state, context = _state_context(repo, run_id)
+            runtime = _runtime(context)
+
         configured = sum(item["limit_minutes"] for item in pinned["segments"])
         for close in runtime["closed_segments"]:
             active_seconds += float(close.get("charged_elapsed_seconds", 0))
             excluded_wait_seconds += float(close.get("excluded_human_wait_seconds", 0))
         if runtime.get("active_segment") is not None:
-            timing = segment_timing(repo, run_id, current)
+            try:
+                timing = segment_timing(repo, run_id, current)
+            except SegmentError as exc:
+                # Live-config drift can make the normal timing helper fail. A
+                # diagnostic report may still compute elapsed time from the
+                # immutable pinned segment and budget ledger without treating
+                # that fallback as qualifying evidence.
+                if integrity_error is None:
+                    integrity_status = "FAILED"
+                    integrity_error = str(exc)
+                active_id = runtime.get("active_segment")
+                segment = next(
+                    (
+                        item
+                        for item in pinned["segments"]
+                        if item.get("id") == active_id
+                    ),
+                    None,
+                )
+                if not isinstance(segment, dict):
+                    raise
+                start = _aware(
+                    runtime.get("active_started_at_utc"),
+                    "Segment start timestamp",
+                )
+                if current < start:
+                    raise SegmentError(
+                        "Qualification report timestamp precedes active segment start"
+                    )
+                excluded = _excluded_wait_seconds(
+                    budget, active_id, start, current
+                )
+                timing = {
+                    "elapsed_seconds": max(
+                        0.0, (current - start).total_seconds() - excluded
+                    ),
+                    "excluded_human_wait_seconds": excluded,
+                }
             active_seconds += float(timing["elapsed_seconds"])
             excluded_wait_seconds += float(timing["excluded_human_wait_seconds"])
         for gap in runtime["gaps"]:
@@ -1325,6 +1377,13 @@ def qualification_report(
     return {
         "profile": state.get("profile"),
         "qualification_eligible": context.get("qualification_eligible"),
+        "disqualification_reason": (
+            runtime.get("disqualification_reason")
+            if isinstance(runtime, dict)
+            else None
+        ),
+        "integrity_status": integrity_status,
+        "integrity_error": integrity_error,
         "configured_allowance_minutes": configured,
         "aggregate_active_seconds": round(active_seconds, 3),
         "excluded_human_wait_seconds": round(excluded_wait_seconds, 3),
