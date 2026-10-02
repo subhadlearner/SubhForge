@@ -56,6 +56,59 @@ class SmokeH08bTests(unittest.TestCase):
 
         self.assertEqual("PASS", result["result"])
 
+    def test_direct_prd_probe_proves_no_discovery_artifact_and_restores(self):
+        smoke_h08b.seed_discovery(self.repo, self.run_id)
+        prepared = smoke_h08b.begin_direct_prd_probe(self.repo, self.run_id)
+        self.assertTrue(prepared["discovery_absent"])
+        self.assertFalse((self.repo / smoke_h08b.DISCOVERY_PATH).exists())
+
+        prd = self.repo / smoke_h08b.DIRECT_PRD_PATH
+        prd.parent.mkdir(parents=True, exist_ok=True)
+        prd.write_text("# Direct PRD\nStatus: PRD_READY\n", encoding="utf-8")
+
+        scored = smoke_h08b.score_direct_prd(
+            self.repo, self.run_id, "PRD_READY"
+        )
+        self.assertEqual("PASS", scored["result"])
+        restored = smoke_h08b.restore_direct_prd_probe(
+            self.repo, self.run_id
+        )
+        self.assertEqual("MATCH", restored["result"])
+        self.assertTrue((self.repo / smoke_h08b.DISCOVERY_PATH).is_file())
+        self.assertFalse(prd.exists())
+
+    def test_main_prd_blocks_until_approved_product_decision_is_revealed(self):
+        seeded = smoke_h08b.seed_product_decision(self.repo, self.run_id)
+        self.assertEqual("WITHHELD", seeded["result"])
+        self.assertFalse((self.repo / smoke_h08b.PRODUCT_DECISION_PATH).exists())
+
+        blocked = smoke_h08b.score_prd_phase(
+            self.repo, self.run_id, "blocked", "PRD_BLOCKED"
+        )
+        self.assertEqual("PASS", blocked["result"])
+
+        revealed = smoke_h08b.reveal_product_decision(
+            self.repo, self.run_id
+        )
+        self.assertEqual("REVEALED", revealed["result"])
+        prd = self.repo / smoke_h08b.MAIN_PRD_PATH
+        prd.parent.mkdir(parents=True, exist_ok=True)
+        prd.write_text("# Main PRD\nStatus: PRD_READY\n", encoding="utf-8")
+
+        resumed = smoke_h08b.score_prd_phase(
+            self.repo, self.run_id, "resumed", "PRD_READY"
+        )
+        self.assertEqual("PASS", resumed["result"])
+
+    def test_prd_scoring_requires_harness_preparation(self):
+        prd = self.repo / smoke_h08b.DIRECT_PRD_PATH
+        prd.parent.mkdir(parents=True, exist_ok=True)
+        prd.write_text("# Direct PRD\nStatus: PRD_READY\n", encoding="utf-8")
+        with self.assertRaises(smoke_h08b.H08bError):
+            smoke_h08b.score_direct_prd(
+                self.repo, self.run_id, "PRD_READY"
+            )
+
     def _write_refusal(self, reason):
         report = self.repo / "docs/verification/VERIFY-SPEC-001-001.md"
         report.parent.mkdir(parents=True, exist_ok=True)
