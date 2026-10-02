@@ -403,7 +403,10 @@ class SmokeH08bTests(unittest.TestCase):
         self._complete_stage("direct-fix-loop", "waive")
 
         result = smoke_h08b.validate_refusal(
-            self.repo, refusal.relative_to(self.repo).as_posix(), self.run_id
+            self.repo,
+            refusal.relative_to(self.repo).as_posix(),
+            self.run_id,
+            "WAIVER_BLOCKED",
         )
 
         self.assertEqual("PASS", result["result"])
@@ -421,7 +424,10 @@ class SmokeH08bTests(unittest.TestCase):
         self.budget.write_text(json.dumps(data) + "\n", encoding="utf-8")
         with self.assertRaises(smoke_h08b.H08bError):
             smoke_h08b.validate_refusal(
-                self.repo, refusal.relative_to(self.repo).as_posix(), self.run_id
+                self.repo,
+                refusal.relative_to(self.repo).as_posix(),
+                self.run_id,
+                "WAIVER_BLOCKED",
             )
 
     def test_discovery_score_requires_completed_grill_invocation(self):
@@ -431,12 +437,26 @@ class SmokeH08bTests(unittest.TestCase):
                 self.repo, self.run_id, "blocked", "DISCOVERY_BLOCKED"
             )
 
+    def test_run_scoped_refusal_rejects_wrong_terminal_status(self):
+        refusal = self._write_refusal("POLICY_INELIGIBLE")
+        self._complete_stage("direct-fix-loop", "waive")
+        with self.assertRaises(smoke_h08b.H08bError):
+            smoke_h08b.validate_refusal(
+                self.repo,
+                refusal.relative_to(self.repo).as_posix(),
+                self.run_id,
+                "WAIVER_READY",
+            )
+
     def test_run_scoped_refusal_rejects_authorization_missing_reason(self):
         refusal = self._write_refusal("AUTHORIZATION_MISSING")
         self._complete_stage("direct-fix-loop", "waive")
         with self.assertRaises(smoke_h08b.H08bError):
             smoke_h08b.validate_refusal(
-                self.repo, refusal.relative_to(self.repo).as_posix(), self.run_id
+                self.repo,
+                refusal.relative_to(self.repo).as_posix(),
+                self.run_id,
+                "WAIVER_BLOCKED",
             )
 
     def test_resumed_prd_requires_prior_blocked_pass_and_revealed_decision(self):
@@ -496,7 +516,10 @@ class SmokeH08bTests(unittest.TestCase):
 
         with self.assertRaises(smoke_h08b.H08bError):
             smoke_h08b.validate_refusal(
-                self.repo, refusal.relative_to(self.repo).as_posix(), self.run_id
+                self.repo,
+                refusal.relative_to(self.repo).as_posix(),
+                self.run_id,
+                "WAIVER_BLOCKED",
             )
 
     def test_refusal_digest_tamper_fails_closed(self):
