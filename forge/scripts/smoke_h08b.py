@@ -339,18 +339,51 @@ def validate_refusal(
                     "POLICY_INELIGIBLE refusal must not create a WAIVER_AUTHORIZATION wait"
                 )
         policy_rel = _safe_rel(record.get("policy_reference"))
+        if policy_rel != POLICY_PATH:
+            raise H08bError("H08b policy refusal must bind the fixed fixture policy")
         policy = _path(repo, policy_rel)
         if not policy.is_file():
             raise H08bError("Referenced waiver policy is missing")
-        if _sha_bytes(policy.read_bytes()) != record.get("policy_sha256"):
+        policy_bytes = policy.read_bytes()
+        if _sha_bytes(policy_bytes) != record.get("policy_sha256"):
             raise H08bError("Waiver refusal policy digest mismatch")
+        try:
+            policy_data = json.loads(policy_bytes.decode("utf-8"))
+        except (UnicodeDecodeError, ValueError, json.JSONDecodeError) as exc:
+            raise H08bError("Referenced waiver policy is unreadable") from exc
+        non_waivable = policy_data.get("non_waivable_failure_types")
+        if (
+            not isinstance(non_waivable, list)
+            or not all(isinstance(item, str) and item for item in non_waivable)
+            or not set(types).intersection(non_waivable)
+        ):
+            raise H08bError(
+                "POLICY_INELIGIBLE refusal is not supported by the fixed failure-type policy"
+            )
     elif auth_requested is not True or receipt is not False:
         raise H08bError(
             "AUTHORIZATION_MISSING must record that authorization was requested without a receipt"
         )
 
-    if not isinstance(record.get("decision_timestamp"), str) or not record["decision_timestamp"]:
+    fingerprint = record.get("implementation_state_fingerprint")
+    if fingerprint is not None and (
+        not isinstance(fingerprint, str) or not fingerprint.strip()
+    ):
+        raise H08bError("Waiver refusal implementation_state_fingerprint is invalid")
+    classification = record.get("classification")
+    if classification is not None and (
+        not isinstance(classification, str) or not classification.strip()
+    ):
+        raise H08bError("Waiver refusal classification is invalid")
+    timestamp = record.get("decision_timestamp")
+    if not isinstance(timestamp, str) or not timestamp:
         raise H08bError("Waiver refusal decision_timestamp is required")
+    try:
+        parsed = __import__("datetime").datetime.fromisoformat(timestamp)
+    except ValueError as exc:
+        raise H08bError("Waiver refusal decision_timestamp must be ISO-8601") from exc
+    if parsed.tzinfo is None:
+        raise H08bError("Waiver refusal decision_timestamp must be timezone-aware")
     return {
         "result": "PASS",
         "reason_code": reason,
