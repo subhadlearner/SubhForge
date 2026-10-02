@@ -82,8 +82,12 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
         checks[key] = path.is_file()
         return path.read_text(encoding="utf-8") if checks[key] else ""
 
-    for name in REQUIRED_COMMANDS:
-        read(f"command:{name}", config / "commands" / f"{name}.md")
+    command_text = {
+        name: read(f"command:{name}", config / "commands" / f"{name}.md")
+        for name in REQUIRED_COMMANDS
+    }
+    grill = command_text["grill"]
+    waive = command_text["waive"]
     worker = read("agent:planning-worker", config / "agents/planning-worker.md")
     orchestrator = read("agent:smoke-orchestrator", config / "agents/smoke-orchestrator.md")
     router = read("agent:resume-router", config / "agents/resume-router.md")
@@ -96,6 +100,25 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
     architecture = read("policy:architecture", config / "commands/architect.md")
     contract = read("contract:installed", config / "contracts/implementation-state-evidence-v1.md")
     project_contract = read("contract:project", repo / "docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md")
+
+    checks["h08b:grill-stable-decisions"] = all(term in grill for term in (
+        "| Decision ID | Status | Decision / Value | Prerequisite Evidence |",
+        "BLOCKED_ON_EVIDENCE",
+        "preserve every already-settled decision ID",
+        "DISCOVERY_BLOCKED",
+    ))
+    policy_pos = waive.find("## Stage 2 — Check Failure-Type Policy Eligibility")
+    auth_pos = waive.find("## Stage 3 — Require Explicit Human Authorization")
+    checks["h08b:waive-policy-before-auth"] = (
+        policy_pos >= 0
+        and auth_pos > policy_pos
+        and "POLICY_INELIGIBLE" in waive
+        and "AUTHORIZATION_MISSING" in waive
+        and "docs/verification/waiver-refusals/" in waive
+        and "authorization_requested" in waive
+        and "authorization_receipt_present" in waive
+        and "do **not** start or wait on a `WAIVER_AUTHORIZATION` gate" in waive
+    )
 
     checks["planning:modes"] = all(f"`{mode}`" in worker for mode in
                                     ("AUTHOR", "CONTINUE", "RECONCILE_ONLY"))
