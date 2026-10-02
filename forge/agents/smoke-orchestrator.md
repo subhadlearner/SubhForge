@@ -460,16 +460,21 @@ checkpoint differs or the pinned ACTIVE-segment FULL budget is exceeded.
 
 
 For FULL, use `scripts/smoke_segments.py` as the sole segment lifecycle helper.
-Bootstrap already commits S1 ACTIVE. Register every deterministically scored required
-subprobe with `register-evidence` and its exact accepted evidence paths. When all
-assigned scenarios/subprobes are complete, no child or H07 wait is open, source/config
-are intact, and the exact close checkpoint matches, call `close --source
-<source_checkout_path>`. Between a committed close and `open-next --source
+Bootstrap already commits S1 ACTIVE. Register every scored required subprobe with
+`register-evidence` and its exact accepted evidence paths; model-bearing subprobes
+must have file-backed evidence and cannot be closed from free-text facts alone. When
+all assigned scenarios/subprobes are complete, no child or H07 wait is open,
+source/config are intact, and the exact close checkpoint matches, call `close --source
+<source_checkout_path>`. S5/S6 close only after their H05/H06 helper status is PASS
+with the corresponding helper ledger accepted as evidence; S6 must also reproduce
+`CP-REPAIRED-STABLE` before `QUALIFICATION_EVIDENCE_READY` is committed. Between a committed close and `open-next --source
 <source_checkout_path>`, permit only inactivity/read-only status/read-only preflight;
 do not delegate models, score scenarios, mutate fixtures, repair evidence, or change
 source. Use `gap-record` only for the allow-listed read-only gap activity types.
-Every later open revalidates the cumulative closed evidence/ledger chain. Use
-`report` for aggregate timing; never invent a second aggregate hard limit.
+Every later open revalidates the cumulative closed evidence/ledger chain and compares
+the live checkpoint fingerprint with the immutable preceding close. `report` and
+terminal FULL PASS revalidate the complete chain again. Use `report` for aggregate
+timing; never invent a second aggregate hard limit.
 
 
 
