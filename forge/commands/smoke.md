@@ -714,8 +714,11 @@ For the main PRD blocked/resumed path use:
 reveal-product-decision → one Sol /prd → score-prd resumed`.
 The hidden approved value must not be supplied to the first child.
 
-After the normal successful Luna `/project-init`, require
-`score-project-init-policy --status PROJECT_INIT_READY` PASS before accepting policy propagation.
+For the normal successful Luna `/project-init`, include
+`docs/workflow/H08B-FIXTURE-WAIVER-POLICY.json` as an exact authoritative
+context path. After it returns, require
+`score-project-init-policy --status PROJECT_INIT_READY` PASS before accepting
+policy propagation.
 
 The project-init negative uses the already-declared extra Luna call and the pair:
 `score-project-init-helper → real Luna /project-init →
