@@ -40,7 +40,9 @@ class SmokeH08bTests(unittest.TestCase):
         )
         discovery.write_text(text, encoding="utf-8")
 
-        result = smoke_h08b.score_discovery(self.repo, self.run_id, "blocked")
+        result = smoke_h08b.score_discovery(
+            self.repo, self.run_id, "blocked", "DISCOVERY_BLOCKED"
+        )
 
         self.assertEqual("FAIL", result["result"])
         self.assertTrue(any("DEC-001" in item for item in result["failures"]))
@@ -63,6 +65,18 @@ class SmokeH08bTests(unittest.TestCase):
 
     def test_direct_prd_probe_proves_no_discovery_artifact_and_restores(self):
         smoke_h08b.seed_discovery(self.repo, self.run_id)
+        smoke_h08b.restore_required_evidence(self.repo)
+        discovery = self.repo / smoke_h08b.DISCOVERY_PATH
+        discovery.write_text(
+            discovery.read_text(encoding="utf-8").replace(
+                "| DEC-002 | BLOCKED_ON_EVIDENCE | - | docs/workflow/H08B-REQUIRED-EVIDENCE.md |",
+                "| DEC-002 | SETTLED | Return JSON integer value; reject non-integer input with HTTP 400 | docs/workflow/H08B-REQUIRED-EVIDENCE.md |",
+            ),
+            encoding="utf-8",
+        )
+        smoke_h08b.score_discovery(
+            self.repo, self.run_id, "resumed", "DISCOVERY_READY"
+        )
         prepared = smoke_h08b.begin_direct_prd_probe(self.repo, self.run_id)
         self.assertTrue(prepared["discovery_absent"])
         self.assertFalse((self.repo / smoke_h08b.DISCOVERY_PATH).exists())
@@ -86,6 +100,16 @@ class SmokeH08bTests(unittest.TestCase):
         self.assertTrue(score_path.is_file())
 
     def test_main_prd_blocks_until_approved_product_decision_is_revealed(self):
+        smoke_h08b.seed_discovery(self.repo, self.run_id)
+        smoke_h08b.restore_required_evidence(self.repo)
+        discovery = self.repo / smoke_h08b.DISCOVERY_PATH
+        discovery.write_text(
+            discovery.read_text(encoding="utf-8").replace(
+                "| DEC-002 | BLOCKED_ON_EVIDENCE | - | docs/workflow/H08B-REQUIRED-EVIDENCE.md |",
+                "| DEC-002 | SETTLED | Return JSON integer value; reject non-integer input with HTTP 400 | docs/workflow/H08B-REQUIRED-EVIDENCE.md |",
+            ),
+            encoding="utf-8",
+        )
         seeded = smoke_h08b.seed_product_decision(self.repo, self.run_id)
         self.assertEqual("WITHHELD", seeded["result"])
         self.assertFalse((self.repo / smoke_h08b.PRODUCT_DECISION_PATH).exists())
@@ -291,6 +315,8 @@ class SmokeH08bTests(unittest.TestCase):
                 {
                     "policy_id": "SMOKE-FULL-WAIVER-POLICY-V1",
                     "non_waivable_failure_types": ["BEHAVIORAL_TEST"],
+                    "waivable_failure_types": ["DOCUMENTATION_QUALITY", "LINT_QUALITY"],
+                    "purpose": "H08b fixed failure-type waiver policy.",
                 },
             )
 
