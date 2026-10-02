@@ -106,6 +106,35 @@ class SmokeH08bTests(unittest.TestCase):
         self.assertEqual("PASS", resumed["result"])
         self.assertTrue((self.repo / resumed["score_path"]).is_file())
 
+    def test_project_init_success_preserves_bootstrap_pinned_waiver_policy(self):
+        policy = {
+            "policy_id": "SMOKE-FULL-WAIVER-POLICY-V1",
+            "non_waivable_failure_types": ["BEHAVIORAL_TEST"],
+            "waivable_failure_types": ["DOCUMENTATION_QUALITY", "LINT_QUALITY"],
+            "purpose": "H08b fixed failure-type waiver policy.",
+        }
+        written = smoke_h08b.write_fixture_policy(
+            self.repo, policy, self.run_id
+        )
+        agents = self.repo / "AGENTS.md"
+        agents.write_text(
+            "Waiver Policy Source: {}\n"
+            "Waiver Policy SHA-256: {}\n"
+            "Non-waivable Failure Types: BEHAVIORAL_TEST\n"
+            "Waivable Failure Types: DOCUMENTATION_QUALITY, LINT_QUALITY\n".format(
+                smoke_h08b.POLICY_PATH,
+                written["sha256"],
+            ),
+            encoding="utf-8",
+        )
+
+        scored = smoke_h08b.score_project_init_policy_propagation(
+            self.repo, self.run_id
+        )
+
+        self.assertEqual("PASS", scored["result"])
+        self.assertTrue((self.repo / scored["score_path"]).is_file())
+
     def test_project_init_negative_scores_helper_and_luna_separately(self):
         helper = smoke_h08b.score_project_init_helper_rejection(
             self.repo, self.run_id
