@@ -1287,6 +1287,8 @@ def qualification_report(
         except SegmentError:
             _disqualify_gap(repo, run_id, "FINAL_INTEGRITY_DRIFT")
             raise
+        if runtime.get("active_segment") is None and runtime.get("gap") is None:
+            validate_terminal_integrity(repo, run_id)
         configured = sum(item["limit_minutes"] for item in pinned["segments"])
         for close in runtime["closed_segments"]:
             active_seconds += float(close.get("charged_elapsed_seconds", 0))
