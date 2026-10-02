@@ -1204,14 +1204,20 @@ orchestrator MUST:
 
 1. treat bootstrap's committed S1 ACTIVE record as the start of S1; never create
    another S1 start timestamp
-2. after each required subprobe is deterministically scored, register the factual
-   result and every accepted report/artifact path with:
-   `smoke_segments.py ... register-evidence --scenario <scenario-id> --subprobe <subprobe-id> --fact <factual-score> [--evidence <repo-relative-path> ...]`
+2. after each required subprobe is scored, register the factual result and every
+   accepted report/artifact path with:
+   `smoke_segments.py ... register-evidence --scenario <scenario-id> --subprobe <subprobe-id> --fact <factual-score> [--evidence <repo-relative-path> ...]`.
+   Every declared model-bearing subprobe requires at least one file-backed evidence
+   path; free-text facts alone cannot create `SCORED_PASS`.
 3. never mark a top-level scenario complete in place of its required subprobe
    evidence; segment close validates both
 4. after the segment's assigned scenarios/subprobes are complete, the exact close
    checkpoint is MATCH, and no child/H07 wait is open, call
-   `smoke_segments.py ... close --source <source_checkout_path>`
+   `smoke_segments.py ... close --source <source_checkout_path>`. S5 additionally
+   requires `smoke_resume.status(...).result == PASS` with its resume ledger in
+   accepted evidence; S6 requires `smoke_reroute.status(...).result == PASS`,
+   its reroute ledger, and an exact `CP-REPAIRED-STABLE` match before the
+   `QUALIFICATION_EVIDENCE_READY` close marker is committed.
 5. after a committed close, do no substantive work. Optional gap bookkeeping may
    use `gap-record` only for `OPERATOR_INACTIVITY`, `READ_ONLY_STATUS`, or
    `READ_ONLY_PREFLIGHT`
@@ -1220,7 +1226,9 @@ orchestrator MUST:
    read-only preflight remains in the gap; proven source/checkpoint/config/evidence/
    ledger drift disqualifies the qualification and must not be repaired in-gap
 7. use `smoke_segments.py ... report` for configured allowance, aggregate charged
-   active time, excluded H07 waits, recorded inter-segment gaps, and total wall time
+   active time, excluded H07 waits, recorded inter-segment gaps, and total wall time.
+   The report revalidates the complete closed evidence/ledger chain; a terminal FULL
+   PASS transition performs the same byte-level revalidation again.
 
 The complete accepted evidence membership is derived from the immutable per-segment
 scenario-evidence index; callers do not select a smaller close manifest. A segment
