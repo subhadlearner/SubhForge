@@ -2433,7 +2433,9 @@ Expected:
 - no `WAIVER_AUTHORIZATION` interval exists for the report
 - terminal token is `WAIVER_BLOCKED`
 
-Validate the record with `smoke_h08b.py validate-refusal --run-id <run-id>`.
+Parse the Luna child's actual terminal status and validate the record with
+`smoke_h08b.py validate-refusal --run-id <run-id> --status <actual>`.
+The scorer requires actual `WAIVER_BLOCKED` plus `POLICY_INELIGIBLE`.
 Do not run another verification to manufacture this negative case.
 
 ### Expected /fix behavior
