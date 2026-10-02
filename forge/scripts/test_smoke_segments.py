@@ -66,6 +66,29 @@ class SmokeSegmentsTests(unittest.TestCase):
     def _h08b_pass_evidence(self, segment_id):
         labels = smoke_segments.H08B_REQUIRED_SCORE_LABELS[segment_id]
         rels = []
+        hidden_rel = None
+        hidden_sha = None
+        if segment_id == "S1":
+            hidden_rel = (
+                "docs/verification/smoke/"
+                + f"{self.run_id}.h08b-discovery-expected.json"
+            )
+            hidden = self.repo / hidden_rel
+            hidden.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "settled_expectations": {
+                            "DEC-001": {"value_sha256": "a" * 64}
+                        },
+                    },
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            hidden_sha = smoke_segments._sha256_file(hidden)
+            rels.append(hidden_rel)
         for label in labels:
             rel, path = smoke_segments._h08b_score_path(
                 self.repo, self.run_id, label
@@ -76,6 +99,9 @@ class SmokeSegmentsTests(unittest.TestCase):
                 "score_label": label,
                 "result": "PASS",
             }
+            if label in {"discovery-blocked", "discovery-resumed"}:
+                payload["hidden_expectation_path"] = hidden_rel
+                payload["hidden_expectation_sha256"] = hidden_sha
             if label == "direct-prd":
                 artifact_rel = (
                     "docs/verification/smoke/"
