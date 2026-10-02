@@ -30,6 +30,7 @@ permission:
     "*": deny
     "planning-worker": allow
     "resume-router": allow
+    "h08b-luna-probe": allow
     "smoke-executor": allow
     "pre-reviewer": allow
     "code-reviewer": allow
@@ -56,7 +57,7 @@ You are not a replacement for the normal product lifecycle agents.
 - select only registered smoke fixtures
 - restore/resume from repository evidence
 - delegate each substantive stage to its normal owner/model
-- execute lightweight Luna-owned project-init and waiver contracts when instructed by `/smoke`
+- delegate Luna-owned H08b project-init/waiver behavior to a fresh hidden-scorer-denied child
 - enforce smoke cost controls
 
 Do not independently author product requirements, architecture, specifications, implementation, verification conclusions, or senior-review verdicts when those belong to delegated stage owners.
@@ -67,6 +68,7 @@ Use:
 
 - `planning-worker` with GPT-5.6 Sol for `/grill`, `/prd`, `/architect`, and `/spec`
 - `resume-router` with GPT-5.6 Luna for one fresh read-only arbitrary-stage resume routing decision
+- `h08b-luna-probe` with GPT-5.6 Luna for each independent H08b `/project-init` or `/waive` behavioral probe; instantiate it fresh per call
 - `smoke-executor` for DeepSeek-owned `/implement`, `/verify`, `/fix`, and `/diagnose`
 - `pre-reviewer` for DeepSeek pre-review
 - `code-reviewer` for GPT-5.6 Sol senior review after pre-review readiness
@@ -118,38 +120,34 @@ behavior.
    call with that exact path, and require `score-prd --phase resumed` PASS
    with actual `PRD_READY`. Do not turn missing evidence into a user-decision
    blocker or vice versa.
-9. For project-init contract propagation, retain the successful Luna call and include
+9. For project-init contract propagation, use a fresh `h08b-luna-probe`
+   child for the successful Luna call. Include
    `docs/workflow/H08B-FIXTURE-WAIVER-POLICY.json` as an exact authoritative
-   `CONTEXT_PATHS` input alongside the canonical evidence contract. The Luna
-   child must not rediscover or reinterpret that mapping. Immediately after it
-   returns `PROJECT_INIT_READY`, run
-   `smoke_h08b.py score-project-init-policy --status PROJECT_INIT_READY` and require PASS so the project
-   `AGENTS.md` is proven to preserve the bootstrap-pinned waiver-policy path,
-   digest, and exact failure-type mappings. For the negative pair, first run
-   `smoke_h08b.py score-project-init-helper` and require PASS from a real
-   `ProjectInitError` against the harness-owned absent contract path. Then run
-   the separately declared negative Luna child with the same unavailable-contract
-   condition, parse its actual status, and require
-   `score-project-init-luna --status <actual>` PASS with
-   `PROJECT_INIT_BLOCKED`.
+   `CONTEXT_PATHS` input alongside the canonical evidence contract. Do not
+   provide an expected status to the child. Parse the child's actual returned
+   status and pass only that actual value to
+   `smoke_h08b.py score-project-init-policy --status <actual>`.
+   For the negative pair, run `smoke_h08b.py begin-project-init-negative`,
+   then `score-project-init-helper` and require its independent mechanical
+   rejection. Start a second fresh `h08b-luna-probe` child with
+   `WORKFLOW: /project-init` and the deliberately unavailable canonical-contract
+   input; do not include the expected status/reason in the task. Parse the actual
+   returned status and pass it to `score-project-init-luna --status <actual>`.
+   Finally run `restore-project-init-negative` and require `MATCH`.
 
 ### S2 policy-ineligible waiver probe
 
 Immediately after the direct-fix DeepSeek verification creates the genuine
-behavioral-test `NOT_DONE` report, invoke the single already-budgeted GPT-5.6
-Luna `/waive` call **before** `/fix`.
+behavioral-test `NOT_DONE` report, invoke the single already-budgeted Luna
+`/waive` call **before** `/fix` through a fresh `h08b-luna-probe` child.
 
-The project policy installed from
-`docs/workflow/H08B-FIXTURE-WAIVER-POLICY.json` must still make
-`BEHAVIORAL_TEST` non-waivable. The Luna call must:
-
-- load that exact failed verification report
-- evaluate failure-type policy before authorization
-- persist a reason-coded refusal under `docs/verification/waiver-refusals/`
-- return `WAIVER_BLOCKED` with reason `POLICY_INELIGIBLE`
-- create no `WAIVER_AUTHORIZATION` wait or receipt
+Pass only the exact normal verification report and project waiver-policy context.
+Do not tell the child the expected terminal status or refusal reason. Parse the
+actual returned status and discover only the normal refusal artifact it created.
 
 Run `smoke_h08b.py validate-refusal --run-id <run-id> --path <refusal>`.
+The scorer—not the child prompt—requires the H08b S2 result to be
+`POLICY_INELIGIBLE`, bound to the exact report/policy, with no H07 wait.
 Any digest/policy/reason/no-wait failure blocks H08b. Then continue the
 predeclared direct-fix sequence with DeepSeek `/fix`, fresh `/verify`,
 DeepSeek pre-review, and Sol senior review only when ready.
