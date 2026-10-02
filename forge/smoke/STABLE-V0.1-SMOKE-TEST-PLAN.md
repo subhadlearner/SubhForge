@@ -1682,10 +1682,12 @@ Contract-v1.
 
 For the independent negative, run
 `begin-project-init-negative → score-project-init-helper → fresh h08b-luna-probe
-/project-init → score-project-init-luna --status <actual> →
-restore-project-init-negative`. The prepared branch removes the project
-canonical Contract-v1 file. The negative must remain blocked and must not invent
-a substitute contract.
+/project-init → parse actual status/OWNER/BLOCKING_ISSUE/REQUIRED_ACTION/NEXT_COMMAND →
+score-project-init-luna with those exact values → restore-project-init-negative`.
+The prepared branch removes the project canonical Contract-v1 file. The negative
+must remain blocked, explicitly identify canonical-contract unavailability with
+owner `REPOSITORY`, route back to `/project-init`, and must not invent a
+substitute contract.
 
 ## Blocked routing
 
