@@ -728,6 +728,11 @@ DeepSeek /verify → DeepSeek pre-review → Sol senior review when ready`.
 Validate the refusal with `smoke_h08b.py validate-refusal --run-id <run-id>`.
 No extra/fallback verification is permitted.
 
+For every H08b scorer action, register its returned immutable `score_path`
+with `smoke_segments.py register-evidence` for the matching required subprobe.
+The scorer path, not an orchestrator assertion, preserves transient blocked/
+isolated evidence until segment close.
+
 The predefined smoke fixture product brief is required to be sufficient for
 planning. Do not turn a framework smoke run into an interactive product
 discovery session.
