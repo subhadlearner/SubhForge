@@ -73,6 +73,9 @@ WORKFLOW_STAGES = {
 PROTECTED_CONTEXT_KEYS = {
     "budget_started_at_utc",
     "contract_parity",
+    "qualification_config",
+    "segment_runtime",
+    "qualification_eligible",
 }
 
 
