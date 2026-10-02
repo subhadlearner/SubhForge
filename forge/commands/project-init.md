@@ -253,9 +253,16 @@ installed global `contracts/implementation-state-evidence-v1.md`
 
 Copy the contract verbatim. Do not summarize, reinterpret, or maintain an independently rewritten variant.
 
-If the global canonical contract is unavailable or the project copy cannot be synchronized exactly, return `PROJECT_INIT_BLOCKED` rather than leaving a dangling Stable-v1 reference.
+If the global canonical contract is unavailable or the project copy cannot be synchronized exactly, do not invent, summarize, copy from another source, or leave a substitute project contract. Report the blocker using these normal structured fields before the terminal status:
 
-Do not delete existing artifacts.
+`OWNER: REPOSITORY`
+`BLOCKING_ISSUE: <concise canonical Contract-v1 unavailable/synchronization failure>`
+`REQUIRED_ACTION: <minimum action needed to restore the canonical contract input>`
+`NEXT_COMMAND: /project-init`
+
+Then return `PROJECT_INIT_BLOCKED` rather than leaving a dangling Stable-v1 reference.
+
+Do not delete existing artifacts except when the deterministic smoke harness has explicitly prepared an isolated negative probe outside this normal command.
 
 These directories and the contract hold workflow evidence/design rules; they do not authorize implementation decisions.
 
