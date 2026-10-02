@@ -244,7 +244,7 @@ For a new run:
    Invoke this one shell-tool call with a per-command timeout of at least
    **3,600,000 ms (60 minutes)**. Kilo's shell timeout is only transport
    supervision for the nested CLI process; it is NOT the smoke qualification
-   budget and MUST NOT replace, reset, or extend the 30-minute
+   budget and MUST NOT replace, reset, or extend the pinned ACTIVE-segment
    `smoke_budget.py` clock. It does not itself pause qualification time.
    Qualification time excludes only helper-validated, allow-listed
    human-authorization wait intervals as defined below.
@@ -372,7 +372,7 @@ reconstruct state from the exact run record and current repository evidence.
 Before continuing:
 
 - locate the run workspace using `python <global-config>/scripts/smoke_workspace.py locate --source <source_checkout_path> --run-id <run-id>` and validate the returned run directory/branch
-- run `smoke_budget.py ... check --limit-minutes 30` before handoff and inspect
+- run `smoke_budget.py ... check` before handoff and inspect
   `active_human_wait`
 - when an allow-listed human wait is open, treat the budget ledger as the
   qualification-time authority. Canonical smoke state should be
@@ -398,7 +398,7 @@ Before continuing:
 - if authorization was already persisted before a crash, do not ask the human
   to repeat it; continue from the closed interval and its persisted
   authorization
-- invoke `python <global-config>/scripts/smoke_handoff.py --repo <run-directory> --run-id <run-id> ensure` before any substantive child/model delegation, using a shell-tool timeout of at least 3,600,000 ms (60 minutes); this transport timeout does not alter the 30-minute active qualification budget
+- invoke `python <global-config>/scripts/smoke_handoff.py --repo <run-directory> --run-id <run-id> ensure` before any substantive child/model delegation, using a shell-tool timeout of at least 3,600,000 ms (60 minutes); this transport timeout does not alter the pinned ACTIVE-segment qualification budget
 - if handoff returns `HANDOFF_COMPLETE`, stop the source-root invocation and
   relay the rooted continuation result; do not continue smoke orchestration in
   the source checkout
@@ -1047,7 +1047,7 @@ release-qualifying smoke:
   requires investigation/optimization before merge
 - H12 requires the full <=180s target
 
-This is a developer/release-preparation gate, not part of the 30-minute smoke
+This is a developer/release-preparation gate, not part of the pinned segmented smoke
 qualification clock. Do not rerun the entire deterministic suite inside a
 `/smoke` run merely to satisfy this policy; consume the pre-merge evidence.
 Never reduce runtime by weakening required tests.
@@ -1186,20 +1186,19 @@ Enforce the runbook's token/cost rules:
 - stop after two materially identical failed attempts
 - Claude invocation count target: zero
 
-For the tiny FULL fixture, target 25 minutes and enforce a 30-minute hard
-**active release-qualification ceiling** with the installed executable guard.
-The wall clock starts at smoke bootstrap and never resets on `RESUME`.
-Effective qualification elapsed time is wall-clock elapsed minus the sum of
-helper-validated, allow-listed human-authorization wait intervals. Multiple
-completed waits are additive; at most one interval may be open at a time.
-Stable v0.1 enables only `WAIVER_AUTHORIZATION`. No crash, retry, transport
-delay, ordinary inactivity, debugging period, or bare `WAITING_FOR_USER`
-state is excluded.
+FULL qualification runs as six sequential checkpoint-bound segments. Each segment uses
+its pinned positive limit from the bootstrap snapshot; there is no second aggregate hard
+limit. The provisional limits are S1=80, S2=48, S3=38, S4=53, S5=36, and S6=40 minutes
+(295 minutes derived configured allowance). A segment clock starts only when its ACTIVE
+transition commits and never resets after crash/recovery. Within an ACTIVE segment only
+helper-validated `WAIVER_AUTHORIZATION` waits are excluded; ordinary inactivity, transport,
+debugging, retries, and crash/recovery remain charged. BETWEEN_SEGMENTS gaps are recorded
+separately and permit no substantive lifecycle/model work.
 
 Before EVERY substantive lifecycle/model stage, run:
 
 ```text
-python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <run-id> check --limit-minutes 30
+python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <run-id> check
 python <global-config>/scripts/smoke_budget.py --repo <run-directory> --run-id <run-id> stage-start --stage <stage-id> --model <model-id> --source-fingerprint <pre-child-source-fingerprint>
 ```
 
@@ -1245,7 +1244,7 @@ The orchestration guard is a boundary stop: it prevents any new stage after the
 budget is exceeded and catches over-budget child calls immediately on return.
 It cannot forcibly terminate a child model invocation already in progress, so
 one child may finish after the ceiling. A later `RESUME` does not reset the
-clock or convert an over-budget run into a qualifying PASS. Do not claim
+segment clock or convert an over-budget qualification into a qualifying PASS. Do not claim
 otherwise.
 
 Record every substantive model invocation in the run ledger.
