@@ -922,6 +922,13 @@ def score_project_init_policy_propagation(
     status: str,
 ) -> dict[str, object]:
     repo = _repo(repo)
+    _require_completed_invocations(
+        repo,
+        run_id,
+        scenario_id="project-init-contract-propagation",
+        stage="project-init",
+        minimum_count=1,
+    )
     policy = _path(repo, POLICY_PATH)
     agents = repo / "AGENTS.md"
     expected = _policy_expectation_path(repo, run_id)
@@ -971,14 +978,77 @@ def score_project_init_policy_propagation(
     )
 
 
+def begin_project_init_negative(
+    repo: Path,
+    run_id: str,
+) -> dict[str, object]:
+    repo = _repo(repo)
+    _require_pass_score(repo, run_id, "project-init-policy-propagation")
+    contract = _path(repo, CANONICAL_CONTRACT_PATH)
+    if not contract.is_file():
+        raise H08bError(
+            "Project-init negative requires the successful canonical contract first"
+        )
+    snapshot_path = _project_init_negative_snapshot_path(repo, run_id)
+    if snapshot_path.exists():
+        raise H08bError("Project-init negative snapshot already exists")
+    root = smoke_resume.probe_repo_root(repo)
+    snapshot = smoke_resume.capture_probe_snapshot_at_root(root)
+    snapshot_path.parent.mkdir(parents=True, exist_ok=True)
+    snapshot_path.write_text(
+        json.dumps(snapshot, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    contract.unlink()
+    if contract.exists():
+        raise H08bError("Project-init negative failed to remove canonical contract")
+    return {
+        "result": "READY",
+        "snapshot_path": snapshot_path.relative_to(repo).as_posix(),
+        "canonical_contract_absent": True,
+    }
+
+
+def restore_project_init_negative(
+    repo: Path,
+    run_id: str,
+) -> dict[str, object]:
+    repo = _repo(repo)
+    root = smoke_resume.probe_repo_root(repo)
+    snapshot_path = _project_init_negative_snapshot_path(repo, run_id)
+    try:
+        snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        raise H08bError("Project-init negative snapshot is unreadable") from exc
+    expected = snapshot.get("snapshot_sha256")
+    if not isinstance(expected, str):
+        raise H08bError("Project-init negative snapshot digest is missing")
+    smoke_resume.restore_probe_snapshot_at_root(root, snapshot)
+    current = smoke_resume.capture_probe_snapshot_at_root(root)
+    if current.get("snapshot_sha256") != expected:
+        raise H08bError("Project-init negative restoration is not byte-identical")
+    contract = _path(repo, CANONICAL_CONTRACT_PATH)
+    if not contract.is_file():
+        raise H08bError("Project-init negative restoration did not restore canonical contract")
+    snapshot_path.unlink()
+    return {"result": "MATCH", "canonical_contract_restored": True}
+
+
 def score_project_init_helper_rejection(
     repo: Path,
     run_id: str,
 ) -> dict[str, object]:
     repo = _repo(repo)
+    if not _project_init_negative_snapshot_path(repo, run_id).is_file():
+        raise H08bError("Project-init negative was not prepared")
+    canonical = _path(repo, CANONICAL_CONTRACT_PATH)
+    if canonical.exists():
+        raise H08bError(
+            "Project-init negative must not contain a substitute canonical contract"
+        )
     missing = repo / "docs" / "workflow" / "H08B-MISSING-CONTRACT.md"
     if missing.exists():
-        raise H08bError("Project-init negative contract path must remain absent")
+        raise H08bError("Project-init negative contract input must remain absent")
     try:
         project_init_mechanics.prepare(repo, missing)
     except project_init_mechanics.ProjectInitError as exc:
@@ -1001,12 +1071,24 @@ def score_project_init_luna(
     status: str,
 ) -> dict[str, object]:
     repo = _repo(repo)
+    if not _project_init_negative_snapshot_path(repo, run_id).is_file():
+        raise H08bError("Project-init negative was not prepared")
+    _require_completed_invocations(
+        repo,
+        run_id,
+        scenario_id="project-init-contract-propagation",
+        stage="project-init",
+        minimum_count=2,
+    )
     missing = repo / "docs" / "workflow" / "H08B-MISSING-CONTRACT.md"
+    canonical = _path(repo, CANONICAL_CONTRACT_PATH)
     failures: list[str] = []
     if status != "PROJECT_INIT_BLOCKED":
         failures.append("Luna project-init did not return PROJECT_INIT_BLOCKED")
     if missing.exists():
-        failures.append("negative project-init contract unexpectedly exists")
+        failures.append("negative project-init contract input unexpectedly exists")
+    if canonical.exists():
+        failures.append("Luna project-init invented a substitute canonical contract")
     return _persist_score(
         repo,
         run_id,
