@@ -84,6 +84,20 @@ For the FULL S1/S2 H08b probes, preserve the H08 invocation contract exactly.
 Do not add fallback verification or substitute deterministic output for model
 behavior.
 
+Every substantive H08b child must be bracketed by the normal
+`smoke_budget.py stage-start/stage-end` lifecycle before its scorer runs.
+Use these exact ledger identities so scorers can bind to the real model call:
+
+- blocked/resumed discovery: scenario `grill`, stage `grill`
+- isolated direct PRD: scenario `grill`, stage `prd`
+- main blocked/resumed PRD: scenario `prd`, stage `prd`
+- successful/negative project-init: scenario `project-init-contract-propagation`,
+  stage `project-init`
+- S2 policy-ineligible waiver: scenario `direct-fix-loop`, stage `waive`
+
+A scorer must never be invoked in lieu of the child stage or before the
+corresponding completed invocation exists in the budget ledger.
+
 ### S1 discovery and PRD probes
 
 1. Before the first `/grill` call, run
@@ -94,12 +108,16 @@ behavior.
 2. Invoke GPT-5.6 Sol `/grill` against the normal discovery artifact while the
    referenced required evidence is absent. Require `DISCOVERY_BLOCKED`; the
    blocker must be missing evidence/access, not a withheld user product answer.
-3. Run `smoke_h08b.py score-discovery --phase blocked --status DISCOVERY_BLOCKED`. A FAIL blocks H08b.
+3. Parse the child's actual terminal status from its returned normal workflow output.
+   Run `smoke_h08b.py score-discovery --phase blocked --status <actual>`.
+   Never substitute the expected token for the returned value. A FAIL blocks H08b.
 4. Restore exactly the referenced evidence with
    `smoke_h08b.py restore-evidence`.
 5. Invoke GPT-5.6 Sol `/grill` again in CONTINUE mode. Require the existing
    settled decision IDs/values to remain unchanged and discovery to become ready.
-6. Run `score-discovery --phase resumed --status DISCOVERY_READY`; a FAIL blocks H08b.
+6. Parse the resumed child's actual terminal status and run
+   `score-discovery --phase resumed --status <actual>`; never pass the expected
+   token unless that is what the child actually returned. A FAIL blocks H08b.
 7. For the separate user-selected clear-intent direct-PRD branch, run
    `smoke_h08b.py begin-direct-prd`. This temporarily removes only the normal
    discovery artifact into protected smoke snapshot evidence. Invoke one GPT-5.6
@@ -157,11 +175,13 @@ DeepSeek pre-review, and Sol senior review only when ready.
 Every successful H08b deterministic scorer returns an immutable
 `score_path` under `docs/verification/smoke/**`. Register that exact path as
 accepted file-backed evidence for the corresponding H08 subprobe with
-`smoke_segments.py register-evidence`. For transient states such as blocked
-discovery, direct-PRD isolation, blocked PRD, project-init negative, and the
-policy-ineligible refusal, the immutable scorer artifact is the historical
-proof that must survive after the normal repository state resumes/restores.
-Never substitute free-text facts for these scorer paths.
+`smoke_segments.py register-evidence`. For the isolated direct-PRD subprobe,
+also register the scorer-returned immutable `prd_evidence_path`; S1 close
+requires both the PASS score and the retained direct-PRD bytes/hash. For
+transient states such as blocked discovery, direct-PRD isolation, blocked PRD,
+project-init negative, and the policy-ineligible refusal, these immutable
+artifacts are the historical proof that must survive after the normal repository
+state resumes/restores. Never substitute free-text facts for these scorer paths.
 
 
 ## Arbitrary-stage resume smoke optimization
