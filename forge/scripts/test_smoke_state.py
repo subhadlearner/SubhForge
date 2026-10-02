@@ -28,6 +28,7 @@ class SmokeStateTests(unittest.TestCase):
             self.run_id,
             None,
             "2026-09-27T00:00:00+00:00",
+            source_fingerprint="a" * 64,
         )
         return smoke_state.load(self.repo, self.run_id)
 
