@@ -459,6 +459,19 @@ all normal workflow gates and history-preserving evidence; stop when a
 checkpoint differs or the pinned ACTIVE-segment FULL budget is exceeded.
 
 
+For FULL, use `scripts/smoke_segments.py` as the sole segment lifecycle helper.
+Bootstrap already commits S1 ACTIVE. Register every deterministically scored required
+subprobe with `register-evidence` and its exact accepted evidence paths. When all
+assigned scenarios/subprobes are complete, no child or H07 wait is open, source/config
+are intact, and the exact close checkpoint matches, call `close --source
+<source_checkout_path>`. Between a committed close and `open-next --source
+<source_checkout_path>`, permit only inactivity/read-only status/read-only preflight;
+do not delegate models, score scenarios, mutate fixtures, repair evidence, or change
+source. Use `gap-record` only for the allow-listed read-only gap activity types.
+Every later open revalidates the cumulative closed evidence/ledger chain. Use
+`report` for aggregate timing; never invent a second aggregate hard limit.
+
+
 
 ## Post-first-review FULL execution contract
 
