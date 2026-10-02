@@ -11,7 +11,7 @@
     "identical-commit-freshness",
     "content-mutation-stale-evidence",
     "mode-type-identity",
-    "verification-mutation",
+    "stale-waiver",
     "malformed-evidence",
     "evidence-exclusion",
     "static-claude-routing"
@@ -42,12 +42,17 @@
       "calls": [
         {
           "owner": "GPT-5.6 Sol",
-          "purpose": "discovery/evidence-first grill",
+          "purpose": "evidence/access-blocked discovery",
           "required": true
         },
         {
           "owner": "GPT-5.6 Sol",
-          "purpose": "resume grill after evidence/access block",
+          "purpose": "resumed discovery after evidence/access restoration",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "separate user-directed no-discovery PRD branch",
           "required": true
         }
       ],
@@ -62,17 +67,12 @@
       "calls": [
         {
           "owner": "GPT-5.6 Sol",
-          "purpose": "primary PRD authoring",
+          "purpose": "main PRD blocked path",
           "required": true
         },
         {
           "owner": "GPT-5.6 Sol",
-          "purpose": "direct user-selected PRD path",
-          "required": true
-        },
-        {
-          "owner": "GPT-5.6 Sol",
-          "purpose": "resume PRD after upstream block",
+          "purpose": "main PRD resumed path",
           "required": true
         }
       ],
@@ -89,11 +89,6 @@
           "owner": "GPT-5.6 Sol",
           "purpose": "architecture authoring",
           "required": true
-        },
-        {
-          "owner": "GPT-5.6 Sol",
-          "purpose": "architecture continuation/reconciliation",
-          "required": true
         }
       ]
     },
@@ -103,8 +98,14 @@
       "calls": [
         {
           "owner": "GPT-5.6 Luna",
-          "purpose": "project-init contract propagation",
+          "purpose": "successful project-init contract propagation and fixed waiver-policy recording",
           "required": true
+        },
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "independent unavailable-contract rejection",
+          "required": true,
+          "behavioral_proof": "H08b"
         }
       ],
       "contracts": [
@@ -128,7 +129,7 @@
       "calls": [
         {
           "owner": "DeepSeek",
-          "purpose": "implementation",
+          "purpose": "real implementation",
           "required": true
         }
       ]
@@ -139,17 +140,7 @@
       "calls": [
         {
           "owner": "DeepSeek",
-          "purpose": "verification",
-          "required": true
-        },
-        {
-          "owner": "DeepSeek",
-          "purpose": "pre-review",
-          "required": true
-        },
-        {
-          "owner": "GPT-5.6 Sol",
-          "purpose": "senior review",
+          "purpose": "real uncommitted verification",
           "required": true
         }
       ]
@@ -161,7 +152,12 @@
       "calls": [
         {
           "owner": "DeepSeek",
-          "purpose": "review-before-commit verification",
+          "purpose": "ready pre-review",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "senior review",
           "required": true
         }
       ]
@@ -188,8 +184,13 @@
     {
       "id": "verification-mutation",
       "segment": "S2",
-      "calls": [],
-      "zero_substantive_calls": true
+      "calls": [
+        {
+          "owner": "DeepSeek",
+          "purpose": "verification under registered verification-time mutation",
+          "required": true
+        }
+      ]
     },
     {
       "id": "direct-fix-loop",
@@ -213,7 +214,7 @@
         },
         {
           "owner": "DeepSeek",
-          "purpose": "verify after fix",
+          "purpose": "fresh verify after fix",
           "required": true
         },
         {
@@ -254,17 +255,22 @@
       "calls": [
         {
           "owner": "DeepSeek",
+          "purpose": "failed verification",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
           "purpose": "diagnose",
           "required": true
         },
         {
           "owner": "DeepSeek",
-          "purpose": "fix",
+          "purpose": "fix after diagnosis",
           "required": true
         },
         {
           "owner": "DeepSeek",
-          "purpose": "verify",
+          "purpose": "fresh verification",
           "required": true
         },
         {
@@ -274,12 +280,7 @@
         },
         {
           "owner": "GPT-5.6 Sol",
-          "purpose": "senior review",
-          "required": true
-        },
-        {
-          "owner": "GPT-5.6 Sol",
-          "purpose": "repair/reconciliation judgment",
+          "purpose": "senior review only when ready",
           "required": true
         }
       ]
@@ -291,17 +292,22 @@
       "calls": [
         {
           "owner": "DeepSeek",
-          "purpose": "verify fixed failure-type report",
+          "purpose": "verification producing safe waivable failure",
           "required": true
         },
         {
           "owner": "GPT-5.6 Luna",
-          "purpose": "waiver policy decision",
+          "purpose": "waiver policy/authorization handling",
           "required": true
         },
         {
           "owner": "DeepSeek",
           "purpose": "pre-review",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "senior review only when ready",
           "required": true
         }
       ],
@@ -317,13 +323,8 @@
       "depends_on": [
         "waive-review-loop"
       ],
-      "calls": [
-        {
-          "owner": "GPT-5.6 Luna",
-          "purpose": "stale-waiver negative judgment",
-          "required": true
-        }
-      ]
+      "calls": [],
+      "zero_substantive_calls": true
     },
     {
       "id": "adversarial-reconcile-only",
@@ -331,17 +332,17 @@
       "calls": [
         {
           "owner": "DeepSeek",
-          "purpose": "adversarial check",
+          "purpose": "material adversarial challenge",
           "required": true
         },
         {
           "owner": "GPT-5.6 Sol",
-          "purpose": "reconcile-only classification",
+          "purpose": "RECONCILE_ONLY classification/reconciliation",
           "required": true
         },
         {
           "owner": "DeepSeek",
-          "purpose": "optional adversary recheck",
+          "purpose": "optional adversarial recheck",
           "required": false,
           "optional_call_id": "S4.adversarial-reconcile-only.optional-adversary-recheck"
         }
@@ -373,42 +374,42 @@
       "calls": [
         {
           "owner": "GPT-5.6 Luna",
-          "purpose": "resume routing",
+          "purpose": "resume routing decision 1",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "resume routing decision 2",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "resume routing decision 3",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "resume routing decision 4",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "resume routing decision 5",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "resume routing decision 6",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "resume routing decision 7",
           "required": true
         },
         {
           "owner": "DeepSeek",
-          "purpose": "resume handoff",
-          "required": true
-        },
-        {
-          "owner": "GPT-5.6 Sol",
-          "purpose": "resume route judgment",
-          "required": true
-        },
-        {
-          "owner": "DeepSeek",
-          "purpose": "resumed execution",
-          "required": true
-        },
-        {
-          "owner": "DeepSeek",
-          "purpose": "verification",
-          "required": true
-        },
-        {
-          "owner": "DeepSeek",
-          "purpose": "pre-review",
-          "required": true
-        },
-        {
-          "owner": "GPT-5.6 Sol",
-          "purpose": "senior review",
-          "required": true
-        },
-        {
-          "owner": "GPT-5.6 Sol",
-          "purpose": "resume handoff acceptance",
+          "purpose": "bounded resume handoff",
           "required": true
         }
       ]
@@ -420,48 +421,48 @@
       "checkpoint_after": "QUALIFICATION_EVIDENCE_READY",
       "calls": [
         {
-          "owner": "GPT-5.6 Luna",
-          "purpose": "upstream reroute",
-          "required": true
-        },
-        {
-          "owner": "DeepSeek",
-          "purpose": "upstream handoff",
+          "owner": "GPT-5.6 Sol",
+          "purpose": "upstream classifier 1",
           "required": true
         },
         {
           "owner": "GPT-5.6 Sol",
-          "purpose": "route judgment",
-          "required": true
-        },
-        {
-          "owner": "DeepSeek",
-          "purpose": "fix/continuation",
-          "required": true
-        },
-        {
-          "owner": "DeepSeek",
-          "purpose": "verification",
-          "required": true
-        },
-        {
-          "owner": "DeepSeek",
-          "purpose": "pre-review",
+          "purpose": "upstream classifier 2",
           "required": true
         },
         {
           "owner": "GPT-5.6 Sol",
-          "purpose": "senior review",
+          "purpose": "upstream classifier 3",
           "required": true
         },
         {
           "owner": "GPT-5.6 Sol",
-          "purpose": "upstream handoff acceptance",
+          "purpose": "representative upstream handoff",
           "required": true
         },
         {
           "owner": "DeepSeek",
-          "purpose": "final route/handoff check",
+          "purpose": "upstream classifier 1",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "upstream classifier 2",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "upstream classifier 3",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "upstream classifier 4",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "upstream classifier 5",
           "required": true
         }
       ]
