@@ -66,15 +66,12 @@ class SmokeH08bTests(unittest.TestCase):
             encoding="utf-8",
         )
 
+        policy_data = {
+            "policy_id": "SMOKE-FULL-WAIVER-POLICY-V1",
+            "non_waivable_failure_types": ["BEHAVIORAL_TEST"],
+        }
+        smoke_h08b.write_fixture_policy(self.repo, policy_data, self.run_id)
         policy = self.repo / smoke_h08b.POLICY_PATH
-        policy.parent.mkdir(parents=True, exist_ok=True)
-        policy.write_text(
-            json.dumps({
-                "policy_id": "SMOKE-FULL-WAIVER-POLICY-V1",
-                "non_waivable_failure_types": ["BEHAVIORAL_TEST"],
-            }, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
 
         refusal = self.repo / "docs/verification/waiver-refusals/WAIVER-REFUSAL-SPEC-001-001.json"
         refusal.parent.mkdir(parents=True, exist_ok=True)
@@ -144,6 +141,21 @@ class SmokeH08bTests(unittest.TestCase):
 
         self.assertEqual("PASS", result["result"])
         self.assertEqual("AUTHORIZATION_MISSING", result["reason_code"])
+
+    def test_policy_mutation_after_bootstrap_fails_closed(self):
+        refusal = self._write_refusal("POLICY_INELIGIBLE")
+        policy = self.repo / smoke_h08b.POLICY_PATH
+        payload = json.loads(policy.read_text(encoding="utf-8"))
+        payload["non_waivable_failure_types"] = ["DOCUMENTATION_QUALITY"]
+        policy.write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
+        record = json.loads(refusal.read_text(encoding="utf-8"))
+        record["policy_sha256"] = hashlib.sha256(policy.read_bytes()).hexdigest()
+        refusal.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+
+        with self.assertRaises(smoke_h08b.H08bError):
+            smoke_h08b.validate_refusal(
+                self.repo, refusal.relative_to(self.repo).as_posix(), self.run_id
+            )
 
     def test_refusal_digest_tamper_fails_closed(self):
         refusal = self._write_refusal("POLICY_INELIGIBLE")
