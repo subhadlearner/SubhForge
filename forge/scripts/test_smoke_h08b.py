@@ -19,6 +19,43 @@ class SmokeH08bTests(unittest.TestCase):
         (self.repo / "docs/verification/smoke").mkdir(parents=True)
         self.run_id = "SMOKE-FULL-h08b-20261002T000000Z-12345678"
 
+    def _make_discovery_ready(self):
+        smoke_h08b.seed_discovery(self.repo, self.run_id)
+        blocked = smoke_h08b.score_discovery(
+            self.repo, self.run_id, "blocked", "DISCOVERY_BLOCKED"
+        )
+        self.assertEqual("PASS", blocked["result"])
+        smoke_h08b.restore_required_evidence(self.repo)
+        discovery = self.repo / smoke_h08b.DISCOVERY_PATH
+        discovery.write_text(
+            discovery.read_text(encoding="utf-8").replace(
+                "| DEC-002 | BLOCKED_ON_EVIDENCE | - | docs/workflow/H08B-REQUIRED-EVIDENCE.md |",
+                "| DEC-002 | SETTLED | Return JSON integer value; reject non-integer input with HTTP 400 | docs/workflow/H08B-REQUIRED-EVIDENCE.md |",
+            ),
+            encoding="utf-8",
+        )
+        resumed = smoke_h08b.score_discovery(
+            self.repo, self.run_id, "resumed", "DISCOVERY_READY"
+        )
+        self.assertEqual("PASS", resumed["result"])
+        return resumed
+
+    def _complete_direct_prd_probe(self):
+        prepared = smoke_h08b.begin_direct_prd_probe(self.repo, self.run_id)
+        self.assertTrue(prepared["discovery_absent"])
+        prd = self.repo / smoke_h08b.DIRECT_PRD_PATH
+        prd.parent.mkdir(parents=True, exist_ok=True)
+        prd.write_text("# Direct PRD\nStatus: PRD_READY\n", encoding="utf-8")
+        scored = smoke_h08b.score_direct_prd(
+            self.repo, self.run_id, "PRD_READY"
+        )
+        self.assertEqual("PASS", scored["result"])
+        restored = smoke_h08b.restore_direct_prd_probe(
+            self.repo, self.run_id
+        )
+        self.assertEqual("MATCH", restored["result"])
+        return scored
+
     def test_seeded_blocked_discovery_preserves_settled_decision(self):
         seeded = smoke_h08b.seed_discovery(self.repo, self.run_id)
         self.assertFalse((self.repo / seeded["required_evidence_path"]).exists())
@@ -48,68 +85,21 @@ class SmokeH08bTests(unittest.TestCase):
         self.assertTrue(any("DEC-001" in item for item in result["failures"]))
 
     def test_resumed_discovery_requires_exact_restored_evidence_and_settlement(self):
-        smoke_h08b.seed_discovery(self.repo, self.run_id)
-        smoke_h08b.restore_required_evidence(self.repo)
-        discovery = self.repo / smoke_h08b.DISCOVERY_PATH
-        text = discovery.read_text(encoding="utf-8").replace(
-            "| DEC-002 | BLOCKED_ON_EVIDENCE | - | docs/workflow/H08B-REQUIRED-EVIDENCE.md |",
-            "| DEC-002 | SETTLED | Return JSON integer value; reject non-integer input with HTTP 400 | docs/workflow/H08B-REQUIRED-EVIDENCE.md |",
-        )
-        discovery.write_text(text, encoding="utf-8")
-
-        result = smoke_h08b.score_discovery(
-            self.repo, self.run_id, "resumed", "DISCOVERY_READY"
-        )
-
+        result = self._make_discovery_ready()
         self.assertEqual("PASS", result["result"])
 
     def test_direct_prd_probe_proves_no_discovery_artifact_and_restores(self):
-        smoke_h08b.seed_discovery(self.repo, self.run_id)
-        smoke_h08b.restore_required_evidence(self.repo)
-        discovery = self.repo / smoke_h08b.DISCOVERY_PATH
-        discovery.write_text(
-            discovery.read_text(encoding="utf-8").replace(
-                "| DEC-002 | BLOCKED_ON_EVIDENCE | - | docs/workflow/H08B-REQUIRED-EVIDENCE.md |",
-                "| DEC-002 | SETTLED | Return JSON integer value; reject non-integer input with HTTP 400 | docs/workflow/H08B-REQUIRED-EVIDENCE.md |",
-            ),
-            encoding="utf-8",
-        )
-        smoke_h08b.score_discovery(
-            self.repo, self.run_id, "resumed", "DISCOVERY_READY"
-        )
-        prepared = smoke_h08b.begin_direct_prd_probe(self.repo, self.run_id)
-        self.assertTrue(prepared["discovery_absent"])
-        self.assertFalse((self.repo / smoke_h08b.DISCOVERY_PATH).exists())
-
-        prd = self.repo / smoke_h08b.DIRECT_PRD_PATH
-        prd.parent.mkdir(parents=True, exist_ok=True)
-        prd.write_text("# Direct PRD\nStatus: PRD_READY\n", encoding="utf-8")
-
-        scored = smoke_h08b.score_direct_prd(
-            self.repo, self.run_id, "PRD_READY"
-        )
-        self.assertEqual("PASS", scored["result"])
+        self._make_discovery_ready()
+        scored = self._complete_direct_prd_probe()
         score_path = self.repo / scored["score_path"]
         self.assertTrue(score_path.is_file())
-        restored = smoke_h08b.restore_direct_prd_probe(
-            self.repo, self.run_id
-        )
-        self.assertEqual("MATCH", restored["result"])
         self.assertTrue((self.repo / smoke_h08b.DISCOVERY_PATH).is_file())
-        self.assertFalse(prd.exists())
-        self.assertTrue(score_path.is_file())
+        self.assertFalse((self.repo / smoke_h08b.DIRECT_PRD_PATH).exists())
 
     def test_main_prd_blocks_until_approved_product_decision_is_revealed(self):
-        smoke_h08b.seed_discovery(self.repo, self.run_id)
-        smoke_h08b.restore_required_evidence(self.repo)
-        discovery = self.repo / smoke_h08b.DISCOVERY_PATH
-        discovery.write_text(
-            discovery.read_text(encoding="utf-8").replace(
-                "| DEC-002 | BLOCKED_ON_EVIDENCE | - | docs/workflow/H08B-REQUIRED-EVIDENCE.md |",
-                "| DEC-002 | SETTLED | Return JSON integer value; reject non-integer input with HTTP 400 | docs/workflow/H08B-REQUIRED-EVIDENCE.md |",
-            ),
-            encoding="utf-8",
-        )
+        self._make_discovery_ready()
+        self._complete_direct_prd_probe()
+
         seeded = smoke_h08b.seed_product_decision(self.repo, self.run_id)
         self.assertEqual("WITHHELD", seeded["result"])
         self.assertFalse((self.repo / smoke_h08b.PRODUCT_DECISION_PATH).exists())
