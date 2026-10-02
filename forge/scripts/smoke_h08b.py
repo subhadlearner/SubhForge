@@ -129,6 +129,22 @@ def _persist_score(
     }
 
 
+def _require_pass_score(repo: Path, run_id: str, label: str) -> dict[str, object]:
+    path = _score_path(repo, run_id, label)
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        raise H08bError("Required H08b score is unavailable: {}".format(label)) from exc
+    if (
+        not isinstance(payload, dict)
+        or payload.get("schema_version") != SCHEMA_VERSION
+        or payload.get("score_label") != label
+        or payload.get("result") != "PASS"
+    ):
+        raise H08bError("Required H08b score is not PASS: {}".format(label))
+    return payload
+
+
 def seed_discovery(repo: Path, run_id: str) -> dict[str, object]:
     repo = _repo(repo)
     hidden = _hidden_path(repo, run_id)
@@ -253,6 +269,8 @@ def score_discovery(
     if phase not in {"blocked", "resumed"}:
         raise H08bError("Discovery score phase must be blocked or resumed")
     repo = _repo(repo)
+    if phase == "resumed":
+        _require_pass_score(repo, run_id, "discovery-blocked")
     hidden = _load_hidden(repo, run_id)
     discovery = _path(repo, hidden["discovery_path"])
     if not discovery.is_file():
@@ -323,6 +341,7 @@ def _direct_prd_snapshot_path(repo: Path, run_id: str) -> Path:
 
 def begin_direct_prd_probe(repo: Path, run_id: str) -> dict[str, object]:
     repo = _repo(repo)
+    _require_pass_score(repo, run_id, "discovery-resumed")
     discovery = _path(repo, DISCOVERY_PATH)
     if not discovery.is_file():
         raise H08bError("Direct PRD probe requires existing DISC-001 to isolate")
@@ -470,6 +489,8 @@ def _product_decision_hidden_path(repo: Path, run_id: str) -> Path:
 
 def seed_product_decision(repo: Path, run_id: str) -> dict[str, object]:
     repo = _repo(repo)
+    _require_pass_score(repo, run_id, "discovery-resumed")
+    _require_pass_score(repo, run_id, "direct-prd")
     discovery = _path(repo, DISCOVERY_PATH)
     if not discovery.is_file():
         raise H08bError("Main PRD probe requires restored discovery evidence")
