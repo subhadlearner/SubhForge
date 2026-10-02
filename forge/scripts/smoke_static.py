@@ -93,6 +93,7 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
     router = read("agent:resume-router", config / "agents/resume-router.md")
     executor = read("agent:smoke-executor", config / "agents/smoke-executor.md")
     read("helper:smoke-handoff", config / "scripts/smoke_handoff.py")
+    h08b = read("helper:smoke-h08b", config / "scripts/smoke_h08b.py")
     mechanics = read("helper:smoke-mechanics", config / "scripts/smoke_mechanics.py")
     resume = read("helper:smoke-resume", config / "scripts/smoke_resume.py")
     reroute = read("helper:smoke-reroute", config / "scripts/smoke_reroute.py")
@@ -101,6 +102,13 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
     contract = read("contract:installed", config / "contracts/implementation-state-evidence-v1.md")
     project_contract = read("contract:project", repo / "docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md")
 
+    checks["h08b:helper"] = all(term in h08b for term in (
+        "def seed_discovery(",
+        "def score_discovery(",
+        "def validate_refusal(",
+        "H08B-REQUIRED-EVIDENCE.md",
+        "docs/verification/waiver-refusals/",
+    ))
     checks["h08b:grill-stable-decisions"] = all(term in grill for term in (
         "| Decision ID | Status | Decision / Value | Prerequisite Evidence |",
         "BLOCKED_ON_EVIDENCE",
