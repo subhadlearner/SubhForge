@@ -702,8 +702,10 @@ For the default Stable-v0.1 smoke path, use GPT-5.6 Sol for these planning stage
 
 For FULL S1, the orchestrator MUST use `smoke_h08b.py` to seed and score the
 normal blocked/resumed discovery artifact without exposing hidden expectations:
-`seed-discovery → /grill → score-discovery --phase blocked --status DISCOVERY_BLOCKED → restore-evidence →
-/grill CONTINUE → score-discovery --phase resumed --status DISCOVERY_READY`.
+`seed-discovery → real /grill → parse actual status → score-discovery --phase blocked --status <actual> →
+restore-evidence → real /grill CONTINUE → parse actual status →
+score-discovery --phase resumed --status <actual>`.
+Never replace a parsed child status with the expected status token.
 
 For the user-selected direct-to-PRD branch use:
 `begin-direct-prd → one Sol /prd → score-direct-prd → restore-direct-prd`.
@@ -714,30 +716,35 @@ For the main PRD blocked/resumed path use:
 reveal-product-decision → one Sol /prd → score-prd resumed`.
 The hidden approved value must not be supplied to the first child.
 
-For the normal successful Luna `/project-init`, include
-`docs/workflow/H08B-FIXTURE-WAIVER-POLICY.json` as an exact authoritative
-context path. After it returns, require
-`score-project-init-policy --status PROJECT_INIT_READY` PASS before accepting
-policy propagation.
+For the normal successful Luna `/project-init`, use a fresh
+`h08b-luna-probe` child and include
+`docs/workflow/H08B-FIXTURE-WAIVER-POLICY.json` plus the canonical contract as
+exact authoritative context. Parse its actual terminal status, then require
+`score-project-init-policy --status <actual>` PASS.
 
-The project-init negative uses the already-declared extra Luna call and the pair:
-`score-project-init-helper → real Luna /project-init →
-score-project-init-luna`. The helper half must obtain a real
-`ProjectInitError` from unavailable canonical-contract evidence.
+For the independent negative, use:
+`begin-project-init-negative → score-project-init-helper → fresh h08b-luna-probe
+/project-init → parse actual status → score-project-init-luna --status <actual> →
+restore-project-init-negative`.
+The prepared branch removes the project canonical Contract-v1 file; neither the
+helper nor Luna child may invent a substitute contract.
 
 For S2 `direct-fix-loop`, the exact sequence remains:
 
-`DeepSeek /verify (behavioral-test NOT_DONE) → Luna /waive
-(POLICY_INELIGIBLE, persisted refusal, zero H07 wait) → DeepSeek /fix →
-DeepSeek /verify → DeepSeek pre-review → Sol senior review when ready`.
+`DeepSeek /verify (behavioral-test NOT_DONE) → fresh h08b-luna-probe /waive →
+DeepSeek /fix → DeepSeek /verify → DeepSeek pre-review → Sol senior review when ready`.
 
-Validate the refusal with `smoke_h08b.py validate-refusal --run-id <run-id>`.
-No extra/fallback verification is permitted.
+Do not provide the expected refusal reason/status to the Luna child. Parse the
+normal refusal artifact it creates and validate it with
+`smoke_h08b.py validate-refusal --run-id <run-id>`; the run-scoped scorer is
+the component that requires `POLICY_INELIGIBLE`, exact report/policy binding,
+and zero H07 wait. No extra/fallback verification is permitted.
 
 For every H08b scorer action, register its returned immutable `score_path`
 with `smoke_segments.py register-evidence` for the matching required subprobe.
-The scorer path, not an orchestrator assertion, preserves transient blocked/
-isolated evidence until segment close.
+For direct PRD also register the returned immutable `prd_evidence_path`.
+S1/S2 close validates the required H08b score files as schema-valid `PASS`
+before the segment can close; a file-backed `FAIL` score is not acceptable.
 
 The predefined smoke fixture product brief is required to be sufficient for
 planning. Do not turn a framework smoke run into an interactive product
