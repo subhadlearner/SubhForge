@@ -350,6 +350,7 @@ def pin_qualification(
             "closed_segments": [],
             "gaps": [],
             "gap": None,
+            "disqualification_reason": None,
         }
     else:
         context["segment_runtime"] = None
@@ -829,6 +830,7 @@ def mark_budget_exceeded(
         raise SegmentError("Only ACTIVE segment can become BUDGET_EXCEEDED")
     runtime = json.loads(json.dumps(runtime))
     runtime["active_status"] = SEGMENT_BUDGET_EXCEEDED
+    runtime["disqualification_reason"] = "PERFORMANCE_BUDGET_EXCEEDED"
     context = dict(context)
     context["segment_runtime"] = runtime
     context["qualification_eligible"] = False
