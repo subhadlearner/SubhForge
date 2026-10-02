@@ -67,6 +67,12 @@ class SmokeBootstrapTests(unittest.TestCase):
                 ["BEHAVIORAL_TEST"],
                 policy["non_waivable_failure_types"],
             )
+            expected_policy = (
+                repo
+                / "docs/verification/smoke"
+                / f"{run_id}.h08b-policy-expected.json"
+            )
+            self.assertTrue(expected_policy.is_file())
 
     def test_bootstrap_refuses_required_contract_mismatch(self):
         with tempfile.TemporaryDirectory() as temp:
