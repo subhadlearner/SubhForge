@@ -295,20 +295,43 @@ def validate_refusal(
     report = _path(repo, report_rel)
     if not report.is_file():
         raise H08bError("Referenced verification report is missing")
-    if _sha_bytes(report.read_bytes()) != record.get("verification_report_sha256"):
+    report_bytes = report.read_bytes()
+    if _sha_bytes(report_bytes) != record.get("verification_report_sha256"):
         raise H08bError("Waiver refusal report digest mismatch")
+    try:
+        report_text = report_bytes.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise H08bError("Referenced verification report is not UTF-8") from exc
+    if "Verification Result: NOT_DONE" not in report_text:
+        raise H08bError("Waiver refusal must bind a NOT_DONE verification report")
 
     ids = record.get("requested_failure_ids")
     types = record.get("requested_failure_types")
     if (
         not isinstance(ids, list)
         or not ids
+        or len(ids) != len(set(ids))
         or not all(isinstance(item, str) and item for item in ids)
         or not isinstance(types, list)
         or not types
+        or len(types) != len(set(types))
         or not all(isinstance(item, str) and item for item in types)
     ):
         raise H08bError("Waiver refusal failure identity is invalid")
+    for failure_id in ids:
+        if failure_id not in report_text:
+            raise H08bError(
+                "Waiver refusal failure ID is not present in the exact verification report"
+            )
+    for failure_type in types:
+        typed_tokens = (
+            "Failure Type: {}".format(failure_type),
+            "Failure Type: `{}`".format(failure_type),
+        )
+        if not any(token in report_text for token in typed_tokens):
+            raise H08bError(
+                "Waiver refusal failure type is not present in the exact verification report"
+            )
 
     auth_requested = record.get("authorization_requested")
     receipt = record.get("authorization_receipt_present")
