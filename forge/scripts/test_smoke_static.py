@@ -86,6 +86,21 @@ class SmokeStaticTests(unittest.TestCase):
             self.assertFalse(result["ok"])
             self.assertIn("h08b:grill-stable-decisions", result["failures"])
 
+    def test_release_gate_blocks_missing_verify_failure_type_contract(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            verify = config / "commands/verify.md"
+            verify.write_text(
+                verify.read_text(encoding="utf-8").replace(
+                    "Failure Type taxonomy",
+                    "Failure classification",
+                ),
+                encoding="utf-8",
+            )
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("h08b:verify-failure-type", result["failures"])
+
     def test_release_gate_blocks_waive_policy_after_authorization(self):
         with tempfile.TemporaryDirectory() as temp:
             config, repo, run_id = self._gate_fixture(Path(temp))
