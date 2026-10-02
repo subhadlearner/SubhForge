@@ -90,6 +90,7 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
     verify = command_text["verify"]
     waive = command_text["waive"]
     review = command_text["review"]
+    project_init = command_text["project-init"]
     worker = read("agent:planning-worker", config / "agents/planning-worker.md")
     orchestrator = read("agent:smoke-orchestrator", config / "agents/smoke-orchestrator.md")
     router = read("agent:resume-router", config / "agents/resume-router.md")
@@ -111,6 +112,7 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
         "def score_direct_prd(",
         "def seed_product_decision(",
         "def score_prd_phase(",
+        "def score_project_init_policy_propagation(",
         "def score_project_init_helper_rejection(",
         "def score_project_init_luna(",
         "def validate_refusal(",
@@ -126,6 +128,16 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
     ))
     policy_pos = waive.find("## Stage 2 — Check Failure-Type Policy Eligibility")
     auth_pos = waive.find("## Stage 3 — Require Explicit Human Authorization")
+    checks["h08b:project-init-policy-propagation"] = all(
+        term in project_init
+        for term in (
+            "Waiver Policy Source:",
+            "Waiver Policy SHA-256:",
+            "Non-waivable Failure Types:",
+            "Waivable Failure Types:",
+            "source policy remains authoritative",
+        )
+    )
     checks["h08b:verify-failure-type"] = all(term in verify for term in (
         "Failure Type taxonomy",
         "BEHAVIORAL_TEST",
