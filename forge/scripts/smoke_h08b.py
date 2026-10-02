@@ -267,7 +267,11 @@ REFUSAL_FIELDS = {
 }
 
 
-def validate_refusal(repo: Path, refusal_path: str) -> dict[str, object]:
+def validate_refusal(
+    repo: Path,
+    refusal_path: str,
+    run_id: str | None = None,
+) -> dict[str, object]:
     repo = _repo(repo)
     refusal_path = _safe_rel(refusal_path)
     if not refusal_path.startswith(REFUSAL_PREFIX):
@@ -311,6 +315,27 @@ def validate_refusal(repo: Path, refusal_path: str) -> dict[str, object]:
     if reason == "POLICY_INELIGIBLE":
         if auth_requested or receipt:
             raise H08bError("POLICY_INELIGIBLE must stop before authorization")
+        if run_id is not None:
+            _validate_run_id(run_id)
+            budget_path = (
+                repo / "docs" / "verification" / "smoke" / "{}.budget.json".format(run_id)
+            )
+            try:
+                budget = json.loads(budget_path.read_text(encoding="utf-8"))
+            except (OSError, ValueError, json.JSONDecodeError) as exc:
+                raise H08bError("Smoke budget ledger is unavailable for no-wait proof") from exc
+            intervals = budget.get("human_wait_intervals")
+            if not isinstance(intervals, list):
+                raise H08bError("Smoke budget ledger has invalid human_wait_intervals")
+            if any(
+                isinstance(item, dict)
+                and isinstance(item.get("identity"), dict)
+                and item["identity"].get("verification_report") == report_rel
+                for item in intervals
+            ):
+                raise H08bError(
+                    "POLICY_INELIGIBLE refusal must not create a WAIVER_AUTHORIZATION wait"
+                )
         policy_rel = _safe_rel(record.get("policy_reference"))
         policy = _path(repo, policy_rel)
         if not policy.is_file():
@@ -368,7 +393,7 @@ def main() -> int:
                 raise H08bError("--run-id is required")
             result = score_discovery(args.repo, args.run_id, args.phase)
         else:
-            result = validate_refusal(args.repo, args.path)
+            result = validate_refusal(args.repo, args.path, args.run_id)
         print(json.dumps({"ok": True, **result}))
         return 0
     except (H08bError, OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
