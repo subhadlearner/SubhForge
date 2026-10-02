@@ -414,6 +414,251 @@ def evidence_manifest(repo: Path, evidence_paths: list[str]) -> dict:
     return {"entries": entries, "sha256": _sha256_object(entries)}
 
 
+
+SCENARIO_EVIDENCE_SCHEMA_VERSION = 1
+SCENARIO_EVIDENCE_ACCEPTED_STATUS = "SCORED_PASS"
+
+
+def scenario_evidence_index_path(repo: Path, run_id: str, segment_id: str) -> Path:
+    if segment_id not in {"S1", "S2", "S3", "S4", "S5", "S6"}:
+        raise SegmentError("Invalid segment ID for scenario-evidence index")
+    folder = repo.resolve() / "docs" / "verification" / "smoke"
+    if not folder.is_dir():
+        raise SegmentError("Smoke evidence directory is missing")
+    return folder / "{}.{}.scenario-evidence.json".format(run_id, segment_id)
+
+
+def _load_full_invocation_spec(config_root: Optional[Path] = None) -> dict:
+    root = _config_root(config_root)
+    return _load_json(root / "smoke" / "FULL-INVOCATION-SPEC.json", "FULL invocation spec")
+
+
+def _scenario_definition(spec: dict, scenario_id: str) -> dict:
+    matches = [
+        item for item in spec.get("scenarios", [])
+        if isinstance(item, dict) and item.get("id") == scenario_id
+    ]
+    if len(matches) != 1:
+        raise SegmentError("Scenario is missing or ambiguous in FULL invocation spec: {}".format(scenario_id))
+    return matches[0]
+
+
+def _subprobe_definition(scenario: dict, subprobe_id: str) -> dict:
+    matches = [
+        item for item in scenario.get("subprobes", [])
+        if isinstance(item, dict) and item.get("id") == subprobe_id
+    ]
+    if len(matches) != 1:
+        raise SegmentError(
+            "Subprobe is missing or ambiguous for scenario {}: {}".format(
+                scenario.get("id"), subprobe_id
+            )
+        )
+    return matches[0]
+
+
+def _evidence_entries(repo: Path, evidence_paths: list[str]) -> list[dict[str, str]]:
+    if not isinstance(evidence_paths, list) or not all(
+        isinstance(item, str) and item for item in evidence_paths
+    ):
+        raise SegmentError("Scenario evidence paths must be a list of repository-relative paths")
+    entries = []
+    seen = set()
+    for raw in evidence_paths:
+        normalized, path = _normalize_evidence_path(repo, raw)
+        if normalized in seen:
+            raise SegmentError("Scenario evidence contains duplicate normalized paths")
+        seen.add(normalized)
+        entries.append({"path": normalized, "sha256": _sha256_file(path)})
+    entries.sort(key=lambda item: item["path"].encode("utf-8"))
+    return entries
+
+
+def register_scenario_evidence(
+    repo: Path,
+    run_id: str,
+    scenario_id: str,
+    subprobe_id: str,
+    facts: list[str],
+    evidence_paths: Optional[list[str]] = None,
+    now: Optional[dt.datetime] = None,
+    config_root: Optional[Path] = None,
+) -> dict:
+    """Persist one immutable scored subprobe record for the ACTIVE segment."""
+    pinned = assert_config_intact(repo, run_id, config_root)
+    state, context = _state_context(repo, run_id)
+    if state.get("profile") != "FULL":
+        raise SegmentError("Scenario-evidence registration is only valid for FULL")
+    runtime = _runtime(context)
+    if (
+        runtime.get("active_status") != SEGMENT_ACTIVE
+        or context.get("qualification_eligible") is not True
+    ):
+        raise SegmentError("Scenario evidence may be recorded only for an eligible ACTIVE segment")
+    segment_id = runtime.get("active_segment")
+    segment = next(
+        (item for item in pinned["segments"] if item.get("id") == segment_id),
+        None,
+    )
+    if not isinstance(segment, dict) or scenario_id not in segment["scenarios"]:
+        raise SegmentError(
+            "Scenario {} is not assigned to ACTIVE segment {}".format(
+                scenario_id, segment_id
+            )
+        )
+
+    spec = _load_full_invocation_spec(config_root)
+    scenario = _scenario_definition(spec, scenario_id)
+    subprobe = _subprobe_definition(scenario, subprobe_id)
+    if not isinstance(facts, list) or not facts or not all(
+        isinstance(item, str) and item.strip() for item in facts
+    ):
+        raise SegmentError("Scenario-evidence facts must be a non-empty list")
+    canonical_facts = [item.strip() for item in facts]
+    if len(canonical_facts) != len(set(canonical_facts)):
+        raise SegmentError("Scenario-evidence facts must not contain duplicates")
+    entries = _evidence_entries(repo, evidence_paths or [])
+
+    current = now or _now()
+    if current.tzinfo is None:
+        raise SegmentError("Scenario-evidence timestamp must be timezone-aware")
+    path = scenario_evidence_index_path(repo, run_id, segment_id)
+    if path.exists():
+        index = _load_json(path, "Scenario-evidence index")
+    else:
+        index = {
+            "schema_version": SCENARIO_EVIDENCE_SCHEMA_VERSION,
+            "run_id": run_id,
+            "segment_id": segment_id,
+            "records": [],
+        }
+    if (
+        index.get("schema_version") != SCENARIO_EVIDENCE_SCHEMA_VERSION
+        or index.get("run_id") != run_id
+        or index.get("segment_id") != segment_id
+        or not isinstance(index.get("records"), list)
+    ):
+        raise SegmentError("Scenario-evidence index schema/run/segment is invalid")
+
+    candidate = {
+        "scenario_id": scenario_id,
+        "subprobe_id": subprobe_id,
+        "required": bool(subprobe.get("required")),
+        "conditional_call_id": subprobe.get("conditional_call_id"),
+        "status": SCENARIO_EVIDENCE_ACCEPTED_STATUS,
+        "facts": canonical_facts,
+        "evidence": entries,
+        "recorded_at_utc": current.isoformat(),
+    }
+    matches = [
+        item for item in index["records"]
+        if isinstance(item, dict)
+        and item.get("scenario_id") == scenario_id
+        and item.get("subprobe_id") == subprobe_id
+    ]
+    if matches:
+        if len(matches) != 1:
+            raise SegmentError("Scenario-evidence index contains duplicate subprobe records")
+        existing = dict(matches[0])
+        existing.pop("recorded_at_utc", None)
+        comparable = dict(candidate)
+        comparable.pop("recorded_at_utc", None)
+        if existing != comparable:
+            raise SegmentError("Scored scenario evidence is immutable and cannot be rewritten")
+        return dict(matches[0])
+
+    index["records"].append(candidate)
+    temp = path.with_suffix(".tmp")
+    temp.write_text(
+        json.dumps(index, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    temp.replace(path)
+    return candidate
+
+
+def _segment_evidence_paths(
+    repo: Path,
+    run_id: str,
+    segment: dict,
+    config_root: Optional[Path] = None,
+) -> list[str]:
+    spec = _load_full_invocation_spec(config_root)
+    path = scenario_evidence_index_path(repo, run_id, segment["id"])
+    if not path.is_file():
+        raise SegmentError(
+            "Segment {} is missing its canonical scenario-evidence index".format(
+                segment["id"]
+            )
+        )
+    index = _load_json(path, "Scenario-evidence index")
+    if (
+        index.get("schema_version") != SCENARIO_EVIDENCE_SCHEMA_VERSION
+        or index.get("run_id") != run_id
+        or index.get("segment_id") != segment["id"]
+        or not isinstance(index.get("records"), list)
+    ):
+        raise SegmentError("Scenario-evidence index schema/run/segment is invalid")
+
+    expected = {}
+    for scenario_id in segment["scenarios"]:
+        scenario = _scenario_definition(spec, scenario_id)
+        for subprobe in scenario.get("subprobes", []):
+            if not isinstance(subprobe, dict) or not isinstance(subprobe.get("id"), str):
+                raise SegmentError("FULL invocation spec has an invalid subprobe declaration")
+            expected[(scenario_id, subprobe["id"])] = subprobe
+
+    seen = set()
+    accepted_paths = set()
+    for record in index["records"]:
+        if not isinstance(record, dict):
+            raise SegmentError("Scenario-evidence record must be an object")
+        key = (record.get("scenario_id"), record.get("subprobe_id"))
+        if key in seen:
+            raise SegmentError("Scenario-evidence index contains duplicate records")
+        seen.add(key)
+        definition = expected.get(key)
+        if definition is None:
+            raise SegmentError("Scenario-evidence index contains an undeclared subprobe")
+        if record.get("status") != SCENARIO_EVIDENCE_ACCEPTED_STATUS:
+            raise SegmentError("Scenario-evidence record is not SCORED_PASS")
+        if bool(record.get("required")) != bool(definition.get("required")):
+            raise SegmentError("Scenario-evidence required flag does not match invocation spec")
+        if record.get("conditional_call_id") != definition.get("conditional_call_id"):
+            raise SegmentError("Scenario-evidence conditional-call binding changed")
+        facts = record.get("facts")
+        if not isinstance(facts, list) or not facts or not all(
+            isinstance(item, str) and item for item in facts
+        ):
+            raise SegmentError("Scenario-evidence facts are invalid")
+        evidence = record.get("evidence")
+        if not isinstance(evidence, list):
+            raise SegmentError("Scenario-evidence file bindings are invalid")
+        for entry in evidence:
+            if not isinstance(entry, dict) or set(entry) != {"path", "sha256"}:
+                raise SegmentError("Scenario-evidence file binding schema is invalid")
+            normalized, resolved = _normalize_evidence_path(repo, entry.get("path"))
+            if _sha256_file(resolved) != entry.get("sha256"):
+                raise SegmentError("Scenario evidence changed before segment close: {}".format(normalized))
+            accepted_paths.add(normalized)
+
+    missing = [
+        "{}:{}".format(scenario_id, subprobe_id)
+        for (scenario_id, subprobe_id), definition in expected.items()
+        if definition.get("required") is True and (scenario_id, subprobe_id) not in seen
+    ]
+    if missing:
+        raise SegmentError(
+            "Segment {} has unscored required subprobes: {}".format(
+                segment["id"], ", ".join(missing)
+            )
+        )
+
+    index_rel = path.relative_to(repo.resolve()).as_posix()
+    accepted_paths.add(index_rel)
+    return sorted(accepted_paths, key=lambda item: item.encode("utf-8"))
+
+
 def _budget_path(repo: Path, run_id: str) -> Path:
     return repo.resolve() / "docs" / "verification" / "smoke" / (run_id + ".budget.json")
 
@@ -538,13 +783,6 @@ def _verify_manifest(repo: Path, manifest: dict) -> None:
         raise SegmentError("Committed evidence manifest digest mismatch")
 
 
-def _verify_closed_chain(repo: Path, runtime: dict) -> None:
-    data = _budget_data(repo, "")
-    # This helper is replaced below because run_id is required; kept unreachable
-    # to make accidental call sites fail closed during development.
-    raise SegmentError("Internal closed-chain validation requires run_id")
-
-
 def validate_closed_chain(repo: Path, run_id: str, runtime: Optional[dict] = None) -> None:
     if runtime is None:
         _state, context = _state_context(repo, run_id)
@@ -568,7 +806,7 @@ def close_segment(
     repo: Path,
     run_id: str,
     source: Path,
-    evidence_paths: list[str],
+    evidence_paths: Optional[list[str]] = None,
     now: Optional[dt.datetime] = None,
 ) -> dict:
     state, context = _state_context(repo, run_id)
@@ -611,7 +849,14 @@ def close_segment(
     else:
         checkpoint_result = {"checkpoint": checkpoint, "result": "MATCH"}
 
-    manifest = evidence_manifest(repo, evidence_paths)
+    derived_evidence_paths = _segment_evidence_paths(repo, run_id, segment)
+    if evidence_paths is not None:
+        supplied = sorted(set(evidence_paths), key=lambda item: item.encode("utf-8"))
+        if supplied != derived_evidence_paths:
+            raise SegmentError(
+                "Caller-supplied evidence set must exactly match the canonical scenario-evidence index"
+            )
+    manifest = evidence_manifest(repo, derived_evidence_paths)
     projection = _segment_ledger_projection(data, segment_id)
     current = now or _now()
     if current.tzinfo is None:
@@ -750,9 +995,14 @@ def main() -> int:
 
     actions.add_parser("status")
 
+    register = actions.add_parser("register-evidence")
+    register.add_argument("--scenario", required=True)
+    register.add_argument("--subprobe", required=True)
+    register.add_argument("--fact", action="append", required=True)
+    register.add_argument("--evidence", action="append", default=[])
+
     close = actions.add_parser("close")
     close.add_argument("--source", type=Path, required=True)
-    close.add_argument("--evidence", action="append", required=True)
 
     open_p = actions.add_parser("open-next")
     open_p.add_argument("--source", type=Path, required=True)
@@ -768,8 +1018,17 @@ def main() -> int:
                 "qualification_eligible": context.get("qualification_eligible"),
                 "segment_runtime": context.get("segment_runtime"),
             }
+        elif args.action == "register-evidence":
+            result = register_scenario_evidence(
+                args.repo,
+                args.run_id,
+                args.scenario,
+                args.subprobe,
+                args.fact,
+                args.evidence,
+            )
         elif args.action == "close":
-            result = close_segment(args.repo, args.run_id, args.source, args.evidence)
+            result = close_segment(args.repo, args.run_id, args.source)
         else:
             result = open_next_segment(args.repo, args.run_id, args.source)
         print(json.dumps({"ok": True, "result": result}))
