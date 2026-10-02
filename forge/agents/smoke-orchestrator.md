@@ -115,11 +115,15 @@ behavior.
    call with that exact path, and require `score-prd --phase resumed` PASS
    with actual `PRD_READY`. Do not turn missing evidence into a user-decision
    blocker or vice versa.
-9. For project-init contract propagation, retain the successful Luna call. For
-   the negative pair, first run `smoke_h08b.py score-project-init-helper` and
-   require PASS from a real `ProjectInitError` against the harness-owned absent
-   contract path. Then run the separately declared negative Luna child with the
-   same unavailable-contract condition, parse its actual status, and require
+9. For project-init contract propagation, retain the successful Luna call. Immediately
+   after it returns `PROJECT_INIT_READY`, run
+   `smoke_h08b.py score-project-init-policy` and require PASS so the project
+   `AGENTS.md` is proven to preserve the bootstrap-pinned waiver-policy path,
+   digest, and exact failure-type mappings. For the negative pair, first run
+   `smoke_h08b.py score-project-init-helper` and require PASS from a real
+   `ProjectInitError` against the harness-owned absent contract path. Then run
+   the separately declared negative Luna child with the same unavailable-contract
+   condition, parse its actual status, and require
    `score-project-init-luna --status <actual>` PASS with
    `PROJECT_INIT_BLOCKED`.
 
