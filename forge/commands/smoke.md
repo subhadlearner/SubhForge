@@ -1198,6 +1198,34 @@ helper-validated `WAIVER_AUTHORIZATION` waits are excluded; ordinary inactivity,
 debugging, retries, and crash/recovery remain charged. BETWEEN_SEGMENTS gaps are recorded
 separately and permit no substantive lifecycle/model work.
 
+
+For FULL, `smoke_segments.py` is the only segment lifecycle authority. The
+orchestrator MUST:
+
+1. treat bootstrap's committed S1 ACTIVE record as the start of S1; never create
+   another S1 start timestamp
+2. after each required subprobe is deterministically scored, register the factual
+   result and every accepted report/artifact path with:
+   `smoke_segments.py ... register-evidence --scenario <scenario-id> --subprobe <subprobe-id> --fact <factual-score> [--evidence <repo-relative-path> ...]`
+3. never mark a top-level scenario complete in place of its required subprobe
+   evidence; segment close validates both
+4. after the segment's assigned scenarios/subprobes are complete, the exact close
+   checkpoint is MATCH, and no child/H07 wait is open, call
+   `smoke_segments.py ... close --source <source_checkout_path>`
+5. after a committed close, do no substantive work. Optional gap bookkeeping may
+   use `gap-record` only for `OPERATOR_INACTIVITY`, `READ_ONLY_STATUS`, or
+   `READ_ONLY_PREFLIGHT`
+6. before continuing, call
+   `smoke_segments.py ... open-next --source <source_checkout_path>`. A failed
+   read-only preflight remains in the gap; proven source/checkpoint/config/evidence/
+   ledger drift disqualifies the qualification and must not be repaired in-gap
+7. use `smoke_segments.py ... report` for configured allowance, aggregate charged
+   active time, excluded H07 waits, recorded inter-segment gaps, and total wall time
+
+The complete accepted evidence membership is derived from the immutable per-segment
+scenario-evidence index; callers do not select a smaller close manifest. A segment
+timeout permanently makes the qualification ineligible for PASS.
+
 Before EVERY substantive lifecycle/model stage, run:
 
 ```text
