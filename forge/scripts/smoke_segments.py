@@ -333,6 +333,7 @@ def pin_qualification(
             "active_started_at_utc": started.isoformat(),
             "active_source_fingerprint": source_fingerprint,
             "closed_segments": [],
+            "gaps": [],
             "gap": None,
         }
     else:
@@ -363,6 +364,9 @@ def _runtime(context: dict) -> dict:
     closed = runtime.get("closed_segments")
     if not isinstance(closed, list):
         raise SegmentError("closed_segments must be a list")
+    gaps = runtime.get("gaps")
+    if not isinstance(gaps, list):
+        raise SegmentError("gaps must be a list")
     return runtime
 
 
@@ -912,6 +916,7 @@ def close_segment(
         "state": BETWEEN_SEGMENTS,
         "after_segment": segment_id,
         "started_at_utc": current.isoformat(),
+        "activities": [],
     }
     context = dict(context)
     context["segment_runtime"] = runtime
@@ -980,6 +985,13 @@ def open_next_segment(
     if current.tzinfo is None:
         raise SegmentError("Segment start timestamp must be timezone-aware")
     runtime = json.loads(json.dumps(runtime))
+    gap = runtime.get("gap")
+    if not isinstance(gap, dict) or gap.get("state") != BETWEEN_SEGMENTS:
+        raise SegmentError("Next segment requires an explicit BETWEEN_SEGMENTS gap")
+    completed_gap = json.loads(json.dumps(gap))
+    completed_gap["before_segment"] = segment["id"]
+    completed_gap["ended_at_utc"] = current.isoformat()
+    runtime["gaps"].append(completed_gap)
     runtime["active_segment"] = segment["id"]
     runtime["active_status"] = SEGMENT_ACTIVE
     runtime["active_started_at_utc"] = current.isoformat()
@@ -992,6 +1004,104 @@ def open_next_segment(
         "segment_id": segment["id"],
         "started_at_utc": current.isoformat(),
         "status": SEGMENT_ACTIVE,
+    }
+
+
+
+GAP_ACTIVITY_TYPES = {
+    "OPERATOR_INACTIVITY",
+    "READ_ONLY_STATUS",
+    "READ_ONLY_PREFLIGHT",
+}
+
+
+def record_gap_activity(
+    repo: Path,
+    run_id: str,
+    activity_type: str,
+    detail: str,
+    now: Optional[dt.datetime] = None,
+) -> dict:
+    if activity_type not in GAP_ACTIVITY_TYPES:
+        raise SegmentError("Gap activity must be read-only/inactivity only")
+    if not isinstance(detail, str) or not detail.strip():
+        raise SegmentError("Gap activity detail is required")
+    state, context = _state_context(repo, run_id)
+    runtime = _runtime(context)
+    gap = runtime.get("gap")
+    if not isinstance(gap, dict) or gap.get("state") != BETWEEN_SEGMENTS:
+        raise SegmentError("Gap activity requires BETWEEN_SEGMENTS")
+    current = now or _now()
+    if current.tzinfo is None:
+        raise SegmentError("Gap activity timestamp must be timezone-aware")
+    runtime = json.loads(json.dumps(runtime))
+    gap = runtime["gap"]
+    activities = gap.setdefault("activities", [])
+    item = {
+        "type": activity_type,
+        "detail": detail.strip(),
+        "recorded_at_utc": current.isoformat(),
+    }
+    activities.append(item)
+    context = dict(context)
+    context["segment_runtime"] = runtime
+    _persist_context(repo, run_id, state, context)
+    return item
+
+
+def qualification_report(
+    repo: Path,
+    run_id: str,
+    now: Optional[dt.datetime] = None,
+) -> dict:
+    current = now or _now()
+    if current.tzinfo is None:
+        raise SegmentError("Qualification report timestamp must be timezone-aware")
+    state, context = _state_context(repo, run_id)
+    pinned = _validate_snapshot(context.get("qualification_config"))
+    budget = _budget_data(repo, run_id)
+    started = _aware(budget.get("started_at_utc"), "Qualification start timestamp")
+    runtime = context.get("segment_runtime")
+
+    configured = pinned.get("limit_minutes", 0)
+    active_seconds = 0.0
+    excluded_wait_seconds = 0.0
+    gap_seconds = 0.0
+    gaps = []
+
+    if state.get("profile") == "FULL":
+        runtime = _runtime(context)
+        configured = sum(item["limit_minutes"] for item in pinned["segments"])
+        for close in runtime["closed_segments"]:
+            active_seconds += float(close.get("charged_elapsed_seconds", 0))
+            excluded_wait_seconds += float(close.get("excluded_human_wait_seconds", 0))
+        if runtime.get("active_segment") is not None:
+            timing = segment_timing(repo, run_id, current)
+            active_seconds += float(timing["elapsed_seconds"])
+            excluded_wait_seconds += float(timing["excluded_human_wait_seconds"])
+        for gap in runtime["gaps"]:
+            start = _aware(gap.get("started_at_utc"), "Gap start timestamp")
+            end = _aware(gap.get("ended_at_utc"), "Gap end timestamp")
+            duration = max(0.0, (end - start).total_seconds())
+            gap_seconds += duration
+            gaps.append({**gap, "duration_seconds": round(duration, 3)})
+        current_gap = runtime.get("gap")
+        if isinstance(current_gap, dict):
+            start = _aware(current_gap.get("started_at_utc"), "Gap start timestamp")
+            duration = max(0.0, (current - start).total_seconds())
+            gap_seconds += duration
+            gaps.append({**current_gap, "duration_seconds": round(duration, 3)})
+
+    wall = max(0.0, (current - started).total_seconds())
+    return {
+        "profile": state.get("profile"),
+        "qualification_eligible": context.get("qualification_eligible"),
+        "configured_allowance_minutes": configured,
+        "aggregate_active_seconds": round(active_seconds, 3),
+        "excluded_human_wait_seconds": round(excluded_wait_seconds, 3),
+        "inter_segment_gap_seconds": round(gap_seconds, 3),
+        "total_wall_seconds": round(wall, 3),
+        "gaps": gaps,
     }
 
 
@@ -1021,6 +1131,11 @@ def main() -> int:
     pin.add_argument("--started-at-utc", required=True)
 
     actions.add_parser("status")
+    actions.add_parser("report")
+
+    gap = actions.add_parser("gap-record")
+    gap.add_argument("--type", choices=sorted(GAP_ACTIVITY_TYPES), required=True)
+    gap.add_argument("--detail", required=True)
 
     register = actions.add_parser("register-evidence")
     register.add_argument("--scenario", required=True)
@@ -1045,6 +1160,12 @@ def main() -> int:
                 "qualification_eligible": context.get("qualification_eligible"),
                 "segment_runtime": context.get("segment_runtime"),
             }
+        elif args.action == "report":
+            result = qualification_report(args.repo, args.run_id)
+        elif args.action == "gap-record":
+            result = record_gap_activity(
+                args.repo, args.run_id, args.type, args.detail
+            )
         elif args.action == "register-evidence":
             result = register_scenario_evidence(
                 args.repo,
