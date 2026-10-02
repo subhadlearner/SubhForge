@@ -101,6 +101,24 @@ class SmokeStaticTests(unittest.TestCase):
             self.assertFalse(result["ok"])
             self.assertIn("h08b:refusal-not-active-waiver", result["failures"])
 
+    def test_release_gate_blocks_missing_project_init_waiver_policy_trace(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            project_init = config / "commands/project-init.md"
+            project_init.write_text(
+                project_init.read_text(encoding="utf-8").replace(
+                    "Waiver Policy SHA-256:",
+                    "Policy digest:",
+                ),
+                encoding="utf-8",
+            )
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn(
+                "h08b:project-init-policy-propagation",
+                result["failures"],
+            )
+
     def test_release_gate_blocks_missing_verify_failure_type_contract(self):
         with tempfile.TemporaryDirectory() as temp:
             config, repo, run_id = self._gate_fixture(Path(temp))
