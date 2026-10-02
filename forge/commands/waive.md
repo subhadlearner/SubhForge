@@ -34,6 +34,7 @@ Read:
 - the requested specification
 - relevant diagnosis artifact when one exists
 - project-level waiver/security policy from `AGENTS.md`
+- any authoritative waiver-policy source referenced by `AGENTS.md`, when present
 
 Confirm that the verification report is `NOT_DONE`.
 
@@ -49,9 +50,15 @@ Return:
 
 ## Stage 2 — Check Failure-Type Policy Eligibility
 
-Before requesting, reading, or waiting for human authorization, classify the exact
-failed check(s) from the loaded verification report against the project waiver policy
-recorded in `AGENTS.md`.
+Before requesting, reading, or waiting for human authorization, read the exact
+persisted `Failure Type` for every requested failed check from the loaded verification
+report and compare those types against the project waiver policy recorded in `AGENTS.md`
+and its referenced authoritative policy source when applicable.
+
+If any requested blocker lacks a persisted `Failure Type`, fail closed before
+authorization. Persist a reason-coded blocked record with
+`FAILURE_TYPE_UNAVAILABLE` and finish with `WAIVER_BLOCKED`; do not guess the type
+from prose or choose waiver eligibility yourself.
 
 If any requested failure type/category is non-waivable:
 
