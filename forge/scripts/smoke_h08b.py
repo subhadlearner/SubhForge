@@ -364,12 +364,27 @@ def validate_refusal(
         policy_rel = _safe_rel(record.get("policy_reference"))
         if policy_rel != POLICY_PATH:
             raise H08bError("H08b policy refusal must bind the fixed fixture policy")
+        if run_id is not None:
+            expected_path = _policy_expectation_path(repo, run_id)
+            try:
+                expected_policy = json.loads(expected_path.read_text(encoding="utf-8"))
+            except (OSError, ValueError, json.JSONDecodeError) as exc:
+                raise H08bError("Bootstrap waiver-policy expectation is unavailable") from exc
+            if (
+                expected_policy.get("schema_version") != SCHEMA_VERSION
+                or expected_policy.get("policy_path") != POLICY_PATH
+                or not isinstance(expected_policy.get("policy_sha256"), str)
+            ):
+                raise H08bError("Bootstrap waiver-policy expectation is malformed")
         policy = _path(repo, policy_rel)
         if not policy.is_file():
             raise H08bError("Referenced waiver policy is missing")
         policy_bytes = policy.read_bytes()
-        if _sha_bytes(policy_bytes) != record.get("policy_sha256"):
+        policy_digest = _sha_bytes(policy_bytes)
+        if policy_digest != record.get("policy_sha256"):
             raise H08bError("Waiver refusal policy digest mismatch")
+        if run_id is not None and policy_digest != expected_policy.get("policy_sha256"):
+            raise H08bError("Waiver policy changed after bootstrap")
         try:
             policy_data = json.loads(policy_bytes.decode("utf-8"))
         except (UnicodeDecodeError, ValueError, json.JSONDecodeError) as exc:
@@ -415,7 +430,18 @@ def validate_refusal(
     }
 
 
-def write_fixture_policy(repo: Path, policy: dict) -> dict[str, object]:
+def _policy_expectation_path(repo: Path, run_id: str) -> Path:
+    _validate_run_id(run_id)
+    return repo / "docs" / "verification" / "smoke" / (
+        "{}.h08b-policy-expected.json".format(run_id)
+    )
+
+
+def write_fixture_policy(
+    repo: Path,
+    policy: dict,
+    run_id: str | None = None,
+) -> dict[str, object]:
     repo = _repo(repo)
     if not isinstance(policy, dict) or not policy.get("policy_id"):
         raise H08bError("Fixture waiver policy is invalid")
@@ -424,7 +450,28 @@ def write_fixture_policy(repo: Path, policy: dict) -> dict[str, object]:
         raise H08bError("Fixture waiver policy already exists")
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(policy, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return {"path": POLICY_PATH, "sha256": _sha_bytes(target.read_bytes())}
+    digest = _sha_bytes(target.read_bytes())
+    result = {"path": POLICY_PATH, "sha256": digest}
+    if run_id is not None:
+        hidden = _policy_expectation_path(repo, run_id)
+        if hidden.exists():
+            raise H08bError("Fixture waiver-policy expectation already exists")
+        hidden.parent.mkdir(parents=True, exist_ok=True)
+        hidden.write_text(
+            json.dumps(
+                {
+                    "schema_version": SCHEMA_VERSION,
+                    "policy_path": POLICY_PATH,
+                    "policy_sha256": digest,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        result["hidden_expectation_path"] = hidden.relative_to(repo).as_posix()
+    return result
 
 
 def main() -> int:
