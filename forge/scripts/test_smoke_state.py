@@ -147,7 +147,9 @@ class SmokeStateTests(unittest.TestCase):
             smoke_state.load(self.repo, self.run_id)
 
     def test_segment_runtime_exact_schema_fails_closed_on_unknown_or_missing_field(self):
-        state = self.init_full()
+        original = self.init_full()
+
+        state = json.loads(json.dumps(original))
         runtime = dict(state["context_index"]["segment_runtime"])
         runtime["surprise"] = True
         state["context_index"]["segment_runtime"] = runtime
@@ -155,7 +157,7 @@ class SmokeStateTests(unittest.TestCase):
         with self.assertRaises(smoke_state.SmokeStateError):
             smoke_state.load(self.repo, self.run_id)
 
-        state = self.init_full()
+        state = json.loads(json.dumps(original))
         runtime = dict(state["context_index"]["segment_runtime"])
         runtime.pop("disqualification_reason")
         state["context_index"]["segment_runtime"] = runtime
