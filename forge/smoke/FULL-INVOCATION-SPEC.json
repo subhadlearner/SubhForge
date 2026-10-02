@@ -1161,7 +1161,7 @@
   },
   "scenario_evidence_contract": {
     "schema_version": 1,
-    "path_pattern": "docs/verification/smoke/<run-id>.scenario-evidence.json",
+    "path_pattern": "docs/verification/smoke/<run-id>.<segment-id>.scenario-evidence.json",
     "accepted_status": "SCORED_PASS",
     "immutable_per_scenario_subprobe": true,
     "close_requires_all_required_subprobes": true,
