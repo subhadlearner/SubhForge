@@ -724,10 +724,12 @@ exact authoritative context. Parse its actual terminal status, then require
 
 For the independent negative, use:
 `begin-project-init-negative → score-project-init-helper → fresh h08b-luna-probe
-/project-init → parse actual status → score-project-init-luna --status <actual> →
+/project-init → parse actual status/OWNER/BLOCKING_ISSUE/REQUIRED_ACTION/NEXT_COMMAND →
+score-project-init-luna with those exact actual fields →
 restore-project-init-negative`.
 The prepared branch removes the project canonical Contract-v1 file; neither the
-helper nor Luna child may invent a substitute contract.
+helper nor Luna child may invent a substitute contract, and the normal blocker
+must identify the canonical-contract cause and route back to `/project-init`.
 
 For S2 `direct-fix-loop`, the exact sequence remains:
 
