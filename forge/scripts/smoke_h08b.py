@@ -759,19 +759,38 @@ def write_fixture_policy(
     run_id: str | None = None,
 ) -> dict[str, object]:
     repo = _repo(repo)
-    if not isinstance(policy, dict) or not policy.get("policy_id"):
+    if not isinstance(policy, dict):
         raise H08bError("Fixture waiver policy is invalid")
+    if policy.get("policy_id") != "SMOKE-FULL-WAIVER-POLICY-V1":
+        raise H08bError("Fixture waiver policy ID is invalid")
+    non_waivable = policy.get("non_waivable_failure_types")
+    waivable = policy.get("waivable_failure_types")
+    if (
+        not isinstance(non_waivable, list)
+        or not non_waivable
+        or len(non_waivable) != len(set(non_waivable))
+        or not all(isinstance(item, str) and item for item in non_waivable)
+        or not isinstance(waivable, list)
+        or not waivable
+        or len(waivable) != len(set(waivable))
+        or not all(isinstance(item, str) and item for item in waivable)
+        or set(non_waivable).intersection(waivable)
+        or "BEHAVIORAL_TEST" not in non_waivable
+        or not isinstance(policy.get("purpose"), str)
+        or not policy["purpose"].strip()
+    ):
+        raise H08bError("Fixture waiver policy failure-type mapping is invalid")
     target = _path(repo, POLICY_PATH)
+    hidden = _policy_expectation_path(repo, run_id) if run_id is not None else None
     if target.exists():
         raise H08bError("Fixture waiver policy already exists")
+    if hidden is not None and hidden.exists():
+        raise H08bError("Fixture waiver-policy expectation already exists")
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(policy, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     digest = _sha_bytes(target.read_bytes())
     result = {"path": POLICY_PATH, "sha256": digest}
-    if run_id is not None:
-        hidden = _policy_expectation_path(repo, run_id)
-        if hidden.exists():
-            raise H08bError("Fixture waiver-policy expectation already exists")
+    if hidden is not None:
         hidden.parent.mkdir(parents=True, exist_ok=True)
         hidden.write_text(
             json.dumps(
