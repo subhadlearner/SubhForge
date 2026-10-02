@@ -777,15 +777,13 @@ def set_values(repo: Path, run_id: str, updates: dict[str, object]) -> dict[str,
         candidate.get("profile") == "FULL"
         and candidate.get("state") in {"PASS", "PASS_WITH_ENVIRONMENT_LIMITATION"}
     ):
+        import smoke_segments
         try:
-            import smoke_segments
             smoke_segments.validate_terminal_integrity(repo, run_id)
-        except Exception as exc:
-            if exc.__class__.__name__ == "SegmentError":
-                raise SmokeStateError(
-                    "FULL terminal integrity validation failed: {}".format(exc)
-                ) from exc
-            raise
+        except smoke_segments.SegmentError as exc:
+            raise SmokeStateError(
+                "FULL terminal integrity validation failed: {}".format(exc)
+            ) from exc
 
     # Persist only after the entire resulting state is valid. Invalid updates
     # never partially mutate the canonical JSON.
