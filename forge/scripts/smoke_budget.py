@@ -525,7 +525,10 @@ def check(repo: Path, run_id: str,
     _, data = _load(repo, run_id)
     state = smoke_state.load(repo, run_id)
     current = _current_time(now, "Budget check timestamp")
-    pinned = smoke_segments.assert_config_intact(repo, run_id)
+    try:
+        pinned = smoke_segments.assert_config_intact(repo, run_id)
+    except smoke_segments.SegmentError as exc:
+        raise BudgetError(str(exc)) from exc
 
     if state.get("profile") == "FULL":
         try:
@@ -1049,7 +1052,14 @@ def main() -> int:
             )
         print(json.dumps({"ok": True, **result}))
         return 3 if result.get("result") == "PERFORMANCE_BUDGET_EXCEEDED" else 0
-    except (BudgetError, OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
+    except (
+        BudgetError,
+        smoke_segments.SegmentError,
+        OSError,
+        ValueError,
+        KeyError,
+        json.JSONDecodeError,
+    ) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}))
         return 2
 
