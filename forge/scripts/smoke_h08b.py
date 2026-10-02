@@ -459,7 +459,7 @@ def seed_product_decision(repo: Path, run_id: str) -> dict[str, object]:
     payload = {
         "schema_version": SCHEMA_VERSION,
         "decision_id": "PROD-DEC-001",
-        "decision": "Non-integer input must be rejected with HTTP 400.",
+        "decision": "For valid integer input n, the endpoint returns JSON value equal to n * 2.",
         "normal_path": PRODUCT_DECISION_PATH,
     }
     hidden.parent.mkdir(parents=True, exist_ok=True)
