@@ -647,7 +647,12 @@ class SmokeSegmentsTests(unittest.TestCase):
                         self.started + dt.timedelta(minutes=1),
                     )
         source_guard = {"source_checkout_path": str(self.root), "fingerprint": "a" * 64}
-        checkpoint = {"checkpoint": "CP-REVIEWED", "result": "MATCH"}
+        checkpoint = {
+            "checkpoint": "CP-REVIEWED",
+            "result": "MATCH",
+            "expected_fingerprint": "f" * 64,
+            "current_fingerprint": "f" * 64,
+        }
         with mock.patch.object(smoke_segments.smoke_workspace, "source_guard",
                                return_value=source_guard), \
              mock.patch.object(smoke_segments.smoke_mechanics, "check_checkpoint",
@@ -665,7 +670,12 @@ class SmokeSegmentsTests(unittest.TestCase):
         self._init_full()
         _s1, evidence = self._complete_s1()
         source_guard = {"source_checkout_path": str(self.root), "fingerprint": "a" * 64}
-        checkpoint = {"checkpoint": "CP-REVIEWED", "result": "MATCH"}
+        checkpoint = {
+            "checkpoint": "CP-REVIEWED",
+            "result": "MATCH",
+            "expected_fingerprint": "f" * 64,
+            "current_fingerprint": "f" * 64,
+        }
         with mock.patch.object(smoke_segments.smoke_workspace, "source_guard",
                                return_value=source_guard), \
              mock.patch.object(smoke_segments.smoke_mechanics, "check_checkpoint",
@@ -789,7 +799,12 @@ class SmokeSegmentsTests(unittest.TestCase):
         self._init_full()
         _s1, _evidence = self._complete_s1()
         source_guard = {"source_checkout_path": str(self.root), "fingerprint": "a" * 64}
-        checkpoint = {"checkpoint": "CP-REVIEWED", "result": "MATCH"}
+        checkpoint = {
+            "checkpoint": "CP-REVIEWED",
+            "result": "MATCH",
+            "expected_fingerprint": "f" * 64,
+            "current_fingerprint": "f" * 64,
+        }
         with mock.patch.object(smoke_segments.smoke_workspace, "source_guard",
                                return_value=source_guard), \
              mock.patch.object(smoke_segments.smoke_mechanics, "check_checkpoint",
@@ -814,7 +829,12 @@ class SmokeSegmentsTests(unittest.TestCase):
         self._init_full()
         _s1, evidence = self._complete_s1()
         source_guard = {"source_checkout_path": str(self.root), "fingerprint": "a" * 64}
-        checkpoint = {"checkpoint": "CP-REVIEWED", "result": "MATCH"}
+        checkpoint = {
+            "checkpoint": "CP-REVIEWED",
+            "result": "MATCH",
+            "expected_fingerprint": "f" * 64,
+            "current_fingerprint": "f" * 64,
+        }
         with mock.patch.object(smoke_segments.smoke_workspace, "source_guard",
                                return_value=source_guard), \
              mock.patch.object(smoke_segments.smoke_mechanics, "check_checkpoint",
@@ -835,7 +855,12 @@ class SmokeSegmentsTests(unittest.TestCase):
         self._init_full()
         _s1, evidence = self._complete_s1()
         source_guard = {"source_checkout_path": str(self.root), "fingerprint": "a" * 64}
-        checkpoint = {"checkpoint": "CP-REVIEWED", "result": "MATCH"}
+        checkpoint = {
+            "checkpoint": "CP-REVIEWED",
+            "result": "MATCH",
+            "expected_fingerprint": "f" * 64,
+            "current_fingerprint": "f" * 64,
+        }
         with mock.patch.object(smoke_segments.smoke_workspace, "source_guard",
                                return_value=source_guard), \
              mock.patch.object(smoke_segments.smoke_mechanics, "check_checkpoint",
