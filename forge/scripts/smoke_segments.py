@@ -826,7 +826,11 @@ def close_segment(
     now: Optional[dt.datetime] = None,
 ) -> dict:
     state, context = _state_context(repo, run_id)
-    pinned = assert_config_intact(repo, run_id)
+    try:
+        pinned = assert_config_intact(repo, run_id)
+    except SegmentError as exc:
+        _disqualify_gap(repo, run_id, "CONFIG_DRIFT")
+        raise
     if state.get("profile") != "FULL":
         raise SegmentError("Segment close is only valid for FULL")
     runtime = _runtime(context)
@@ -924,6 +928,20 @@ def close_segment(
     return close
 
 
+def _disqualify_gap(repo: Path, run_id: str, reason: str) -> None:
+    state, context = _state_context(repo, run_id)
+    runtime = _runtime(context)
+    runtime = json.loads(json.dumps(runtime))
+    gap = runtime.get("gap")
+    if isinstance(gap, dict):
+        gap["drift_detected"] = True
+        gap["disqualification_reason"] = reason
+    context = dict(context)
+    context["segment_runtime"] = runtime
+    context["qualification_eligible"] = False
+    _persist_context(repo, run_id, state, context)
+
+
 def open_next_segment(
     repo: Path,
     run_id: str,
@@ -948,7 +966,11 @@ def open_next_segment(
     if not runtime["closed_segments"]:
         raise SegmentError("S1 is opened only by bootstrap")
 
-    validate_closed_chain(repo, run_id, runtime)
+    try:
+        validate_closed_chain(repo, run_id, runtime)
+    except SegmentError:
+        _disqualify_gap(repo, run_id, "CLOSED_EVIDENCE_OR_LEDGER_DRIFT")
+        raise
     data = _budget_data(repo, run_id)
     if any(item.get("status", "ACTIVE") == "ACTIVE" for item in data["stage_invocations"]):
         raise SegmentError("Next segment cannot open while a stage invocation is ACTIVE")
@@ -979,6 +1001,7 @@ def open_next_segment(
     except smoke_mechanics.MechanicsError as exc:
         raise SegmentError("Required start checkpoint is unavailable: {}".format(exc)) from exc
     if checkpoint_result.get("result") != "MATCH":
+        _disqualify_gap(repo, run_id, "CHECKPOINT_DRIFT")
         raise SegmentError("Required start checkpoint drifted: {}".format(segment["start_checkpoint"]))
 
     current = now or _now()
