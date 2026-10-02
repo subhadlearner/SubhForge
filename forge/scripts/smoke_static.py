@@ -89,6 +89,7 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
     grill = command_text["grill"]
     verify = command_text["verify"]
     waive = command_text["waive"]
+    review = command_text["review"]
     worker = read("agent:planning-worker", config / "agents/planning-worker.md")
     orchestrator = read("agent:smoke-orchestrator", config / "agents/smoke-orchestrator.md")
     router = read("agent:resume-router", config / "agents/resume-router.md")
@@ -132,6 +133,13 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
         "LINT_QUALITY",
         "Failure Summary",
     ))
+    checks["h08b:refusal-not-active-waiver"] = (
+        "docs/verification/waivers/" in review
+        and "docs/verification/waiver-refusals/" in review
+        and "never treat records under the sibling" in review
+        and "waiver-refusals/" in policy
+        and "never active waivers" in policy
+    )
     checks["h08b:waive-policy-before-auth"] = (
         policy_pos >= 0
         and auth_pos > policy_pos
