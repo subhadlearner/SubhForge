@@ -282,7 +282,13 @@ class SmokeH08bTests(unittest.TestCase):
             "project-init-contract-propagation", "project-init"
         )
         luna = smoke_h08b.score_project_init_luna(
-            self.repo, self.run_id, "PROJECT_INIT_BLOCKED"
+            self.repo,
+            self.run_id,
+            "PROJECT_INIT_BLOCKED",
+            "REPOSITORY",
+            "Canonical Contract-v1 input is unavailable.",
+            "Restore the canonical contract input and rerun project initialization.",
+            "/project-init",
         )
         self.assertEqual("PASS", luna["result"])
         self.assertTrue((self.repo / luna["score_path"]).is_file())
@@ -292,6 +298,56 @@ class SmokeH08bTests(unittest.TestCase):
         )
         self.assertEqual("MATCH", restored["result"])
         self.assertTrue(canonical.is_file())
+
+    def test_project_init_negative_rejects_wrong_blocker_cause(self):
+        policy = {
+            "policy_id": "SMOKE-FULL-WAIVER-POLICY-V1",
+            "non_waivable_failure_types": ["BEHAVIORAL_TEST"],
+            "waivable_failure_types": ["DOCUMENTATION_QUALITY", "LINT_QUALITY"],
+            "purpose": "H08b fixed failure-type waiver policy.",
+        }
+        written = smoke_h08b.write_fixture_policy(
+            self.repo, policy, self.run_id
+        )
+        agents = self.repo / "AGENTS.md"
+        agents.write_text(
+            "Waiver Policy Source: {}\n"
+            "Waiver Policy SHA-256: {}\n"
+            "Non-waivable Failure Types: BEHAVIORAL_TEST\n"
+            "Waivable Failure Types: DOCUMENTATION_QUALITY, LINT_QUALITY\n".format(
+                smoke_h08b.POLICY_PATH,
+                written["sha256"],
+            ),
+            encoding="utf-8",
+        )
+        canonical = self.repo / smoke_h08b.CANONICAL_CONTRACT_PATH
+        canonical.parent.mkdir(parents=True, exist_ok=True)
+        canonical.write_text("implementation-state-evidence-v1\n", encoding="utf-8")
+        self._complete_stage(
+            "project-init-contract-propagation", "project-init"
+        )
+        smoke_h08b.score_project_init_policy_propagation(
+            self.repo, self.run_id, "PROJECT_INIT_READY"
+        )
+        self._init_git_smoke_run()
+        smoke_h08b.begin_project_init_negative(self.repo, self.run_id)
+        smoke_h08b.score_project_init_helper_rejection(self.repo, self.run_id)
+        self._complete_stage(
+            "project-init-contract-propagation", "project-init"
+        )
+
+        result = smoke_h08b.score_project_init_luna(
+            self.repo,
+            self.run_id,
+            "PROJECT_INIT_BLOCKED",
+            "ARCHITECTURE",
+            "A technology decision is missing.",
+            "Choose a framework.",
+            "/architect",
+        )
+
+        self.assertEqual("FAIL", result["result"])
+        self.assertTrue(result["failures"])
 
     def test_prd_scoring_requires_harness_preparation(self):
         prd = self.repo / smoke_h08b.DIRECT_PRD_PATH
