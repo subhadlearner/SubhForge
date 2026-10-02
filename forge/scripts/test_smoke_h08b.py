@@ -27,6 +27,7 @@ class SmokeH08bTests(unittest.TestCase):
 
         self.assertEqual("PASS", blocked["result"])
         self.assertEqual(["DEC-001"], blocked["settled_decision_ids"])
+        self.assertTrue((self.repo / blocked["score_path"]).is_file())
 
     def test_discovery_tamper_reopens_or_changes_settled_decision_fails(self):
         smoke_h08b.seed_discovery(self.repo, self.run_id)
@@ -70,12 +71,15 @@ class SmokeH08bTests(unittest.TestCase):
             self.repo, self.run_id, "PRD_READY"
         )
         self.assertEqual("PASS", scored["result"])
+        score_path = self.repo / scored["score_path"]
+        self.assertTrue(score_path.is_file())
         restored = smoke_h08b.restore_direct_prd_probe(
             self.repo, self.run_id
         )
         self.assertEqual("MATCH", restored["result"])
         self.assertTrue((self.repo / smoke_h08b.DISCOVERY_PATH).is_file())
         self.assertFalse(prd.exists())
+        self.assertTrue(score_path.is_file())
 
     def test_main_prd_blocks_until_approved_product_decision_is_revealed(self):
         seeded = smoke_h08b.seed_product_decision(self.repo, self.run_id)
@@ -86,6 +90,7 @@ class SmokeH08bTests(unittest.TestCase):
             self.repo, self.run_id, "blocked", "PRD_BLOCKED"
         )
         self.assertEqual("PASS", blocked["result"])
+        self.assertTrue((self.repo / blocked["score_path"]).is_file())
 
         revealed = smoke_h08b.reveal_product_decision(
             self.repo, self.run_id
@@ -99,6 +104,20 @@ class SmokeH08bTests(unittest.TestCase):
             self.repo, self.run_id, "resumed", "PRD_READY"
         )
         self.assertEqual("PASS", resumed["result"])
+        self.assertTrue((self.repo / resumed["score_path"]).is_file())
+
+    def test_project_init_negative_scores_helper_and_luna_separately(self):
+        helper = smoke_h08b.score_project_init_helper_rejection(
+            self.repo, self.run_id
+        )
+        self.assertEqual("PASS", helper["result"])
+        self.assertTrue((self.repo / helper["score_path"]).is_file())
+
+        luna = smoke_h08b.score_project_init_luna(
+            self.repo, self.run_id, "PROJECT_INIT_BLOCKED"
+        )
+        self.assertEqual("PASS", luna["result"])
+        self.assertTrue((self.repo / luna["score_path"]).is_file())
 
     def test_prd_scoring_requires_harness_preparation(self):
         prd = self.repo / smoke_h08b.DIRECT_PRD_PATH
