@@ -180,9 +180,12 @@ DeepSeek pre-review, and Sol senior review only when ready.
 Every successful H08b deterministic scorer returns an immutable
 `score_path` under `docs/verification/smoke/**`. Register that exact path as
 accepted file-backed evidence for the corresponding H08 subprobe with
-`smoke_segments.py register-evidence`. For the isolated direct-PRD subprobe,
-also register the scorer-returned immutable `prd_evidence_path`; S1 close
-requires both the PASS score and the retained direct-PRD bytes/hash. For
+`smoke_segments.py register-evidence`. For blocked/resumed discovery, also register the immutable
+`hidden_expectation_path` returned by `seed-discovery`; both discovery PASS
+scores bind that same path/hash and S1 close revalidates it. For the isolated
+direct-PRD subprobe, also register the scorer-returned immutable
+`prd_evidence_path`; S1 close requires both the PASS score and the retained
+direct-PRD bytes/hash. For
 transient states such as blocked discovery, direct-PRD isolation, blocked PRD,
 project-init negative, and the policy-ineligible refusal, these immutable
 artifacts are the historical proof that must survive after the normal repository
