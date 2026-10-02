@@ -98,18 +98,30 @@ behavior.
 5. Invoke GPT-5.6 Sol `/grill` again in CONTINUE mode. Require the existing
    settled decision IDs/values to remain unchanged and discovery to become ready.
 6. Run `score-discovery --phase resumed`; a FAIL blocks H08b.
-7. Separately invoke one GPT-5.6 Sol `/prd` on a user-selected clear-intent
-   branch with no discovery artifact. This proves an explicitly selected skip,
+7. For the separate user-selected clear-intent direct-PRD branch, run
+   `smoke_h08b.py begin-direct-prd`. This temporarily removes only the normal
+   discovery artifact into protected smoke snapshot evidence. Invoke one GPT-5.6
+   Sol `/prd` with the explicit user-selected clear intent and exact expected
+   path `docs/prd/PRD-H08B-DIRECT.md`. Parse its actual terminal status and run
+   `score-direct-prd --status <actual>`; require PASS and zero discovery
+   artifacts. Then run `restore-direct-prd` to delete the isolated PRD and
+   restore the exact discovery bytes. This proves an explicitly selected skip,
    not autonomous skip intelligence.
-8. For the main PRD path, use the two already-declared Sol calls: first withhold
-   one approved product decision so the PRD blocks normally, then supply that
-   exact approved decision and rerun/resume. Do not turn missing evidence into
-   a user-decision blocker or vice versa.
-9. For project-init contract propagation, retain the successful Luna call and
-   also run the separately declared negative Luna child against unavailable
-   canonical-contract evidence. Independently run deterministic
-   `project_init_mechanics.py` with the unavailable contract and require
-   `ProjectInitError`; the Luna child must return `PROJECT_INIT_BLOCKED`.
+8. Before the main PRD negative, run `seed-product-decision`; its approved
+   value remains hidden from the first planning child. Invoke the first of the
+   two declared Sol PRD calls and require `PRD_BLOCKED`; pass only the actual
+   status to `score-prd --phase blocked`. Then run `reveal-product-decision`
+   to create the normal approved decision artifact, invoke the second Sol PRD
+   call with that exact path, and require `score-prd --phase resumed` PASS
+   with actual `PRD_READY`. Do not turn missing evidence into a user-decision
+   blocker or vice versa.
+9. For project-init contract propagation, retain the successful Luna call. For
+   the negative pair, first run `smoke_h08b.py score-project-init-helper` and
+   require PASS from a real `ProjectInitError` against the harness-owned absent
+   contract path. Then run the separately declared negative Luna child with the
+   same unavailable-contract condition, parse its actual status, and require
+   `score-project-init-luna --status <actual>` PASS with
+   `PROJECT_INIT_BLOCKED`.
 
 ### S2 policy-ineligible waiver probe
 
