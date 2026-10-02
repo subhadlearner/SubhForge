@@ -701,16 +701,23 @@ For the default Stable-v0.1 smoke path, use GPT-5.6 Sol for these planning stage
 ### H08b bounded early-lifecycle procedure
 
 For FULL S1, the orchestrator MUST use `smoke_h08b.py` to seed and score the
-normal blocked/resumed discovery artifact without exposing hidden expectations.
-The first `/grill` blocks only on the deliberately absent referenced evidence;
-after `restore-evidence`, the second `/grill` must preserve settled decision
-IDs/values and complete discovery. The separate direct-to-PRD branch is
-user-selected and uses no discovery artifact. The main PRD negative/resume uses
-a withheld approved product decision instead of missing evidence.
+normal blocked/resumed discovery artifact without exposing hidden expectations:
+`seed-discovery → /grill → score-discovery blocked → restore-evidence →
+/grill CONTINUE → score-discovery resumed`.
 
-The project-init negative uses the already-declared extra Luna call and must be
-independently backed by `project_init_mechanics.py` failing on unavailable
-canonical-contract evidence.
+For the user-selected direct-to-PRD branch use:
+`begin-direct-prd → one Sol /prd → score-direct-prd → restore-direct-prd`.
+The scorer requires zero discovery artifacts during that isolated call.
+
+For the main PRD blocked/resumed path use:
+`seed-product-decision → one Sol /prd → score-prd blocked →
+reveal-product-decision → one Sol /prd → score-prd resumed`.
+The hidden approved value must not be supplied to the first child.
+
+The project-init negative uses the already-declared extra Luna call and the pair:
+`score-project-init-helper → real Luna /project-init →
+score-project-init-luna`. The helper half must obtain a real
+`ProjectInitError` from unavailable canonical-contract evidence.
 
 For S2 `direct-fix-loop`, the exact sequence remains:
 
