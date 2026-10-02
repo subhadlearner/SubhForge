@@ -87,6 +87,7 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
         for name in REQUIRED_COMMANDS
     }
     grill = command_text["grill"]
+    verify = command_text["verify"]
     waive = command_text["waive"]
     worker = read("agent:planning-worker", config / "agents/planning-worker.md")
     orchestrator = read("agent:smoke-orchestrator", config / "agents/smoke-orchestrator.md")
@@ -117,6 +118,13 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
     ))
     policy_pos = waive.find("## Stage 2 — Check Failure-Type Policy Eligibility")
     auth_pos = waive.find("## Stage 3 — Require Explicit Human Authorization")
+    checks["h08b:verify-failure-type"] = all(term in verify for term in (
+        "Failure Type taxonomy",
+        "BEHAVIORAL_TEST",
+        "DOCUMENTATION_QUALITY",
+        "LINT_QUALITY",
+        "Failure Summary",
+    ))
     checks["h08b:waive-policy-before-auth"] = (
         policy_pos >= 0
         and auth_pos > policy_pos
