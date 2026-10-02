@@ -414,6 +414,12 @@ def score_discovery(
             "status": status,
             "discovery_path": hidden["discovery_path"],
             "discovery_sha256": _sha_bytes(discovery.read_bytes()),
+            "hidden_expectation_path": _hidden_path(
+                repo, run_id
+            ).relative_to(repo).as_posix(),
+            "hidden_expectation_sha256": _sha_bytes(
+                _hidden_path(repo, run_id).read_bytes()
+            ),
             "settled_decision_ids": sorted(hidden["settled_expectations"]),
             "failures": failures,
         },
