@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -16,11 +17,65 @@ class SmokeH08bTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.repo = Path(self.temp.name)
-        (self.repo / "docs/verification/smoke").mkdir(parents=True)
+        smoke_dir = self.repo / "docs/verification/smoke"
+        smoke_dir.mkdir(parents=True)
         self.run_id = "SMOKE-FULL-h08b-20261002T000000Z-12345678"
+        self.budget = smoke_dir / f"{self.run_id}.budget.json"
+        self.budget.write_text(
+            json.dumps(
+                {
+                    "started_at_utc": "2026-10-02T00:00:00+00:00",
+                    "stage_invocations": [],
+                    "human_wait_intervals": [],
+                    "continuation_blocker": None,
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+    def _complete_stage(self, scenario_id, stage):
+        data = json.loads(self.budget.read_text(encoding="utf-8"))
+        sequence = 1 + sum(
+            1
+            for item in data["stage_invocations"]
+            if item.get("stage") == stage
+        )
+        data["stage_invocations"].append(
+            {
+                "invocation_id": f"{stage}-{sequence:03d}",
+                "stage": stage,
+                "model": "test-model",
+                "segment_id": "S1" if scenario_id != "direct-fix-loop" else "S2",
+                "scenario_id": scenario_id,
+                "source_fingerprint": "a" * 64,
+                "status": "COMPLETED",
+                "started_at_utc": "2026-10-02T00:00:00+00:00",
+                "ended_at_utc": "2026-10-02T00:00:01+00:00",
+                "recovered_at_utc": None,
+                "elapsed_seconds": 1.0,
+                "termination_reason": None,
+            }
+        )
+        self.budget.write_text(json.dumps(data) + "\n", encoding="utf-8")
+
+    def _init_git_smoke_run(self):
+        subprocess.check_call(["git", "init", "-q"], cwd=self.repo)
+        subprocess.check_call(
+            ["git", "config", "user.name", "Smoke"], cwd=self.repo
+        )
+        subprocess.check_call(
+            ["git", "config", "user.email", "smoke@example.test"], cwd=self.repo
+        )
+        subprocess.check_call(["git", "add", "-A"], cwd=self.repo)
+        subprocess.check_call(
+            ["git", "commit", "-qm", "fixture"], cwd=self.repo
+        )
+        subprocess.check_call(["git", "switch", "-qc", "smoke-run"], cwd=self.repo)
 
     def _make_discovery_ready(self):
         smoke_h08b.seed_discovery(self.repo, self.run_id)
+        self._complete_stage("grill", "grill")
         blocked = smoke_h08b.score_discovery(
             self.repo, self.run_id, "blocked", "DISCOVERY_BLOCKED"
         )
@@ -34,6 +89,7 @@ class SmokeH08bTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
+        self._complete_stage("grill", "grill")
         resumed = smoke_h08b.score_discovery(
             self.repo, self.run_id, "resumed", "DISCOVERY_READY"
         )
@@ -46,6 +102,7 @@ class SmokeH08bTests(unittest.TestCase):
         prd = self.repo / smoke_h08b.DIRECT_PRD_PATH
         prd.parent.mkdir(parents=True, exist_ok=True)
         prd.write_text("# Direct PRD\nStatus: PRD_READY\n", encoding="utf-8")
+        self._complete_stage("grill", "prd")
         scored = smoke_h08b.score_direct_prd(
             self.repo, self.run_id, "PRD_READY"
         )
@@ -104,6 +161,7 @@ class SmokeH08bTests(unittest.TestCase):
         self.assertEqual("WITHHELD", seeded["result"])
         self.assertFalse((self.repo / smoke_h08b.PRODUCT_DECISION_PATH).exists())
 
+        self._complete_stage("prd", "prd")
         blocked = smoke_h08b.score_prd_phase(
             self.repo, self.run_id, "blocked", "PRD_BLOCKED"
         )
@@ -116,7 +174,14 @@ class SmokeH08bTests(unittest.TestCase):
         self.assertEqual("REVEALED", revealed["result"])
         prd = self.repo / smoke_h08b.MAIN_PRD_PATH
         prd.parent.mkdir(parents=True, exist_ok=True)
-        prd.write_text("# Main PRD\nStatus: PRD_READY\n", encoding="utf-8")
+        prd.write_text(
+            "# Main PRD\n"
+            "Status: PRD_READY\n"
+            "Decision ID: PROD-DEC-001\n"
+            "For valid integer input n, the endpoint returns JSON value equal to n * 2.\n",
+            encoding="utf-8",
+        )
+        self._complete_stage("prd", "prd")
 
         resumed = smoke_h08b.score_prd_phase(
             self.repo, self.run_id, "resumed", "PRD_READY"
@@ -146,6 +211,9 @@ class SmokeH08bTests(unittest.TestCase):
             encoding="utf-8",
         )
 
+        self._complete_stage(
+            "project-init-contract-propagation", "project-init"
+        )
         scored = smoke_h08b.score_project_init_policy_propagation(
             self.repo, self.run_id, "PROJECT_INIT_READY"
         )
