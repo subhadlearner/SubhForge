@@ -549,6 +549,12 @@ def register_scenario_evidence(
     if len(canonical_facts) != len(set(canonical_facts)):
         raise SegmentError("Scenario-evidence facts must not contain duplicates")
     entries = _evidence_entries(repo, evidence_paths or [])
+    if subprobe.get("requires_evidence_file") is True and not entries:
+        raise SegmentError(
+            "Model-bearing subprobe {}:{} requires at least one evidence file".format(
+                scenario_id, subprobe_id
+            )
+        )
 
     current = now or _now()
     if current.tzinfo is None:
@@ -657,6 +663,10 @@ def _segment_evidence_paths(
             raise SegmentError("Scenario-evidence required flag does not match invocation spec")
         if record.get("conditional_call_id") != definition.get("conditional_call_id"):
             raise SegmentError("Scenario-evidence conditional-call binding changed")
+        if definition.get("requires_evidence_file") is True and not record.get("evidence"):
+            raise SegmentError(
+                "Model-bearing subprobe is missing required file-backed evidence"
+            )
         facts = record.get("facts")
         if not isinstance(facts, list) or not facts or not all(
             isinstance(item, str) and item for item in facts
@@ -688,6 +698,44 @@ def _segment_evidence_paths(
     index_rel = path.relative_to(repo.resolve()).as_posix()
     accepted_paths.add(index_rel)
     return sorted(accepted_paths, key=lambda item: item.encode("utf-8"))
+
+
+
+def _helper_evidence_path(repo: Path, run_id: str, segment_id: str) -> str:
+    if segment_id == "S5":
+        name = "{}.resume.json".format(run_id)
+    elif segment_id == "S6":
+        name = "{}.reroute.json".format(run_id)
+    else:
+        raise SegmentError("Segment {} has no helper-bound proof".format(segment_id))
+    return (Path("docs") / "verification" / "smoke" / name).as_posix()
+
+
+def _validate_helper_bound_segment(
+    repo: Path,
+    run_id: str,
+    segment_id: str,
+    evidence_paths: list[str],
+) -> None:
+    if segment_id not in {"S5", "S6"}:
+        return
+    expected_path = _helper_evidence_path(repo, run_id, segment_id)
+    if expected_path not in evidence_paths:
+        raise SegmentError(
+            "{} close requires its deterministic helper ledger in accepted evidence".format(
+                segment_id
+            )
+        )
+    try:
+        result = (
+            smoke_resume.status(repo, run_id)
+            if segment_id == "S5"
+            else smoke_reroute.status(repo, run_id)
+        )
+    except (smoke_resume.ResumeProbeError, smoke_reroute.RerouteProbeError) as exc:
+        raise SegmentError("{} helper status is unavailable: {}".format(segment_id, exc)) from exc
+    if result.get("result") != "PASS":
+        raise SegmentError("{} helper status must be PASS before segment close".format(segment_id))
 
 
 def _budget_path(repo: Path, run_id: str) -> Path:
