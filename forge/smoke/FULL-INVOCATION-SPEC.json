@@ -4,7 +4,20 @@
   "call_budget": {
     "baseline_total": 50,
     "maximum_total": 51,
-    "only_optional_extra": "S4.adversarial-reconcile-only.optional-adversary-recheck"
+    "only_optional_extra": "S4.adversarial-reconcile-only.optional-adversary-recheck",
+    "baseline_by_owner": {
+      "GPT-5.6 Sol": 16,
+      "GPT-5.6 Luna": 11,
+      "DeepSeek": 23
+    },
+    "baseline_by_segment": {
+      "S1": 13,
+      "S2": 7,
+      "S3": 6,
+      "S4": 7,
+      "S5": 8,
+      "S6": 9
+    }
   },
   "zero_substantive_call_scenarios": [
     "static-release-gate",
@@ -51,7 +64,8 @@
           "id": "static-contract-routing-gate",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": false
         }
       ]
     },
@@ -95,31 +109,36 @@
           "id": "evidence-access-blocked",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "settled-decisions-scored-after-block",
           "required": true,
           "order": 2,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "evidence-restored-and-resumed",
           "required": true,
           "order": 3,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "settled-decisions-scored-after-resume",
           "required": true,
           "order": 4,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "user-directed-no-discovery-prd",
           "required": true,
           "order": 5,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         }
       ]
     },
@@ -158,13 +177,15 @@
           "id": "main-prd-blocked",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "main-prd-resumed",
           "required": true,
           "order": 2,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         }
       ]
     },
@@ -194,7 +215,8 @@
           "id": "architecture-authored",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         }
       ]
     },
@@ -233,19 +255,22 @@
           "id": "successful-project-init",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "unavailable-contract-helper-rejection",
           "required": true,
           "order": 2,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": false
         },
         {
           "id": "unavailable-contract-luna-rejection",
           "required": true,
           "order": 3,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         }
       ]
     },
@@ -275,7 +300,8 @@
           "id": "spec-authored",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         }
       ]
     },
@@ -305,7 +331,8 @@
           "id": "implementation-completed",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         }
       ]
     },
@@ -335,7 +362,8 @@
           "id": "fresh-uncommitted-verification",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         }
       ]
     },
@@ -371,13 +399,15 @@
           "id": "ready-pre-review",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "ready-senior-review",
           "required": true,
           "order": 2,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         }
       ]
     },
@@ -403,7 +433,8 @@
           "id": "identical-commit-match",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": false
         }
       ]
     },
@@ -428,7 +459,8 @@
           "id": "content-mutation-mismatch-and-restore",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": false
         }
       ]
     },
@@ -453,7 +485,8 @@
           "id": "mode-type-mismatch-or-qualified-unreconstructable",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": false
         }
       ]
     },
@@ -483,7 +516,8 @@
           "id": "verification-time-mutation-block-and-restore",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         }
       ]
     },
@@ -544,37 +578,43 @@
           "id": "failed-behavioral-verification",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "policy-ineligible-waiver-refusal",
           "required": true,
           "order": 2,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "repair",
           "required": true,
           "order": 3,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "fresh-post-fix-verification",
           "required": true,
           "order": 4,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "ready-pre-review",
           "required": true,
           "order": 5,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "ready-senior-review",
           "required": true,
           "order": 6,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         }
       ]
     },
@@ -599,7 +639,8 @@
           "id": "malformed-evidence-unreconstructable",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": false
         }
       ]
     },
@@ -625,7 +666,8 @@
           "id": "evidence-only-match-and-identity-mutation-mismatch",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": false
         }
       ]
     },
@@ -682,37 +724,43 @@
           "id": "failed-verification",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "diagnosis",
           "required": true,
           "order": 2,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "repair-after-diagnosis",
           "required": true,
           "order": 3,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "fresh-post-diagnosis-verification",
           "required": true,
           "order": 4,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "ready-pre-review",
           "required": true,
           "order": 5,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "ready-senior-review",
           "required": true,
           "order": 6,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         }
       ]
     },
@@ -763,25 +811,29 @@
           "id": "safe-waivable-failure-verification",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "authorized-waiver",
           "required": true,
           "order": 2,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "ready-pre-review",
           "required": true,
           "order": 3,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "ready-senior-review",
           "required": true,
           "order": 4,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         }
       ]
     },
@@ -809,7 +861,8 @@
           "id": "stale-waiver-freshness-block-and-restore",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": false
         }
       ]
     },
@@ -850,19 +903,22 @@
           "id": "material-adversarial-challenge",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "reconcile-only",
           "required": true,
           "order": 2,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "optional-adversarial-recheck",
           "required": false,
           "order": 3,
-          "conditional_call_id": "S4.adversarial-reconcile-only.optional-adversary-recheck"
+          "conditional_call_id": "S4.adversarial-reconcile-only.optional-adversary-recheck",
+          "requires_evidence_file": true
         }
       ]
     },
@@ -892,7 +948,8 @@
           "id": "pre-review-blocks-with-zero-senior",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         }
       ]
     },
@@ -918,7 +975,8 @@
           "id": "claude-default-denied-static-proof",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": false
         }
       ]
     },
@@ -985,49 +1043,57 @@
           "id": "resume-route-1",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "resume-route-2",
           "required": true,
           "order": 2,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "resume-route-3",
           "required": true,
           "order": 3,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "resume-route-4",
           "required": true,
           "order": 4,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "resume-route-5",
           "required": true,
           "order": 5,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "resume-route-6",
           "required": true,
           "order": 6,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "resume-route-7",
           "required": true,
           "order": 7,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "bounded-resume-handoff",
           "required": true,
           "order": 8,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         }
       ]
     },
@@ -1099,55 +1165,64 @@
           "id": "upstream-sol-classifier-1",
           "required": true,
           "order": 1,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "upstream-sol-classifier-2",
           "required": true,
           "order": 2,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "upstream-sol-classifier-3",
           "required": true,
           "order": 3,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "upstream-sol-handoff",
           "required": true,
           "order": 4,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "upstream-deepseek-classifier-1",
           "required": true,
           "order": 5,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "upstream-deepseek-classifier-2",
           "required": true,
           "order": 6,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "upstream-deepseek-classifier-3",
           "required": true,
           "order": 7,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "upstream-deepseek-classifier-4",
           "required": true,
           "order": 8,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         },
         {
           "id": "upstream-deepseek-classifier-5",
           "required": true,
           "order": 9,
-          "conditional_call_id": null
+          "conditional_call_id": null,
+          "requires_evidence_file": true
         }
       ]
     }
@@ -1165,6 +1240,11 @@
     "accepted_status": "SCORED_PASS",
     "immutable_per_scenario_subprobe": true,
     "close_requires_all_required_subprobes": true,
-    "close_manifest_is_derived_from_index": true
+    "close_manifest_is_derived_from_index": true,
+    "model_bearing_subprobes_require_file_evidence": true,
+    "helper_bound_segments": {
+      "S5": "docs/verification/smoke/<run-id>.resume.json",
+      "S6": "docs/verification/smoke/<run-id>.reroute.json"
+    }
   }
 }
