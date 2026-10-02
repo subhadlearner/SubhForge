@@ -34,6 +34,25 @@
       "zero_substantive_calls": true,
       "evidence": [
         "static-release-gate metric"
+      ],
+      "prerequisite_checkpoint": "BOOTSTRAP",
+      "restored_or_close_checkpoint": "CP-REVIEWED",
+      "zero_reviewer": true,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "static-contract-routing-gate",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
+        }
       ]
     },
     {
@@ -59,6 +78,49 @@
       "contracts": [
         "Evidence/access-blocked state must be resumable.",
         "Stable decision IDs are H08b behavioral proof; H08 declares the contract only."
+      ],
+      "prerequisite_checkpoint": "BOOTSTRAP",
+      "restored_or_close_checkpoint": "CP-REVIEWED",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "settled decision ID/value expectations under docs/verification/smoke/**"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "evidence-access-blocked",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
+        },
+        {
+          "id": "settled-decisions-scored-after-block",
+          "required": true,
+          "order": 2,
+          "conditional_call_id": null
+        },
+        {
+          "id": "evidence-restored-and-resumed",
+          "required": true,
+          "order": 3,
+          "conditional_call_id": null
+        },
+        {
+          "id": "settled-decisions-scored-after-resume",
+          "required": true,
+          "order": 4,
+          "conditional_call_id": null
+        },
+        {
+          "id": "user-directed-no-discovery-prd",
+          "required": true,
+          "order": 5,
+          "conditional_call_id": null
+        }
       ]
     },
     {
@@ -79,6 +141,31 @@
       "contracts": [
         "Direct user-selected PRD without discovery is declared for H08b proof.",
         "Blocked/resumed main PRD is declared for H08b proof."
+      ],
+      "prerequisite_checkpoint": "BOOTSTRAP",
+      "restored_or_close_checkpoint": "CP-REVIEWED",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "main-prd-blocked",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
+        },
+        {
+          "id": "main-prd-resumed",
+          "required": true,
+          "order": 2,
+          "conditional_call_id": null
+        }
       ]
     },
     {
@@ -89,6 +176,25 @@
           "owner": "GPT-5.6 Sol",
           "purpose": "architecture authoring",
           "required": true
+        }
+      ],
+      "prerequisite_checkpoint": "BOOTSTRAP",
+      "restored_or_close_checkpoint": "CP-REVIEWED",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "architecture-authored",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
         }
       ]
     },
@@ -110,6 +216,37 @@
       ],
       "contracts": [
         "Live PROJECT_INIT_BLOCKED behavior is H08b proof."
+      ],
+      "prerequisite_checkpoint": "BOOTSTRAP",
+      "restored_or_close_checkpoint": "CP-REVIEWED",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "successful-project-init",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
+        },
+        {
+          "id": "unavailable-contract-helper-rejection",
+          "required": true,
+          "order": 2,
+          "conditional_call_id": null
+        },
+        {
+          "id": "unavailable-contract-luna-rejection",
+          "required": true,
+          "order": 3,
+          "conditional_call_id": null
+        }
       ]
     },
     {
@@ -120,6 +257,25 @@
           "owner": "GPT-5.6 Sol",
           "purpose": "spec authoring",
           "required": true
+        }
+      ],
+      "prerequisite_checkpoint": "BOOTSTRAP",
+      "restored_or_close_checkpoint": "CP-REVIEWED",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "spec-authored",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
         }
       ]
     },
@@ -132,6 +288,25 @@
           "purpose": "real implementation",
           "required": true
         }
+      ],
+      "prerequisite_checkpoint": "BOOTSTRAP",
+      "restored_or_close_checkpoint": "CP-REVIEWED",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "implementation-completed",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
+        }
       ]
     },
     {
@@ -142,6 +317,25 @@
           "owner": "DeepSeek",
           "purpose": "real uncommitted verification",
           "required": true
+        }
+      ],
+      "prerequisite_checkpoint": "BOOTSTRAP",
+      "restored_or_close_checkpoint": "CP-REVIEWED",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "fresh-uncommitted-verification",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
         }
       ]
     },
@@ -160,6 +354,31 @@
           "purpose": "senior review",
           "required": true
         }
+      ],
+      "prerequisite_checkpoint": "BOOTSTRAP",
+      "restored_or_close_checkpoint": "CP-REVIEWED",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "ready-pre-review",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
+        },
+        {
+          "id": "ready-senior-review",
+          "required": true,
+          "order": 2,
+          "conditional_call_id": null
+        }
       ]
     },
     {
@@ -167,19 +386,76 @@
       "segment": "S2",
       "checkpoint_before": "CP-REVIEWED",
       "calls": [],
-      "zero_substantive_calls": true
+      "zero_substantive_calls": true,
+      "prerequisite_checkpoint": "CP-REVIEWED",
+      "restored_or_close_checkpoint": "CP-REPAIRED-V1",
+      "zero_reviewer": true,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "identical-commit-match",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
+        }
+      ]
     },
     {
       "id": "content-mutation-stale-evidence",
       "segment": "S2",
       "calls": [],
-      "zero_substantive_calls": true
+      "zero_substantive_calls": true,
+      "prerequisite_checkpoint": "CP-REVIEWED",
+      "restored_or_close_checkpoint": "CP-REPAIRED-V1",
+      "zero_reviewer": true,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "content-mutation-mismatch-and-restore",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
+        }
+      ]
     },
     {
       "id": "mode-type-identity",
       "segment": "S2",
       "calls": [],
-      "zero_substantive_calls": true
+      "zero_substantive_calls": true,
+      "prerequisite_checkpoint": "CP-REVIEWED",
+      "restored_or_close_checkpoint": "CP-REPAIRED-V1",
+      "zero_reviewer": true,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "mode-type-mismatch-or-qualified-unreconstructable",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
+        }
+      ]
     },
     {
       "id": "verification-mutation",
@@ -189,6 +465,25 @@
           "owner": "DeepSeek",
           "purpose": "verification under registered verification-time mutation",
           "required": true
+        }
+      ],
+      "prerequisite_checkpoint": "CP-REVIEWED",
+      "restored_or_close_checkpoint": "CP-REPAIRED-V1",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "verification-time-mutation-block-and-restore",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
         }
       ]
     },
@@ -232,20 +527,107 @@
         "No authorization wait occurs for the early policy-ineligible declaration.",
         "Persisted WAIVER_BLOCKED behavioral proof is H08b.",
         "No extra/fallback S2 verification call is permitted."
+      ],
+      "prerequisite_checkpoint": "CP-REVIEWED",
+      "restored_or_close_checkpoint": "CP-REPAIRED-V1",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "failed-behavioral-verification",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
+        },
+        {
+          "id": "policy-ineligible-waiver-refusal",
+          "required": true,
+          "order": 2,
+          "conditional_call_id": null
+        },
+        {
+          "id": "repair",
+          "required": true,
+          "order": 3,
+          "conditional_call_id": null
+        },
+        {
+          "id": "fresh-post-fix-verification",
+          "required": true,
+          "order": 4,
+          "conditional_call_id": null
+        },
+        {
+          "id": "ready-pre-review",
+          "required": true,
+          "order": 5,
+          "conditional_call_id": null
+        },
+        {
+          "id": "ready-senior-review",
+          "required": true,
+          "order": 6,
+          "conditional_call_id": null
+        }
       ]
     },
     {
       "id": "malformed-evidence",
       "segment": "S2",
       "calls": [],
-      "zero_substantive_calls": true
+      "zero_substantive_calls": true,
+      "prerequisite_checkpoint": "CP-REVIEWED",
+      "restored_or_close_checkpoint": "CP-REPAIRED-V1",
+      "zero_reviewer": true,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "malformed-evidence-unreconstructable",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
+        }
+      ]
     },
     {
       "id": "evidence-exclusion",
       "segment": "S2",
       "checkpoint_after": "CP-REPAIRED-V1",
       "calls": [],
-      "zero_substantive_calls": true
+      "zero_substantive_calls": true,
+      "prerequisite_checkpoint": "CP-REVIEWED",
+      "restored_or_close_checkpoint": "CP-REPAIRED-V1",
+      "zero_reviewer": true,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "evidence-only-match-and-identity-mutation-mismatch",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
+        }
+      ]
     },
     {
       "id": "diagnose-fix-loop",
@@ -283,6 +665,55 @@
           "purpose": "senior review only when ready",
           "required": true
         }
+      ],
+      "prerequisite_checkpoint": "CP-REPAIRED-V1",
+      "restored_or_close_checkpoint": "CP-REPAIRED-V2",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "failed-verification",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
+        },
+        {
+          "id": "diagnosis",
+          "required": true,
+          "order": 2,
+          "conditional_call_id": null
+        },
+        {
+          "id": "repair-after-diagnosis",
+          "required": true,
+          "order": 3,
+          "conditional_call_id": null
+        },
+        {
+          "id": "fresh-post-diagnosis-verification",
+          "required": true,
+          "order": 4,
+          "conditional_call_id": null
+        },
+        {
+          "id": "ready-pre-review",
+          "required": true,
+          "order": 5,
+          "conditional_call_id": null
+        },
+        {
+          "id": "ready-senior-review",
+          "required": true,
+          "order": 6,
+          "conditional_call_id": null
+        }
       ]
     },
     {
@@ -315,6 +746,43 @@
         "Fixed-policy report reuse is required.",
         "Reason-coded refusal contract is declared; behavioral proof is H08b.",
         "Waiver policy eligibility must precede authorization in H08b."
+      ],
+      "prerequisite_checkpoint": "CP-REPAIRED-V2",
+      "restored_or_close_checkpoint": "CP-REPAIRED-STABLE",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "safe-waivable-failure-verification",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
+        },
+        {
+          "id": "authorized-waiver",
+          "required": true,
+          "order": 2,
+          "conditional_call_id": null
+        },
+        {
+          "id": "ready-pre-review",
+          "required": true,
+          "order": 3,
+          "conditional_call_id": null
+        },
+        {
+          "id": "ready-senior-review",
+          "required": true,
+          "order": 4,
+          "conditional_call_id": null
+        }
       ]
     },
     {
@@ -324,7 +792,26 @@
         "waive-review-loop"
       ],
       "calls": [],
-      "zero_substantive_calls": true
+      "zero_substantive_calls": true,
+      "prerequisite_checkpoint": "CP-REPAIRED-V2",
+      "restored_or_close_checkpoint": "CP-REPAIRED-STABLE",
+      "zero_reviewer": true,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "stale-waiver-freshness-block-and-restore",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
+        }
+      ]
     },
     {
       "id": "adversarial-reconcile-only",
@@ -346,6 +833,37 @@
           "required": false,
           "optional_call_id": "S4.adversarial-reconcile-only.optional-adversary-recheck"
         }
+      ],
+      "prerequisite_checkpoint": "CP-REPAIRED-V2",
+      "restored_or_close_checkpoint": "CP-REPAIRED-STABLE",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key; factual finding evidence only"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "material-adversarial-challenge",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
+        },
+        {
+          "id": "reconcile-only",
+          "required": true,
+          "order": 2,
+          "conditional_call_id": null
+        },
+        {
+          "id": "optional-adversarial-recheck",
+          "required": false,
+          "order": 3,
+          "conditional_call_id": "S4.adversarial-reconcile-only.optional-adversary-recheck"
+        }
       ]
     },
     {
@@ -357,6 +875,25 @@
           "purpose": "pre-review blocker",
           "required": true
         }
+      ],
+      "prerequisite_checkpoint": "CP-REPAIRED-V2",
+      "restored_or_close_checkpoint": "CP-REPAIRED-STABLE",
+      "zero_reviewer": true,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "pre-review-blocks-with-zero-senior",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
+        }
       ]
     },
     {
@@ -364,7 +901,26 @@
       "segment": "S4",
       "checkpoint_after": "CP-REPAIRED-STABLE",
       "calls": [],
-      "zero_substantive_calls": true
+      "zero_substantive_calls": true,
+      "prerequisite_checkpoint": "CP-REPAIRED-V2",
+      "restored_or_close_checkpoint": "CP-REPAIRED-STABLE",
+      "zero_reviewer": true,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "claude-default-denied-static-proof",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
+        }
+      ]
     },
     {
       "id": "arbitrary-stage-resume",
@@ -411,6 +967,67 @@
           "owner": "DeepSeek",
           "purpose": "bounded resume handoff",
           "required": true
+        }
+      ],
+      "prerequisite_checkpoint": "CP-REPAIRED-STABLE",
+      "restored_or_close_checkpoint": "CP-REPAIRED-STABLE",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "resume-route-1",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
+        },
+        {
+          "id": "resume-route-2",
+          "required": true,
+          "order": 2,
+          "conditional_call_id": null
+        },
+        {
+          "id": "resume-route-3",
+          "required": true,
+          "order": 3,
+          "conditional_call_id": null
+        },
+        {
+          "id": "resume-route-4",
+          "required": true,
+          "order": 4,
+          "conditional_call_id": null
+        },
+        {
+          "id": "resume-route-5",
+          "required": true,
+          "order": 5,
+          "conditional_call_id": null
+        },
+        {
+          "id": "resume-route-6",
+          "required": true,
+          "order": 6,
+          "conditional_call_id": null
+        },
+        {
+          "id": "resume-route-7",
+          "required": true,
+          "order": 7,
+          "conditional_call_id": null
+        },
+        {
+          "id": "bounded-resume-handoff",
+          "required": true,
+          "order": 8,
+          "conditional_call_id": null
         }
       ]
     },
@@ -465,6 +1082,73 @@
           "purpose": "upstream classifier 5",
           "required": true
         }
+      ],
+      "prerequisite_checkpoint": "CP-REPAIRED-STABLE",
+      "restored_or_close_checkpoint": "QUALIFICATION_EVIDENCE_READY",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "upstream-sol-classifier-1",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null
+        },
+        {
+          "id": "upstream-sol-classifier-2",
+          "required": true,
+          "order": 2,
+          "conditional_call_id": null
+        },
+        {
+          "id": "upstream-sol-classifier-3",
+          "required": true,
+          "order": 3,
+          "conditional_call_id": null
+        },
+        {
+          "id": "upstream-sol-handoff",
+          "required": true,
+          "order": 4,
+          "conditional_call_id": null
+        },
+        {
+          "id": "upstream-deepseek-classifier-1",
+          "required": true,
+          "order": 5,
+          "conditional_call_id": null
+        },
+        {
+          "id": "upstream-deepseek-classifier-2",
+          "required": true,
+          "order": 6,
+          "conditional_call_id": null
+        },
+        {
+          "id": "upstream-deepseek-classifier-3",
+          "required": true,
+          "order": 7,
+          "conditional_call_id": null
+        },
+        {
+          "id": "upstream-deepseek-classifier-4",
+          "required": true,
+          "order": 8,
+          "conditional_call_id": null
+        },
+        {
+          "id": "upstream-deepseek-classifier-5",
+          "required": true,
+          "order": 9,
+          "conditional_call_id": null
+        }
       ]
     }
   ],
@@ -474,5 +1158,13 @@
     "canonical_hash_algorithm": "SHA-256",
     "hidden_visible_boundaries_are_explicit": true,
     "zero_reviewer_scenarios_must_not_gain_substantive_calls": true
+  },
+  "scenario_evidence_contract": {
+    "schema_version": 1,
+    "path_pattern": "docs/verification/smoke/<run-id>.scenario-evidence.json",
+    "accepted_status": "SCORED_PASS",
+    "immutable_per_scenario_subprobe": true,
+    "close_requires_all_required_subprobes": true,
+    "close_manifest_is_derived_from_index": true
   }
 }
