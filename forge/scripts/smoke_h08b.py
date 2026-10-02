@@ -16,6 +16,9 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import project_init_mechanics
+
 
 class H08bError(RuntimeError):
     pass
@@ -89,6 +92,41 @@ def _hidden_path(repo: Path, run_id: str) -> Path:
     return repo / "docs" / "verification" / "smoke" / (
         "{}.h08b-discovery-expected.json".format(run_id)
     )
+
+
+def _score_path(repo: Path, run_id: str, label: str) -> Path:
+    _validate_run_id(run_id)
+    if not label or not all(ch.isalnum() or ch in "-_" for ch in label):
+        raise H08bError("Invalid H08b score label")
+    return repo / "docs" / "verification" / "smoke" / (
+        "{}.h08b-{}.score.json".format(run_id, label)
+    )
+
+
+def _persist_score(
+    repo: Path,
+    run_id: str,
+    label: str,
+    payload: dict[str, object],
+) -> dict[str, object]:
+    path = _score_path(repo, run_id, label)
+    if path.exists():
+        raise H08bError("H08b score already exists: {}".format(label))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    body = {
+        "schema_version": SCHEMA_VERSION,
+        "score_label": label,
+        **payload,
+    }
+    path.write_text(
+        json.dumps(body, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return {
+        **payload,
+        "score_path": path.relative_to(repo).as_posix(),
+        "score_sha256": _sha_bytes(path.read_bytes()),
+    }
 
 
 def seed_discovery(repo: Path, run_id: str) -> dict[str, object]:
@@ -246,13 +284,19 @@ def score_discovery(repo: Path, run_id: str, phase: str) -> dict[str, object]:
         if dependent["value"] in {"", "-"}:
             failures.append("DEC-002 settled value is missing")
 
-    return {
-        "result": "PASS" if not failures else "FAIL",
-        "phase": phase,
-        "discovery_path": hidden["discovery_path"],
-        "settled_decision_ids": sorted(hidden["settled_expectations"]),
-        "failures": failures,
-    }
+    return _persist_score(
+        repo,
+        run_id,
+        "discovery-{}".format(phase),
+        {
+            "result": "PASS" if not failures else "FAIL",
+            "phase": phase,
+            "discovery_path": hidden["discovery_path"],
+            "discovery_sha256": _sha_bytes(discovery.read_bytes()),
+            "settled_decision_ids": sorted(hidden["settled_expectations"]),
+            "failures": failures,
+        },
+    )
 
 
 def _direct_prd_snapshot_path(repo: Path, run_id: str) -> Path:
@@ -309,19 +353,26 @@ def score_direct_prd(repo: Path, run_id: str, status: str) -> dict[str, object]:
         or payload.get("discovery_path") != DISCOVERY_PATH
     ):
         raise H08bError("Direct PRD probe snapshot is malformed")
+    failures: list[str] = []
     if status != "PRD_READY":
-        return {"result": "FAIL", "failures": ["direct PRD status is not PRD_READY"]}
+        failures.append("direct PRD status is not PRD_READY")
     if any((repo / "docs" / "discovery").glob("*.md")):
-        return {"result": "FAIL", "failures": ["direct PRD probe created/read a discovery artifact"]}
+        failures.append("direct PRD probe created/read a discovery artifact")
     prd = _path(repo, DIRECT_PRD_PATH)
     if not prd.is_file():
-        return {"result": "FAIL", "failures": ["direct PRD artifact is missing"]}
-    return {
-        "result": "PASS",
+        failures.append("direct PRD artifact is missing")
+    payload: dict[str, object] = {
+        "result": "PASS" if not failures else "FAIL",
         "status": status,
         "prd_path": DIRECT_PRD_PATH,
-        "discovery_artifact_count": 0,
+        "discovery_artifact_count": len(
+            list((repo / "docs" / "discovery").glob("*.md"))
+        ),
+        "failures": failures,
     }
+    if prd.is_file():
+        payload["prd_sha256"] = _sha_bytes(prd.read_bytes())
+    return _persist_score(repo, run_id, "direct-prd", payload)
 
 
 def restore_direct_prd_probe(repo: Path, run_id: str) -> dict[str, object]:
@@ -447,12 +498,19 @@ def score_prd_phase(
             failures.append("resumed PRD did not return PRD_READY")
         if not main_prd.is_file():
             failures.append("resumed PRD artifact is missing")
-    return {
+    payload: dict[str, object] = {
         "result": "PASS" if not failures else "FAIL",
         "phase": phase,
         "status": status,
         "failures": failures,
     }
+    if normal.is_file():
+        payload["product_decision_sha256"] = _sha_bytes(normal.read_bytes())
+    if main_prd.is_file():
+        payload["prd_sha256"] = _sha_bytes(main_prd.read_bytes())
+    return _persist_score(
+        repo, run_id, "prd-{}".format(phase), payload
+    )
 
 
 REFUSAL_FIELDS = {
@@ -626,12 +684,64 @@ def validate_refusal(
         raise H08bError("Waiver refusal decision_timestamp must be ISO-8601") from exc
     if parsed.tzinfo is None:
         raise H08bError("Waiver refusal decision_timestamp must be timezone-aware")
-    return {
+    payload = {
         "result": "PASS",
         "reason_code": reason,
         "refusal_path": refusal_path,
+        "refusal_sha256": _sha_bytes(target.read_bytes()),
         "verification_report": report_rel,
     }
+    if run_id is not None:
+        return _persist_score(repo, run_id, "waiver-refusal", payload)
+    return payload
+
+
+def score_project_init_helper_rejection(
+    repo: Path,
+    run_id: str,
+) -> dict[str, object]:
+    repo = _repo(repo)
+    missing = repo / "docs" / "workflow" / "H08B-MISSING-CONTRACT.md"
+    if missing.exists():
+        raise H08bError("Project-init negative contract path must remain absent")
+    try:
+        project_init_mechanics.prepare(repo, missing)
+    except project_init_mechanics.ProjectInitError as exc:
+        return _persist_score(
+            repo,
+            run_id,
+            "project-init-helper-rejection",
+            {
+                "result": "PASS",
+                "error": str(exc),
+                "missing_contract_path": missing.relative_to(repo).as_posix(),
+            },
+        )
+    raise H08bError("Project-init mechanics unexpectedly accepted missing contract")
+
+
+def score_project_init_luna(
+    repo: Path,
+    run_id: str,
+    status: str,
+) -> dict[str, object]:
+    repo = _repo(repo)
+    missing = repo / "docs" / "workflow" / "H08B-MISSING-CONTRACT.md"
+    failures: list[str] = []
+    if status != "PROJECT_INIT_BLOCKED":
+        failures.append("Luna project-init did not return PROJECT_INIT_BLOCKED")
+    if missing.exists():
+        failures.append("negative project-init contract unexpectedly exists")
+    return _persist_score(
+        repo,
+        run_id,
+        "project-init-luna-rejection",
+        {
+            "result": "PASS" if not failures else "FAIL",
+            "status": status,
+            "failures": failures,
+        },
+    )
 
 
 def _policy_expectation_path(repo: Path, run_id: str) -> Path:
@@ -694,6 +804,9 @@ def main() -> int:
     prd_score = actions.add_parser("score-prd")
     prd_score.add_argument("--phase", choices=["blocked", "resumed"], required=True)
     prd_score.add_argument("--status", required=True)
+    actions.add_parser("score-project-init-helper")
+    pi_luna = actions.add_parser("score-project-init-luna")
+    pi_luna.add_argument("--status", required=True)
     score = actions.add_parser("score-discovery")
     score.add_argument("--phase", choices=["blocked", "resumed"], required=True)
     refusal = actions.add_parser("validate-refusal")
@@ -735,6 +848,18 @@ def main() -> int:
                 raise H08bError("--run-id is required")
             result = score_prd_phase(
                 args.repo, args.run_id, args.phase, args.status
+            )
+        elif args.action == "score-project-init-helper":
+            if not args.run_id:
+                raise H08bError("--run-id is required")
+            result = score_project_init_helper_rejection(
+                args.repo, args.run_id
+            )
+        elif args.action == "score-project-init-luna":
+            if not args.run_id:
+                raise H08bError("--run-id is required")
+            result = score_project_init_luna(
+                args.repo, args.run_id, args.status
             )
         else:
             result = validate_refusal(args.repo, args.path, args.run_id)
