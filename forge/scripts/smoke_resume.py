@@ -63,6 +63,9 @@ COMMON_EVIDENCE_PREFIXES = (
     "docs/reviews/",
     "docs/diagnostics/",
 )
+HISTORICAL_EVIDENCE_PREFIXES = (
+    "docs/verification/waiver-refusals/",
+)
 
 
 def _git(repo: Path, *args: str, input_bytes: bytes | None = None) -> bytes:
@@ -383,8 +386,14 @@ def _matches_prefix(name: str, prefix: str) -> bool:
     return name == prefix.rstrip("/") or name.startswith(prefix)
 
 
-def _clear_prefixes(repo: Path, prefixes: tuple[str, ...]) -> None:
+def _clear_prefixes(
+    repo: Path,
+    prefixes: tuple[str, ...],
+    preserve_prefixes: tuple[str, ...] = (),
+) -> None:
     for name in _workspace_names(repo):
+        if any(_matches_prefix(name, prefix) for prefix in preserve_prefixes):
+            continue
         if any(_matches_prefix(name, prefix) for prefix in prefixes):
             _remove_target(_path(repo, name))
 
@@ -774,7 +783,11 @@ def prepare(
 
     review_path: str | None = None
     try:
-        _clear_prefixes(repo, COMMON_EVIDENCE_PREFIXES)
+        _clear_prefixes(
+            repo,
+            COMMON_EVIDENCE_PREFIXES,
+            preserve_prefixes=HISTORICAL_EVIDENCE_PREFIXES,
+        )
 
         if probe_id == "r01":
             _reset_project_init_to_baseline(repo, baseline_head)
