@@ -95,8 +95,10 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
     orchestrator = read("agent:smoke-orchestrator", config / "agents/smoke-orchestrator.md")
     router = read("agent:resume-router", config / "agents/resume-router.md")
     executor = read("agent:smoke-executor", config / "agents/smoke-executor.md")
+    h08b_luna = read("agent:h08b-luna-probe", config / "agents/h08b-luna-probe.md")
     read("helper:smoke-handoff", config / "scripts/smoke_handoff.py")
     h08b = read("helper:smoke-h08b", config / "scripts/smoke_h08b.py")
+    segments = read("helper:smoke-segments", config / "scripts/smoke_segments.py")
     mechanics = read("helper:smoke-mechanics", config / "scripts/smoke_mechanics.py")
     resume = read("helper:smoke-resume", config / "scripts/smoke_resume.py")
     reroute = read("helper:smoke-reroute", config / "scripts/smoke_reroute.py")
@@ -113,12 +115,36 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
         "def seed_product_decision(",
         "def score_prd_phase(",
         "def score_project_init_policy_propagation(",
+        "def begin_project_init_negative(",
         "def score_project_init_helper_rejection(",
         "def score_project_init_luna(",
+        "def restore_project_init_negative(",
+        "def _require_completed_invocations(",
         "def validate_refusal(",
         "def _persist_score(",
         "H08B-REQUIRED-EVIDENCE.md",
         "docs/verification/waiver-refusals/",
+    ))
+    checks["h08b:luna-probe-isolation"] = (
+        "model: openai/gpt-5.6-luna" in h08b_luna
+        and h08b_luna.count('"docs/verification/smoke/**": deny') >= 3
+        and h08b_luna.count('"**/smoke_h08b.py": deny') >= 3
+        and "task: deny" in h08b_luna
+        and '"h08b-luna-probe": allow' in orchestrator
+        and "instantiate it fresh per call" in orchestrator
+    )
+    checks["h08b:scorer-no-leak"] = (
+        worker.count('"**/smoke_h08b.py": deny') >= 3
+        and executor.count('"**/smoke_h08b.py": deny') >= 3
+        and '"*smoke_h08b.py*": deny' in executor
+    )
+    checks["h08b:segment-close-binding"] = all(term in segments for term in (
+        "H08B_REQUIRED_SCORE_LABELS",
+        "def _validate_h08b_bound_segment(",
+        '"S1": (',
+        '"S2": ("waiver-refusal",)',
+        "must be schema-valid PASS",
+        "direct-PRD PASS score must bind retained artifact evidence",
     ))
     checks["h08b:grill-stable-decisions"] = all(term in grill for term in (
         "| Decision ID | Status | Decision / Value | Prerequisite Evidence |",
@@ -157,6 +183,7 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
         and auth_pos > policy_pos
         and "POLICY_INELIGIBLE" in waive
         and "AUTHORIZATION_MISSING" in waive
+        and "FAILURE_TYPE_UNAVAILABLE" in waive
         and "docs/verification/waiver-refusals/" in waive
         and "authorization_requested" in waive
         and "authorization_receipt_present" in waive
