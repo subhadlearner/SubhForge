@@ -893,7 +893,7 @@ def close_segment(
     state, context = _state_context(repo, run_id)
     try:
         pinned = assert_config_intact(repo, run_id)
-    except SegmentError as exc:
+    except SegmentError:
         _disqualify_gap(repo, run_id, "CONFIG_DRIFT")
         raise
     if state.get("profile") != "FULL":
@@ -903,6 +903,8 @@ def close_segment(
     if runtime.get("active_segment") is None and runtime["closed_segments"]:
         # Lost acknowledgement after a committed close is idempotent.
         return dict(runtime["closed_segments"][-1])
+    if context.get("qualification_eligible") is not True:
+        raise SegmentError("Disqualified qualification cannot close another segment")
     if runtime.get("active_status") != SEGMENT_ACTIVE:
         raise SegmentError("Only ACTIVE segment can close")
 
@@ -910,7 +912,11 @@ def close_segment(
     segment = next(item for item in pinned["segments"] if item["id"] == segment_id)
     missing = [item for item in segment["scenarios"] if item not in state["completed_scenarios"]]
     if missing:
-        raise SegmentError("Segment {} has incomplete scenarios: {}".format(segment_id, ", ".join(missing)))
+        raise SegmentError(
+            "Segment {} has incomplete scenarios: {}".format(
+                segment_id, ", ".join(missing)
+            )
+        )
 
     data = _budget_data(repo, run_id)
     if any(item.get("status", "ACTIVE") == "ACTIVE" for item in data["stage_invocations"]):
@@ -918,47 +924,64 @@ def close_segment(
     if any(item.get("ended_at_utc") is None for item in data["human_wait_intervals"]):
         raise SegmentError("Segment cannot close while a human authorization wait is open")
 
-    timing = segment_timing(repo, run_id, now)
-    if timing["result"] != "WITHIN_BUDGET":
-        mark_budget_exceeded(repo, run_id, now)
-        raise SegmentError("Segment exceeded its pinned performance budget")
-
     checkpoint = segment["close_checkpoint"]
-    if checkpoint != "QUALIFICATION_EVIDENCE_READY":
-        try:
-            checkpoint_result = smoke_mechanics.check_checkpoint(repo, run_id, checkpoint)
-        except smoke_mechanics.MechanicsError as exc:
-            raise SegmentError("Required close checkpoint is unavailable: {}".format(exc)) from exc
-        if checkpoint_result.get("result") != "MATCH":
-            raise SegmentError("Required close checkpoint drifted: {}".format(checkpoint))
-    else:
-        checkpoint_result = {"checkpoint": checkpoint, "result": "MATCH"}
+    checkpoint_to_verify = (
+        segment["start_checkpoint"]
+        if checkpoint == "QUALIFICATION_EVIDENCE_READY"
+        else checkpoint
+    )
+    try:
+        checkpoint_result = smoke_mechanics.check_checkpoint(
+            repo, run_id, checkpoint_to_verify
+        )
+    except smoke_mechanics.MechanicsError as exc:
+        raise SegmentError(
+            "Required close checkpoint is unavailable: {}".format(exc)
+        ) from exc
+    if checkpoint_result.get("result") != "MATCH":
+        raise SegmentError(
+            "Required close checkpoint drifted: {}".format(checkpoint_to_verify)
+        )
 
     derived_evidence_paths = _segment_evidence_paths(repo, run_id, segment)
+    _validate_helper_bound_segment(
+        repo, run_id, segment_id, derived_evidence_paths
+    )
     if evidence_paths is not None:
         supplied = sorted(set(evidence_paths), key=lambda item: item.encode("utf-8"))
         if supplied != derived_evidence_paths:
             raise SegmentError(
                 "Caller-supplied evidence set must exactly match the canonical scenario-evidence index"
             )
+
     expected_source = runtime.get("active_source_fingerprint")
     if not isinstance(expected_source, str):
         raise SegmentError("ACTIVE segment is missing its protected source fingerprint")
     actual_source = _source_fingerprint(source)
     if actual_source != expected_source:
-        context = dict(context)
-        context["qualification_eligible"] = False
-        runtime_failed = json.loads(json.dumps(runtime))
-        runtime_failed["source_drift_detected"] = True
-        context["segment_runtime"] = runtime_failed
-        _persist_context(repo, run_id, state, context)
+        _disqualify_gap(repo, run_id, "SOURCE_DRIFT")
         raise SegmentError("Protected source checkout drifted during ACTIVE segment")
 
+    # Perform all potentially slow file/checkpoint/helper validation before
+    # taking the single close timestamp. The same instant is used for both
+    # the final budget decision and closed_at_utc.
     manifest = evidence_manifest(repo, derived_evidence_paths)
     projection = _segment_ledger_projection(data, segment_id)
     current = now or _now()
     if current.tzinfo is None:
         raise SegmentError("Segment close timestamp must be timezone-aware")
+    timing = segment_timing(repo, run_id, current)
+    if timing["result"] != "WITHIN_BUDGET":
+        mark_budget_exceeded(repo, run_id, current)
+        raise SegmentError("Segment exceeded its pinned performance budget")
+
+    checkpoint_fingerprint = (
+        checkpoint_result.get("current_fingerprint")
+        or checkpoint_result.get("expected_fingerprint")
+    )
+    if not isinstance(checkpoint_fingerprint, str) or not checkpoint_fingerprint:
+        raise SegmentError("Close checkpoint fingerprint is missing")
+
     close = {
         "segment_id": segment_id,
         "status": SEGMENT_COMPLETED,
@@ -968,9 +991,13 @@ def close_segment(
         "excluded_human_wait_seconds": timing["excluded_human_wait_seconds"],
         "configured_limit_minutes": segment["limit_minutes"],
         "assigned_scenarios": list(segment["scenarios"]),
-        "completed_scenarios": [item for item in segment["scenarios"] if item in state["completed_scenarios"]],
+        "completed_scenarios": [
+            item for item in segment["scenarios"]
+            if item in state["completed_scenarios"]
+        ],
         "checkpoint": checkpoint,
-        "checkpoint_fingerprint": checkpoint_result.get("current_fingerprint") or checkpoint_result.get("expected_fingerprint"),
+        "verified_checkpoint": checkpoint_to_verify,
+        "checkpoint_fingerprint": checkpoint_fingerprint,
         "source_fingerprint": actual_source,
         "evidence_manifest": manifest,
         "ledger_projection_sha256": _sha256_object(projection),
@@ -989,6 +1016,8 @@ def close_segment(
             "after_segment": segment_id,
             "started_at_utc": current.isoformat(),
             "activities": [],
+            "drift_detected": False,
+            "disqualification_reason": None,
         }
     context = dict(context)
     context["segment_runtime"] = runtime
@@ -1000,6 +1029,7 @@ def _disqualify_gap(repo: Path, run_id: str, reason: str) -> None:
     state, context = _state_context(repo, run_id)
     runtime = _runtime(context)
     runtime = json.loads(json.dumps(runtime))
+    runtime["disqualification_reason"] = reason
     gap = runtime.get("gap")
     if isinstance(gap, dict):
         gap["drift_detected"] = True
