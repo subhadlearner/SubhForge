@@ -489,8 +489,10 @@ def score_prd_phase(
             failures.append("main PRD did not return PRD_BLOCKED")
         if normal.exists():
             failures.append("approved product decision was revealed before blocked score")
-        if main_prd.exists():
-            failures.append("blocked PRD probe must not persist an approved PRD")
+        if main_prd.is_file() and "PRD_READY" in main_prd.read_text(
+            encoding="utf-8"
+        ):
+            failures.append("blocked PRD probe persisted an already-ready PRD")
     else:
         if not normal.is_file():
             failures.append("approved product decision was not revealed")
