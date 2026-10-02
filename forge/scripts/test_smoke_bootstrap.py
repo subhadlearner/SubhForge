@@ -19,6 +19,7 @@ class SmokeBootstrapTests(unittest.TestCase):
             shutil.copytree(source / folder, config / folder)
         (config / "scripts").mkdir()
         shutil.copy2(source / "scripts/smoke_handoff.py", config / "scripts/smoke_handoff.py")
+        shutil.copy2(source / "scripts/smoke_h08b.py", config / "scripts/smoke_h08b.py")
         shutil.copy2(source / "scripts/smoke_mechanics.py", config / "scripts/smoke_mechanics.py")
         shutil.copy2(source / "scripts/smoke_resume.py", config / "scripts/smoke_resume.py")
         shutil.copy2(source / "scripts/smoke_reroute.py", config / "scripts/smoke_reroute.py")
@@ -59,6 +60,13 @@ class SmokeBootstrapTests(unittest.TestCase):
             self.assertEqual("grill", state["current_stage"])
             self.assertNotIn("static-release-gate", state["pending_scenarios"])
             self.assertTrue((repo / f"docs/verification/smoke/{run_id}.budget.json").is_file())
+            policy_path = repo / "docs/workflow/H08B-FIXTURE-WAIVER-POLICY.json"
+            self.assertTrue(policy_path.is_file())
+            policy = __import__("json").loads(policy_path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                ["BEHAVIORAL_TEST"],
+                policy["non_waivable_failure_types"],
+            )
 
     def test_bootstrap_refuses_required_contract_mismatch(self):
         with tempfile.TemporaryDirectory() as temp:
