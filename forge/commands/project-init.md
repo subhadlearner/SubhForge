@@ -160,6 +160,15 @@ copy its failure-type/category rules faithfully into the project `AGENTS.md`. Do
 broaden waivability, rename failure types, or replace the fixed mapping with a model
 judgment. The source policy remains authoritative evidence for later `/waive` checks.
 
+The project `AGENTS.md` must make that policy mechanically traceable by recording:
+
+- `Waiver Policy Source: <repository-relative-policy-path>`
+- `Waiver Policy SHA-256: <sha256-of-exact-policy-bytes>`
+- `Non-waivable Failure Types: <exact source-policy values>`
+- `Waivable Failure Types: <exact source-policy values>`
+
+Preserve the exact failure-type tokens from the source policy.
+
 When security verification is materially relevant, include the global `security-verification` skill in the Skill Coverage Matrix as `ALREADY_AVAILABLE`.
 
 ### Cloud and Cost Constraints
