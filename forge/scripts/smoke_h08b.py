@@ -755,6 +755,7 @@ def validate_refusal(
     repo: Path,
     refusal_path: str,
     run_id: str | None = None,
+    status: str | None = None,
 ) -> dict[str, object]:
     repo = _repo(repo)
     refusal_path = _safe_rel(refusal_path)
@@ -778,6 +779,10 @@ def validate_refusal(
     if reason not in supported_reasons:
         raise H08bError("Waiver refusal reason_code is unsupported")
     if run_id is not None:
+        if status != "WAIVER_BLOCKED":
+            raise H08bError(
+                "H08b S2 refusal score requires actual terminal status WAIVER_BLOCKED"
+            )
         if reason != "POLICY_INELIGIBLE":
             raise H08bError(
                 "H08b S2 refusal score requires reason_code POLICY_INELIGIBLE"
@@ -932,6 +937,7 @@ def validate_refusal(
         raise H08bError("Waiver refusal decision_timestamp must be timezone-aware")
     payload = {
         "result": "PASS",
+        "status": status,
         "reason_code": reason,
         "refusal_path": refusal_path,
         "refusal_sha256": _sha_bytes(target.read_bytes()),
@@ -1249,6 +1255,7 @@ def main() -> int:
     score.add_argument("--status", required=True)
     refusal = actions.add_parser("validate-refusal")
     refusal.add_argument("--path", required=True)
+    refusal.add_argument("--status")
     args = parser.parse_args()
     try:
         if args.action == "seed-discovery":
@@ -1322,7 +1329,9 @@ def main() -> int:
                 raise H08bError("--run-id is required")
             result = restore_project_init_negative(args.repo, args.run_id)
         else:
-            result = validate_refusal(args.repo, args.path, args.run_id)
+            result = validate_refusal(
+                args.repo, args.path, args.run_id, args.status
+            )
         print(json.dumps({"ok": True, **result}))
         return 0
     except (H08bError, OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
