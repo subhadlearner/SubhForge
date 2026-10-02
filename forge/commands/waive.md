@@ -168,8 +168,10 @@ overwrite an earlier refusal. The JSON object must contain:
 - `verification_report_sha256`: SHA-256 of the exact report bytes when available
 - `implementation_state_fingerprint`: exact Contract-v1 fingerprint when available
 - `classification`: requested waiver classification when known
-- `policy_reference`: project policy path/reference when applicable
-- `policy_sha256`: SHA-256 of the exact policy bytes when applicable
+- `policy_reference`: project policy path/reference when applicable; when
+  `AGENTS.md` names an authoritative waiver-policy source, use that exact source
+  path rather than `AGENTS.md`
+- `policy_sha256`: SHA-256 of the exact bytes at `policy_reference` when applicable
 - `authorization_requested`: boolean
 - `authorization_receipt_present`: boolean
 - `decision_timestamp`: timestamp of this blocked decision
