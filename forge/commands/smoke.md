@@ -702,8 +702,8 @@ For the default Stable-v0.1 smoke path, use GPT-5.6 Sol for these planning stage
 
 For FULL S1, the orchestrator MUST use `smoke_h08b.py` to seed and score the
 normal blocked/resumed discovery artifact without exposing hidden expectations:
-`seed-discovery → /grill → score-discovery blocked → restore-evidence →
-/grill CONTINUE → score-discovery resumed`.
+`seed-discovery → /grill → score-discovery --phase blocked --status DISCOVERY_BLOCKED → restore-evidence →
+/grill CONTINUE → score-discovery --phase resumed --status DISCOVERY_READY`.
 
 For the user-selected direct-to-PRD branch use:
 `begin-direct-prd → one Sol /prd → score-direct-prd → restore-direct-prd`.
@@ -715,7 +715,7 @@ reveal-product-decision → one Sol /prd → score-prd resumed`.
 The hidden approved value must not be supplied to the first child.
 
 After the normal successful Luna `/project-init`, require
-`score-project-init-policy` PASS before accepting policy propagation.
+`score-project-init-policy --status PROJECT_INIT_READY` PASS before accepting policy propagation.
 
 The project-init negative uses the already-declared extra Luna call and the pair:
 `score-project-init-helper → real Luna /project-init →
