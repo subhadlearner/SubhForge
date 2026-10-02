@@ -118,6 +118,13 @@ Each decision record must carry:
 - prerequisite evidence references when applicable
 - concise rationale/context needed to resume safely
 
+Persist the register as a Markdown table headed exactly:
+
+`| Decision ID | Status | Decision / Value | Prerequisite Evidence |`
+
+Use `-` when a field is not applicable. This is a normal discovery artifact
+contract, not a smoke-only format.
+
 Examples:
 
 - target users and operators
