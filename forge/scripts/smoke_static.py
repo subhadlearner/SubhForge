@@ -162,6 +162,10 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
             "Non-waivable Failure Types:",
             "Waivable Failure Types:",
             "source policy remains authoritative",
+            "OWNER: REPOSITORY",
+            "BLOCKING_ISSUE:",
+            "REQUIRED_ACTION:",
+            "NEXT_COMMAND: /project-init",
         )
     )
     checks["h08b:verify-failure-type"] = all(term in verify for term in (
