@@ -179,13 +179,54 @@ def _validate_invocation_spec(spec: dict, required_scenarios: list[str]) -> None
     budget = spec.get("call_budget")
     if not isinstance(budget, dict) or budget.get("baseline_total") != 50 or budget.get("maximum_total") != 51:
         raise SegmentError("FULL invocation spec must pin 50/51 call arithmetic")
+
+    expected_zero = {
+        "static-release-gate",
+        "identical-commit-freshness",
+        "content-mutation-stale-evidence",
+        "mode-type-identity",
+        "stale-waiver",
+        "malformed-evidence",
+        "evidence-exclusion",
+        "static-claude-routing",
+    }
+    declared_zero = spec.get("zero_substantive_call_scenarios")
+    if (
+        not isinstance(declared_zero, list)
+        or set(declared_zero) != expected_zero
+        or len(declared_zero) != len(expected_zero)
+    ):
+        raise SegmentError("FULL invocation spec must declare exactly the eight zero-call scenarios")
+
     optional = []
+    baseline_by_segment = {segment_id: 0 for segment_id in spec["segment_order"]}
+    baseline_by_owner = {"GPT-5.6 Sol": 0, "GPT-5.6 Luna": 0, "DeepSeek": 0}
     for scenario in scenarios:
-        for call in scenario.get("calls", []):
+        calls = scenario.get("calls", [])
+        if not isinstance(calls, list):
+            raise SegmentError("Scenario calls must be a list")
+        if scenario["id"] in expected_zero and calls:
+            raise SegmentError("Zero-call scenario unexpectedly declares substantive calls")
+        for call in calls:
+            if not isinstance(call, dict):
+                raise SegmentError("Invocation call entries must be objects")
+            owner = call.get("owner")
+            if owner not in baseline_by_owner:
+                raise SegmentError("Invocation call has unsupported owner: {}".format(owner))
             if call.get("required") is False:
                 optional.append(call.get("optional_call_id"))
+                continue
+            baseline_by_owner[owner] += 1
+            baseline_by_segment[scenario["segment"]] += 1
+
     if optional != ["S4.adversarial-reconcile-only.optional-adversary-recheck"]:
         raise SegmentError("Only the S4 adversarial recheck may be optional")
+    if sum(baseline_by_owner.values()) != 50:
+        raise SegmentError("FULL invocation baseline must contain exactly 50 required calls")
+    if baseline_by_owner != {"GPT-5.6 Sol": 16, "GPT-5.6 Luna": 11, "DeepSeek": 23}:
+        raise SegmentError("FULL invocation owner totals must be 16 Sol / 11 Luna / 23 DeepSeek")
+    if baseline_by_segment != {"S1": 13, "S2": 7, "S3": 6, "S4": 7, "S5": 8, "S6": 9}:
+        raise SegmentError("FULL invocation segment totals must be 13/7/6/7/8/9")
 
 
 def build_snapshot(config_root: Optional[Path], profile: str) -> dict:
