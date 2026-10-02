@@ -45,6 +45,7 @@ class SmokeStaticTests(unittest.TestCase):
             run_id,
             config,
             budget["started_at_utc"],
+            source_fingerprint="a" * 64,
         )
         smoke_state.set_values(
             repo,
