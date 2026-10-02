@@ -76,6 +76,61 @@ Never silently substitute models.
 
 Claude-family adversaries require the same explicit approval rules as the global policy and are not part of the default smoke run.
 
+## H08b early-lifecycle behavioral probes
+
+For the FULL S1/S2 H08b probes, preserve the H08 invocation contract exactly.
+Do not add fallback verification or substitute deterministic output for model
+behavior.
+
+### S1 discovery and PRD probes
+
+1. Before the first `/grill` call, run
+   `smoke_h08b.py seed-discovery`. This pre-seeds normal
+   `docs/discovery/DISC-001.md` plus hidden scorer expectations under
+   `docs/verification/smoke/**`; never expose the hidden scorer path or hashes
+   to the planning child.
+2. Invoke GPT-5.6 Sol `/grill` against the normal discovery artifact while the
+   referenced required evidence is absent. Require `DISCOVERY_BLOCKED`; the
+   blocker must be missing evidence/access, not a withheld user product answer.
+3. Run `smoke_h08b.py score-discovery --phase blocked`. A FAIL blocks H08b.
+4. Restore exactly the referenced evidence with
+   `smoke_h08b.py restore-evidence`.
+5. Invoke GPT-5.6 Sol `/grill` again in CONTINUE mode. Require the existing
+   settled decision IDs/values to remain unchanged and discovery to become ready.
+6. Run `score-discovery --phase resumed`; a FAIL blocks H08b.
+7. Separately invoke one GPT-5.6 Sol `/prd` on a user-selected clear-intent
+   branch with no discovery artifact. This proves an explicitly selected skip,
+   not autonomous skip intelligence.
+8. For the main PRD path, use the two already-declared Sol calls: first withhold
+   one approved product decision so the PRD blocks normally, then supply that
+   exact approved decision and rerun/resume. Do not turn missing evidence into
+   a user-decision blocker or vice versa.
+9. For project-init contract propagation, retain the successful Luna call and
+   also run the separately declared negative Luna child against unavailable
+   canonical-contract evidence. Independently run deterministic
+   `project_init_mechanics.py` with the unavailable contract and require
+   `ProjectInitError`; the Luna child must return `PROJECT_INIT_BLOCKED`.
+
+### S2 policy-ineligible waiver probe
+
+Immediately after the direct-fix DeepSeek verification creates the genuine
+behavioral-test `NOT_DONE` report, invoke the single already-budgeted GPT-5.6
+Luna `/waive` call **before** `/fix`.
+
+The project policy installed from
+`docs/workflow/H08B-FIXTURE-WAIVER-POLICY.json` must still make
+`BEHAVIORAL_TEST` non-waivable. The Luna call must:
+
+- load that exact failed verification report
+- evaluate failure-type policy before authorization
+- persist a reason-coded refusal under `docs/verification/waiver-refusals/`
+- return `WAIVER_BLOCKED` with reason `POLICY_INELIGIBLE`
+- create no `WAIVER_AUTHORIZATION` wait or receipt
+
+Run `smoke_h08b.py validate-refusal --run-id <run-id> --path <refusal>`.
+Any digest/policy/reason/no-wait failure blocks H08b. Then continue the
+predeclared direct-fix sequence with DeepSeek `/fix`, fresh `/verify`,
+DeepSeek pre-review, and Sol senior review only when ready.
 
 
 ## Arbitrary-stage resume smoke optimization
