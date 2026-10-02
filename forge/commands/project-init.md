@@ -155,6 +155,11 @@ Record relevant security requirements, including where applicable:
 - explicitly required security gates
 - project waiver policy and any non-waivable categories
 
+When an approved project/fixture waiver policy already exists under `docs/workflow/`,
+copy its failure-type/category rules faithfully into the project `AGENTS.md`. Do not
+broaden waivability, rename failure types, or replace the fixed mapping with a model
+judgment. The source policy remains authoritative evidence for later `/waive` checks.
+
 When security verification is materially relevant, include the global `security-verification` skill in the Skill Coverage Matrix as `ALREADY_AVAILABLE`.
 
 ### Cloud and Cost Constraints
