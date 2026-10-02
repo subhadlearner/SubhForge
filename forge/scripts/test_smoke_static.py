@@ -23,6 +23,7 @@ class SmokeStaticTests(unittest.TestCase):
             shutil.copytree(source / folder, config / folder)
         (config / "scripts").mkdir()
         shutil.copy2(source / "scripts/smoke_handoff.py", config / "scripts/smoke_handoff.py")
+        shutil.copy2(source / "scripts/smoke_h08b.py", config / "scripts/smoke_h08b.py")
         shutil.copy2(source / "scripts/smoke_mechanics.py", config / "scripts/smoke_mechanics.py")
         shutil.copy2(source / "scripts/smoke_resume.py", config / "scripts/smoke_resume.py")
         shutil.copy2(source / "scripts/smoke_reroute.py", config / "scripts/smoke_reroute.py")
@@ -69,6 +70,35 @@ class SmokeStaticTests(unittest.TestCase):
             self.assertEqual(["static-release-gate"], state["completed_scenarios"])
             self.assertNotIn("static-release-gate", state["pending_scenarios"])
             self.assertEqual("grill", state["current_stage"])
+
+    def test_release_gate_blocks_grill_decision_id_contract_drift(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            grill = config / "commands/grill.md"
+            grill.write_text(
+                grill.read_text(encoding="utf-8").replace(
+                    "| Decision ID | Status | Decision / Value | Prerequisite Evidence |",
+                    "| Decision | Status | Value | Evidence |",
+                ),
+                encoding="utf-8",
+            )
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("h08b:grill-stable-decisions", result["failures"])
+
+    def test_release_gate_blocks_waive_policy_after_authorization(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            waive = config / "commands/waive.md"
+            text = waive.read_text(encoding="utf-8")
+            text = text.replace(
+                "## Stage 2 — Check Failure-Type Policy Eligibility",
+                "## Stage 4 — Check Failure-Type Policy Eligibility",
+            )
+            waive.write_text(text, encoding="utf-8")
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("h08b:waive-policy-before-auth", result["failures"])
 
     def test_release_gate_blocks_missing_mode_without_false_pass(self):
         with tempfile.TemporaryDirectory() as temp:
