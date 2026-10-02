@@ -1,6 +1,7 @@
 """Tests for deterministic smoke elapsed-time budget enforcement."""
 
 import datetime as dt
+import io
 import json
 import os
 import sys
@@ -206,6 +207,33 @@ class SmokeBudgetTests(unittest.TestCase):
         smoke_budget.start(self.repo, self.run_id, self.started)
         with self.assertRaises(smoke_budget.BudgetError):
             smoke_budget.check(self.repo, self.run_id, 30)
+
+    def test_cli_check_returns_json_error_when_pinned_config_is_missing(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        state_path = smoke_state.state_path(self.repo, self.run_id)
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        state["context_index"].pop("qualification_config")
+        state_path.write_text(json.dumps(state), encoding="utf-8")
+
+        output = io.StringIO()
+        with mock.patch.object(
+            sys,
+            "argv",
+            [
+                "smoke_budget.py",
+                "--repo",
+                str(self.repo),
+                "--run-id",
+                self.run_id,
+                "check",
+            ],
+        ), mock.patch("sys.stdout", output):
+            code = smoke_budget.main()
+
+        self.assertEqual(2, code)
+        payload = json.loads(output.getvalue())
+        self.assertFalse(payload["ok"])
+        self.assertIn("qualification_config", payload["error"])
 
     def test_duplicate_start_fails_closed(self):
         smoke_budget.start(self.repo, self.run_id, self.started)
