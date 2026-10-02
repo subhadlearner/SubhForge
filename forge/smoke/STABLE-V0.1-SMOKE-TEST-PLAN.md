@@ -1390,11 +1390,19 @@ DISCOVERY_BLOCKED
 
 ## Resume rules
 
-If `DISCOVERY_BLOCKED`:
+For the H08b acceptance probe, `DISCOVERY_BLOCKED` is caused by missing required
+referenced evidence/access, **not** by an unanswered product decision.
 
-1. resolve the specific unanswered product decision,
-2. rerun `/grill`,
-3. do not restart unrelated settled questions.
+1. preseed normal `DISC-001` with stable settled decision IDs plus one
+   `BLOCKED_ON_EVIDENCE` decision using `smoke_h08b.py seed-discovery`
+2. run `/grill` and require `DISCOVERY_BLOCKED`
+3. score the blocked artifact with `smoke_h08b.py score-discovery --phase blocked`
+4. restore exactly the referenced evidence with `smoke_h08b.py restore-evidence`
+5. rerun `/grill` in continuation mode without renumbering/reopening settled decisions
+6. score the resumed artifact with `--phase resumed`
+
+A separate PRD probe, not the discovery probe, withholds an approved product
+decision and proves PRD block/resume behavior.
 
 If a discovery artifact already exists and remains valid, do not rerun `/grill` merely because a later stage failed.
 
@@ -2360,6 +2368,25 @@ Delivery Gate: BLOCKED
 ```
 
 The verification report should identify the failing test and acceptance criterion.
+
+### Required policy-ineligible /waive probe before /fix
+
+Before repair, invoke the single H08-budgeted Luna `/waive` call against this
+same behavioral-test `NOT_DONE` report. The fixed FULL fixture policy must make
+`BEHAVIORAL_TEST` non-waivable.
+
+Expected:
+
+- policy eligibility is checked before any authorization request
+- a new JSON refusal is persisted under `docs/verification/waiver-refusals/`
+- reason code is `POLICY_INELIGIBLE`
+- `authorization_requested=false`
+- `authorization_receipt_present=false`
+- no `WAIVER_AUTHORIZATION` interval exists for the report
+- terminal token is `WAIVER_BLOCKED`
+
+Validate the record with `smoke_h08b.py validate-refusal --run-id <run-id>`.
+Do not run another verification to manufacture this negative case.
 
 ### Expected /fix behavior
 
