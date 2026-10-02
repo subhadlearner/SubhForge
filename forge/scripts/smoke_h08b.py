@@ -298,6 +298,17 @@ def begin_direct_prd_probe(repo: Path, run_id: str) -> dict[str, object]:
 
 def score_direct_prd(repo: Path, run_id: str, status: str) -> dict[str, object]:
     repo = _repo(repo)
+    hidden = _direct_prd_snapshot_path(repo, run_id)
+    try:
+        payload = json.loads(hidden.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        raise H08bError("Direct PRD probe was not prepared") from exc
+    if (
+        payload.get("schema_version") != SCHEMA_VERSION
+        or payload.get("direct_prd_path") != DIRECT_PRD_PATH
+        or payload.get("discovery_path") != DISCOVERY_PATH
+    ):
+        raise H08bError("Direct PRD probe snapshot is malformed")
     if status != "PRD_READY":
         return {"result": "FAIL", "failures": ["direct PRD status is not PRD_READY"]}
     if any((repo / "docs" / "discovery").glob("*.md")):
@@ -412,6 +423,13 @@ def score_prd_phase(
         payload = json.loads(hidden.read_text(encoding="utf-8"))
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         raise H08bError("Hidden approved product decision is unreadable") from exc
+    if (
+        payload.get("schema_version") != SCHEMA_VERSION
+        or payload.get("decision_id") != "PROD-DEC-001"
+        or payload.get("normal_path") != PRODUCT_DECISION_PATH
+        or not isinstance(payload.get("decision"), str)
+    ):
+        raise H08bError("Hidden approved product decision is malformed")
     normal = _path(repo, payload.get("normal_path"))
     main_prd = _path(repo, MAIN_PRD_PATH)
     failures: list[str] = []
