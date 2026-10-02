@@ -27,6 +27,7 @@ class SmokeStaticTests(unittest.TestCase):
         shutil.copy2(source / "scripts/smoke_mechanics.py", config / "scripts/smoke_mechanics.py")
         shutil.copy2(source / "scripts/smoke_resume.py", config / "scripts/smoke_resume.py")
         shutil.copy2(source / "scripts/smoke_reroute.py", config / "scripts/smoke_reroute.py")
+        shutil.copy2(source / "scripts/smoke_segments.py", config / "scripts/smoke_segments.py")
         shutil.copy2(source / "AGENTS.md", config / "AGENTS.md")
         repo = root / "repo"
         evidence = repo / "docs/verification/smoke"
