@@ -736,11 +736,12 @@ For S2 `direct-fix-loop`, the exact sequence remains:
 `DeepSeek /verify (behavioral-test NOT_DONE) → fresh h08b-luna-probe /waive →
 DeepSeek /fix → DeepSeek /verify → DeepSeek pre-review → Sol senior review when ready`.
 
-Do not provide the expected refusal reason/status to the Luna child. Parse the
-normal refusal artifact it creates and validate it with
-`smoke_h08b.py validate-refusal --run-id <run-id>`; the run-scoped scorer is
-the component that requires `POLICY_INELIGIBLE`, exact report/policy binding,
-and zero H07 wait. No extra/fallback verification is permitted.
+Do not provide the expected refusal reason/status to the Luna child. Parse its
+actual terminal status and the normal refusal artifact it creates, then validate
+with `smoke_h08b.py validate-refusal --run-id <run-id> --status <actual>`.
+The run-scoped scorer is the component that requires actual `WAIVER_BLOCKED`
+plus `POLICY_INELIGIBLE`, exact report/policy binding, and zero H07 wait.
+No extra/fallback verification is permitted.
 
 For every H08b scorer action, register its returned immutable `score_path`
 with `smoke_segments.py register-evidence` for the matching required subprobe.
