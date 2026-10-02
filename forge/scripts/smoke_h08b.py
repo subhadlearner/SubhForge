@@ -1101,6 +1101,10 @@ def score_project_init_luna(
     repo: Path,
     run_id: str,
     status: str,
+    owner: str,
+    blocking_issue: str,
+    required_action: str,
+    next_command: str,
 ) -> dict[str, object]:
     repo = _repo(repo)
     if not _project_init_negative_snapshot_path(repo, run_id).is_file():
@@ -1117,6 +1121,19 @@ def score_project_init_luna(
     failures: list[str] = []
     if status != "PROJECT_INIT_BLOCKED":
         failures.append("Luna project-init did not return PROJECT_INIT_BLOCKED")
+    if owner != "REPOSITORY":
+        failures.append("project-init blocker owner is not REPOSITORY")
+    combined = "{} {}".format(blocking_issue, required_action).lower()
+    if "contract" not in combined or (
+        "unavailable" not in combined
+        and "missing" not in combined
+        and "synchron" not in combined
+    ):
+        failures.append(
+            "project-init blocker does not identify canonical-contract unavailability"
+        )
+    if next_command != "/project-init":
+        failures.append("project-init blocker does not route back to /project-init")
     if missing.exists():
         failures.append("negative project-init contract input unexpectedly exists")
     if canonical.exists():
@@ -1128,6 +1145,10 @@ def score_project_init_luna(
         {
             "result": "PASS" if not failures else "FAIL",
             "status": status,
+            "owner": owner,
+            "blocking_issue": blocking_issue,
+            "required_action": required_action,
+            "next_command": next_command,
             "failures": failures,
         },
     )
@@ -1218,6 +1239,10 @@ def main() -> int:
     actions.add_parser("score-project-init-helper")
     pi_luna = actions.add_parser("score-project-init-luna")
     pi_luna.add_argument("--status", required=True)
+    pi_luna.add_argument("--owner", required=True)
+    pi_luna.add_argument("--blocking-issue", required=True)
+    pi_luna.add_argument("--required-action", required=True)
+    pi_luna.add_argument("--next-command", required=True)
     actions.add_parser("restore-project-init-negative")
     score = actions.add_parser("score-discovery")
     score.add_argument("--phase", choices=["blocked", "resumed"], required=True)
@@ -1284,7 +1309,13 @@ def main() -> int:
             if not args.run_id:
                 raise H08bError("--run-id is required")
             result = score_project_init_luna(
-                args.repo, args.run_id, args.status
+                args.repo,
+                args.run_id,
+                args.status,
+                args.owner,
+                args.blocking_issue,
+                args.required_action,
+                args.next_command,
             )
         elif args.action == "restore-project-init-negative":
             if not args.run_id:
