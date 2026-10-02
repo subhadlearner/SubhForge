@@ -9,6 +9,7 @@ artifacts after the probabilistic agent has acted.
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import json
 import re
@@ -24,6 +25,9 @@ SCHEMA_VERSION = 1
 DISCOVERY_PATH = "docs/discovery/DISC-001.md"
 REQUIRED_EVIDENCE_PATH = "docs/workflow/H08B-REQUIRED-EVIDENCE.md"
 POLICY_PATH = "docs/workflow/H08B-FIXTURE-WAIVER-POLICY.json"
+DIRECT_PRD_PATH = "docs/prd/PRD-H08B-DIRECT.md"
+MAIN_PRD_PATH = "docs/prd/PRD-001.md"
+PRODUCT_DECISION_PATH = "docs/workflow/H08B-APPROVED-PRODUCT-DECISION.md"
 REFUSAL_PREFIX = "docs/verification/waiver-refusals/"
 SMOKE_PREFIX = "docs/verification/smoke/"
 REGISTER_HEADER = (
@@ -247,6 +251,188 @@ def score_discovery(repo: Path, run_id: str, phase: str) -> dict[str, object]:
         "phase": phase,
         "discovery_path": hidden["discovery_path"],
         "settled_decision_ids": sorted(hidden["settled_expectations"]),
+        "failures": failures,
+    }
+
+
+def _direct_prd_snapshot_path(repo: Path, run_id: str) -> Path:
+    _validate_run_id(run_id)
+    return repo / "docs" / "verification" / "smoke" / (
+        "{}.h08b-direct-prd-snapshot.json".format(run_id)
+    )
+
+
+def begin_direct_prd_probe(repo: Path, run_id: str) -> dict[str, object]:
+    repo = _repo(repo)
+    discovery = _path(repo, DISCOVERY_PATH)
+    if not discovery.is_file():
+        raise H08bError("Direct PRD probe requires existing DISC-001 to isolate")
+    direct = _path(repo, DIRECT_PRD_PATH)
+    if direct.exists():
+        raise H08bError("Direct PRD output path already exists")
+    other_discovery = [
+        item for item in (repo / "docs" / "discovery").glob("*.md")
+        if item.resolve() != discovery.resolve()
+    ]
+    if other_discovery:
+        raise H08bError("Direct PRD probe requires a single bounded discovery artifact")
+    hidden = _direct_prd_snapshot_path(repo, run_id)
+    if hidden.exists():
+        raise H08bError("Direct PRD probe snapshot already exists")
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "discovery_path": DISCOVERY_PATH,
+        "discovery_sha256": _sha_bytes(discovery.read_bytes()),
+        "discovery_b64": base64.b64encode(discovery.read_bytes()).decode("ascii"),
+        "direct_prd_path": DIRECT_PRD_PATH,
+    }
+    hidden.parent.mkdir(parents=True, exist_ok=True)
+    hidden.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    discovery.unlink()
+    return {
+        "result": "READY",
+        "direct_prd_path": DIRECT_PRD_PATH,
+        "discovery_absent": True,
+    }
+
+
+def score_direct_prd(repo: Path, run_id: str, status: str) -> dict[str, object]:
+    repo = _repo(repo)
+    if status != "PRD_READY":
+        return {"result": "FAIL", "failures": ["direct PRD status is not PRD_READY"]}
+    if any((repo / "docs" / "discovery").glob("*.md")):
+        return {"result": "FAIL", "failures": ["direct PRD probe created/read a discovery artifact"]}
+    prd = _path(repo, DIRECT_PRD_PATH)
+    if not prd.is_file():
+        return {"result": "FAIL", "failures": ["direct PRD artifact is missing"]}
+    return {
+        "result": "PASS",
+        "status": status,
+        "prd_path": DIRECT_PRD_PATH,
+        "discovery_artifact_count": 0,
+    }
+
+
+def restore_direct_prd_probe(repo: Path, run_id: str) -> dict[str, object]:
+    repo = _repo(repo)
+    hidden = _direct_prd_snapshot_path(repo, run_id)
+    try:
+        payload = json.loads(hidden.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        raise H08bError("Direct PRD probe snapshot is unreadable") from exc
+    if payload.get("schema_version") != SCHEMA_VERSION:
+        raise H08bError("Direct PRD probe snapshot is malformed")
+    discovery = _path(repo, payload.get("discovery_path"))
+    if discovery.exists():
+        raise H08bError("Direct PRD probe unexpectedly recreated discovery")
+    try:
+        original = base64.b64decode(payload.get("discovery_b64"), validate=True)
+    except (ValueError, TypeError) as exc:
+        raise H08bError("Direct PRD discovery snapshot is corrupted") from exc
+    if _sha_bytes(original) != payload.get("discovery_sha256"):
+        raise H08bError("Direct PRD discovery snapshot digest mismatch")
+    direct = _path(repo, payload.get("direct_prd_path"))
+    if direct.exists():
+        direct.unlink()
+    discovery.parent.mkdir(parents=True, exist_ok=True)
+    discovery.write_bytes(original)
+    hidden.unlink()
+    return {"result": "MATCH", "restored_discovery_path": DISCOVERY_PATH}
+
+
+def _product_decision_hidden_path(repo: Path, run_id: str) -> Path:
+    _validate_run_id(run_id)
+    return repo / "docs" / "verification" / "smoke" / (
+        "{}.h08b-product-decision.json".format(run_id)
+    )
+
+
+def seed_product_decision(repo: Path, run_id: str) -> dict[str, object]:
+    repo = _repo(repo)
+    hidden = _product_decision_hidden_path(repo, run_id)
+    target = _path(repo, PRODUCT_DECISION_PATH)
+    if hidden.exists() or target.exists():
+        raise H08bError("H08b product decision is already seeded/revealed")
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "decision_id": "PROD-DEC-001",
+        "decision": "Non-integer input must be rejected with HTTP 400.",
+        "normal_path": PRODUCT_DECISION_PATH,
+    }
+    hidden.parent.mkdir(parents=True, exist_ok=True)
+    hidden.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return {
+        "result": "WITHHELD",
+        "decision_id": payload["decision_id"],
+        "normal_path": PRODUCT_DECISION_PATH,
+    }
+
+
+def reveal_product_decision(repo: Path, run_id: str) -> dict[str, object]:
+    repo = _repo(repo)
+    hidden = _product_decision_hidden_path(repo, run_id)
+    try:
+        payload = json.loads(hidden.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        raise H08bError("Hidden approved product decision is unreadable") from exc
+    if payload.get("schema_version") != SCHEMA_VERSION:
+        raise H08bError("Hidden approved product decision is malformed")
+    target = _path(repo, payload.get("normal_path"))
+    if target.exists():
+        raise H08bError("Approved product decision is already revealed")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        "# Approved Product Decision\n\n"
+        "Decision ID: {}\n\n{}\n".format(
+            payload.get("decision_id"), payload.get("decision")
+        ),
+        encoding="utf-8",
+    )
+    return {
+        "result": "REVEALED",
+        "decision_id": payload.get("decision_id"),
+        "path": payload.get("normal_path"),
+        "sha256": _sha_bytes(target.read_bytes()),
+    }
+
+
+def score_prd_phase(
+    repo: Path,
+    run_id: str,
+    phase: str,
+    status: str,
+) -> dict[str, object]:
+    if phase not in {"blocked", "resumed"}:
+        raise H08bError("PRD score phase must be blocked or resumed")
+    repo = _repo(repo)
+    hidden = _product_decision_hidden_path(repo, run_id)
+    if not hidden.is_file():
+        raise H08bError("Hidden approved product decision is missing")
+    try:
+        payload = json.loads(hidden.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        raise H08bError("Hidden approved product decision is unreadable") from exc
+    normal = _path(repo, payload.get("normal_path"))
+    main_prd = _path(repo, MAIN_PRD_PATH)
+    failures: list[str] = []
+    if phase == "blocked":
+        if status != "PRD_BLOCKED":
+            failures.append("main PRD did not return PRD_BLOCKED")
+        if normal.exists():
+            failures.append("approved product decision was revealed before blocked score")
+        if main_prd.exists():
+            failures.append("blocked PRD probe must not persist an approved PRD")
+    else:
+        if not normal.is_file():
+            failures.append("approved product decision was not revealed")
+        if status != "PRD_READY":
+            failures.append("resumed PRD did not return PRD_READY")
+        if not main_prd.is_file():
+            failures.append("resumed PRD artifact is missing")
+    return {
+        "result": "PASS" if not failures else "FAIL",
+        "phase": phase,
+        "status": status,
         "failures": failures,
     }
 
@@ -481,6 +667,15 @@ def main() -> int:
     actions = parser.add_subparsers(dest="action", required=True)
     actions.add_parser("seed-discovery")
     actions.add_parser("restore-evidence")
+    actions.add_parser("begin-direct-prd")
+    direct_score = actions.add_parser("score-direct-prd")
+    direct_score.add_argument("--status", required=True)
+    actions.add_parser("restore-direct-prd")
+    actions.add_parser("seed-product-decision")
+    actions.add_parser("reveal-product-decision")
+    prd_score = actions.add_parser("score-prd")
+    prd_score.add_argument("--phase", choices=["blocked", "resumed"], required=True)
+    prd_score.add_argument("--status", required=True)
     score = actions.add_parser("score-discovery")
     score.add_argument("--phase", choices=["blocked", "resumed"], required=True)
     refusal = actions.add_parser("validate-refusal")
@@ -497,6 +692,32 @@ def main() -> int:
             if not args.run_id:
                 raise H08bError("--run-id is required")
             result = score_discovery(args.repo, args.run_id, args.phase)
+        elif args.action == "begin-direct-prd":
+            if not args.run_id:
+                raise H08bError("--run-id is required")
+            result = begin_direct_prd_probe(args.repo, args.run_id)
+        elif args.action == "score-direct-prd":
+            if not args.run_id:
+                raise H08bError("--run-id is required")
+            result = score_direct_prd(args.repo, args.run_id, args.status)
+        elif args.action == "restore-direct-prd":
+            if not args.run_id:
+                raise H08bError("--run-id is required")
+            result = restore_direct_prd_probe(args.repo, args.run_id)
+        elif args.action == "seed-product-decision":
+            if not args.run_id:
+                raise H08bError("--run-id is required")
+            result = seed_product_decision(args.repo, args.run_id)
+        elif args.action == "reveal-product-decision":
+            if not args.run_id:
+                raise H08bError("--run-id is required")
+            result = reveal_product_decision(args.repo, args.run_id)
+        elif args.action == "score-prd":
+            if not args.run_id:
+                raise H08bError("--run-id is required")
+            result = score_prd_phase(
+                args.repo, args.run_id, args.phase, args.status
+            )
         else:
             result = validate_refusal(args.repo, args.path, args.run_id)
         print(json.dumps({"ok": True, **result}))
