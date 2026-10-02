@@ -10,6 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import smoke_budget
+import smoke_h08b
 import smoke_state
 import smoke_segments
 import smoke_static
@@ -23,6 +24,21 @@ class SmokeBootstrapError(RuntimeError):
 def _installed_config_root() -> Path:
     """Resolve <global-config> from this installed helper's own location."""
     return Path(__file__).resolve().parent.parent
+
+
+def _fixture_definition(config_root: Path, fixture_id: str) -> dict[str, object]:
+    registry = config_root / "smoke" / "fixtures.json"
+    try:
+        payload = json.loads(registry.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        raise SmokeBootstrapError("Smoke fixture registry is unreadable") from exc
+    fixtures = payload.get("fixtures")
+    if not isinstance(fixtures, list):
+        raise SmokeBootstrapError("Smoke fixture registry is malformed")
+    for item in fixtures:
+        if isinstance(item, dict) and item.get("id") == fixture_id:
+            return item
+    raise SmokeBootstrapError("Unknown smoke fixture: {}".format(fixture_id))
 
 
 def bootstrap(
@@ -54,6 +70,12 @@ def bootstrap(
     if not parity["contract_equal"]:
         raise SmokeBootstrapError("Required canonical Contract-v1 copies differ")
 
+    fixture_definition = _fixture_definition(resolved_config, fixture)
+    if profile not in fixture_definition.get("profiles", []):
+        raise SmokeBootstrapError(
+            "Fixture {} is not valid for profile {}".format(fixture, profile)
+        )
+
     state = smoke_state.init(
         repo,
         run_id,
@@ -62,6 +84,14 @@ def bootstrap(
         source_commit,
         baseline_head,
     )
+    if profile == "FULL":
+        waiver_policy = fixture_definition.get("waiver_policy")
+        if not isinstance(waiver_policy, dict):
+            raise SmokeBootstrapError(
+                "FULL smoke fixture must define a fixed waiver_policy"
+            )
+        smoke_h08b.write_fixture_policy(repo, waiver_policy)
+
     budget = smoke_budget.start(repo, run_id)
     smoke_segments.pin_qualification(
         repo,
@@ -123,6 +153,7 @@ def main() -> int:
         return 0 if ok else 3
     except (
         SmokeBootstrapError,
+        smoke_h08b.H08bError,
         smoke_state.SmokeStateError,
         smoke_budget.BudgetError,
         smoke_static.StaticGateError,
