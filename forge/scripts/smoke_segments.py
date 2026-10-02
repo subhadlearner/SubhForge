@@ -1303,6 +1303,7 @@ def main() -> int:
     pin = actions.add_parser("pin")
     pin.add_argument("--config-root", type=Path)
     pin.add_argument("--started-at-utc", required=True)
+    pin.add_argument("--source-fingerprint")
 
     actions.add_parser("status")
     actions.add_parser("report")
@@ -1326,7 +1327,13 @@ def main() -> int:
     args = parser.parse_args()
     try:
         if args.action == "pin":
-            result = pin_qualification(args.repo, args.run_id, args.config_root, args.started_at_utc)
+            result = pin_qualification(
+                args.repo,
+                args.run_id,
+                args.config_root,
+                args.started_at_utc,
+                source_fingerprint=args.source_fingerprint,
+            )
         elif args.action == "status":
             state, context = _state_context(args.repo, args.run_id)
             result = {
