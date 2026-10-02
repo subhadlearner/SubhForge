@@ -150,7 +150,10 @@ corresponding completed invocation exists in the budget ledger.
    rejection. Start a second fresh `h08b-luna-probe` child with
    `WORKFLOW: /project-init` and the deliberately unavailable canonical-contract
    input; do not include the expected status/reason in the task. Parse the actual
-   returned status and pass it to `score-project-init-luna --status <actual>`.
+   returned `status`, `OWNER`, `BLOCKING_ISSUE`, `REQUIRED_ACTION`, and
+   `NEXT_COMMAND`; pass those exact values to
+   `score-project-init-luna --status <actual> --owner <actual> --blocking-issue <actual>
+   --required-action <actual> --next-command <actual>`.
    Finally run `restore-project-init-negative` and require `MATCH`.
 
 ### S2 policy-ineligible waiver probe
