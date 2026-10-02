@@ -177,6 +177,16 @@ def _validate_context_index(context: object) -> None:
                 "context_index.contract_parity.contract_equal must be boolean"
             )
 
+    qualification_config = context.get("qualification_config")
+    if qualification_config is not None and not isinstance(qualification_config, dict):
+        raise SmokeStateError("context_index.qualification_config must be an object")
+    segment_runtime = context.get("segment_runtime")
+    if segment_runtime is not None and not isinstance(segment_runtime, dict):
+        raise SmokeStateError("context_index.segment_runtime must be null or an object")
+    qualification_eligible = context.get("qualification_eligible")
+    if qualification_eligible is not None and not isinstance(qualification_eligible, bool):
+        raise SmokeStateError("context_index.qualification_eligible must be boolean")
+
 
 def _validate_stage_metrics(metrics: object) -> None:
     if not isinstance(metrics, dict):
@@ -361,6 +371,23 @@ def _validate_full_state(data: object, expected_run_id: str | None = None) -> di
                     ", ".join(sorted(missing_required))
                 )
             )
+        if profile == "FULL":
+            assert isinstance(context_index, dict)
+            if context_index.get("qualification_eligible") is not True:
+                raise SmokeStateError("FULL PASS requires an eligible pinned qualification")
+            runtime = context_index.get("segment_runtime")
+            if not isinstance(runtime, dict):
+                raise SmokeStateError("FULL PASS requires segmented runtime state")
+            closed = runtime.get("closed_segments")
+            closed_ids = [
+                item.get("segment_id")
+                for item in closed
+                if isinstance(item, dict) and item.get("status") == "COMPLETED"
+            ] if isinstance(closed, list) else []
+            if closed_ids != ["S1", "S2", "S3", "S4", "S5", "S6"]:
+                raise SmokeStateError("FULL PASS requires immutable completion of S1 through S6")
+            if runtime.get("active_segment") is not None:
+                raise SmokeStateError("FULL PASS cannot have an active segment")
         expected = "{}_SMOKE_PASS".format(profile)
         if final_result != expected:
             raise SmokeStateError(
@@ -374,6 +401,27 @@ def _validate_full_state(data: object, expected_run_id: str | None = None) -> di
                     ", ".join(sorted(missing_required))
                 )
             )
+        if profile == "FULL":
+            assert isinstance(context_index, dict)
+            if context_index.get("qualification_eligible") is not True:
+                raise SmokeStateError(
+                    "FULL PASS_WITH_ENVIRONMENT_LIMITATION requires an eligible pinned qualification"
+                )
+            runtime = context_index.get("segment_runtime")
+            closed = runtime.get("closed_segments") if isinstance(runtime, dict) else None
+            closed_ids = [
+                item.get("segment_id")
+                for item in closed
+                if isinstance(item, dict) and item.get("status") == "COMPLETED"
+            ] if isinstance(closed, list) else []
+            if closed_ids != ["S1", "S2", "S3", "S4", "S5", "S6"]:
+                raise SmokeStateError(
+                    "FULL PASS_WITH_ENVIRONMENT_LIMITATION requires completion of S1 through S6"
+                )
+            if runtime.get("active_segment") is not None:
+                raise SmokeStateError(
+                    "FULL PASS_WITH_ENVIRONMENT_LIMITATION cannot have an active segment"
+                )
         expected = "{}_SMOKE_PASS_WITH_ENVIRONMENT_LIMITATION".format(profile)
         if final_result != expected:
             raise SmokeStateError(
