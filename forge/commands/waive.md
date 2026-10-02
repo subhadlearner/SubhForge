@@ -65,6 +65,24 @@ If any requested failure type/category is non-waivable:
 This ordering is mandatory. Human willingness to accept risk cannot make a
 policy-ineligible failure waivable.
 
+For a policy-eligible request, assign exactly one waiver classification:
+
+- `TEST_FLAKINESS`
+- `ENVIRONMENT_FAILURE`
+- `NON_CRITICAL_QUALITY_GATE`
+- `KNOWN_PRODUCT_DEFECT`
+- `SECURITY_EXCEPTION`
+- `DATA_INTEGRITY_EXCEPTION`
+- `COMPLIANCE_EXCEPTION`
+
+For `SECURITY_EXCEPTION`, `DATA_INTEGRITY_EXCEPTION`, and
+`COMPLIANCE_EXCEPTION`, retain the existing stricter treatment:
+
+- require explicit acknowledgement of the specific residual risk
+- require concrete compensating controls/evidence
+- do not describe the result as secure, compliant, or safe
+- preserve reviewer/CI/production approval gates
+
 ## Stage 3 — Require Explicit Human Authorization
 
 A policy-eligible waiver requires an explicit user request to accept the risk.
