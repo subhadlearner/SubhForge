@@ -49,6 +49,8 @@ def _repo(repo: Path) -> Path:
 
 
 def _safe_rel(value: str) -> str:
+    if not isinstance(value, str):
+        raise H08bError("Repository-relative path must be a string")
     path = Path(value)
     if (
         not value
@@ -147,7 +149,7 @@ def restore_required_evidence(repo: Path) -> dict[str, object]:
     body = (
         "# Approved H08b Required Evidence\n\n"
         "The endpoint contract requires a JSON response containing an integer "
-        "\\`value\\` field and rejects non-integer input with HTTP 400.\n"
+        "`value` field and rejects non-integer input with HTTP 400.\n"
     )
     target.write_text(body, encoding="utf-8")
     return {
