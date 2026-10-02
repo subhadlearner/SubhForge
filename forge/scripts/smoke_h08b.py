@@ -18,6 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import project_init_mechanics
+import smoke_resume
 
 
 class H08bError(RuntimeError):
@@ -28,6 +29,7 @@ SCHEMA_VERSION = 1
 DISCOVERY_PATH = "docs/discovery/DISC-001.md"
 REQUIRED_EVIDENCE_PATH = "docs/workflow/H08B-REQUIRED-EVIDENCE.md"
 POLICY_PATH = "docs/workflow/H08B-FIXTURE-WAIVER-POLICY.json"
+CANONICAL_CONTRACT_PATH = "docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md"
 DIRECT_PRD_PATH = "docs/prd/PRD-H08B-DIRECT.md"
 MAIN_PRD_PATH = "docs/prd/PRD-001.md"
 PRODUCT_DECISION_PATH = "docs/workflow/H08B-APPROVED-PRODUCT-DECISION.md"
@@ -83,8 +85,12 @@ def _sha_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def _canonical_text(value: str) -> str:
+    return " ".join(value.strip().split())
+
+
 def _value_hash(value: str) -> str:
-    return _sha_bytes(value.strip().encode("utf-8"))
+    return _sha_bytes(_canonical_text(value).encode("utf-8"))
 
 
 def _hidden_path(repo: Path, run_id: str) -> Path:
@@ -143,6 +149,80 @@ def _require_pass_score(repo: Path, run_id: str, label: str) -> dict[str, object
     ):
         raise H08bError("Required H08b score is not PASS: {}".format(label))
     return payload
+
+
+def _budget_path(repo: Path, run_id: str) -> Path:
+    _validate_run_id(run_id)
+    return (
+        repo
+        / "docs"
+        / "verification"
+        / "smoke"
+        / "{}.budget.json".format(run_id)
+    )
+
+
+def _budget_data(repo: Path, run_id: str) -> dict[str, object]:
+    path = _budget_path(repo, run_id)
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        raise H08bError("Smoke budget ledger is unavailable") from exc
+    if (
+        not isinstance(data, dict)
+        or not isinstance(data.get("stage_invocations"), list)
+        or not isinstance(data.get("human_wait_intervals"), list)
+    ):
+        raise H08bError("Smoke budget ledger is malformed")
+    return data
+
+
+def _require_completed_invocations(
+    repo: Path,
+    run_id: str,
+    *,
+    scenario_id: str,
+    stage: str,
+    minimum_count: int,
+) -> list[dict]:
+    data = _budget_data(repo, run_id)
+    matches = [
+        item
+        for item in data["stage_invocations"]
+        if isinstance(item, dict)
+        and item.get("scenario_id") == scenario_id
+        and item.get("stage") == stage
+        and item.get("status") == "COMPLETED"
+        and isinstance(item.get("ended_at_utc"), str)
+    ]
+    if len(matches) < minimum_count:
+        raise H08bError(
+            "H08b score requires at least {} completed {} invocation(s) "
+            "for scenario {}".format(minimum_count, stage, scenario_id)
+        )
+    return matches
+
+
+def _direct_prd_evidence_path(repo: Path, run_id: str) -> Path:
+    _validate_run_id(run_id)
+    return (
+        repo
+        / "docs"
+        / "verification"
+        / "smoke"
+        / "{}.h08b-direct-prd-artifact.md".format(run_id)
+    )
+
+
+def _project_init_negative_snapshot_path(repo: Path, run_id: str) -> Path:
+    _validate_run_id(run_id)
+    return (
+        repo
+        / "docs"
+        / "verification"
+        / "smoke"
+        / "{}.h08b-project-init-negative-snapshot.json".format(run_id)
+    )
 
 
 def seed_discovery(repo: Path, run_id: str) -> dict[str, object]:
