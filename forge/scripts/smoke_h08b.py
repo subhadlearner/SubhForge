@@ -739,6 +739,53 @@ def validate_refusal(
     return payload
 
 
+def score_project_init_policy_propagation(
+    repo: Path,
+    run_id: str,
+) -> dict[str, object]:
+    repo = _repo(repo)
+    policy = _path(repo, POLICY_PATH)
+    agents = repo / "AGENTS.md"
+    expected = _policy_expectation_path(repo, run_id)
+    if not policy.is_file() or not agents.is_file() or not expected.is_file():
+        raise H08bError("Project-init policy propagation evidence is incomplete")
+    try:
+        policy_data = json.loads(policy.read_text(encoding="utf-8"))
+        expected_data = json.loads(expected.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        raise H08bError("Project-init policy propagation evidence is unreadable") from exc
+    policy_digest = _sha_bytes(policy.read_bytes())
+    if (
+        expected_data.get("schema_version") != SCHEMA_VERSION
+        or expected_data.get("policy_path") != POLICY_PATH
+        or expected_data.get("policy_sha256") != policy_digest
+    ):
+        raise H08bError("Project-init policy differs from bootstrap-pinned policy")
+    non_waivable = policy_data.get("non_waivable_failure_types")
+    waivable = policy_data.get("waivable_failure_types")
+    if not isinstance(non_waivable, list) or not isinstance(waivable, list):
+        raise H08bError("Project-init policy mapping is malformed")
+    text = agents.read_text(encoding="utf-8")
+    required = [
+        "Waiver Policy Source: {}".format(POLICY_PATH),
+        "Waiver Policy SHA-256: {}".format(policy_digest),
+        "Non-waivable Failure Types: {}".format(", ".join(non_waivable)),
+        "Waivable Failure Types: {}".format(", ".join(waivable)),
+    ]
+    missing = [item for item in required if item not in text]
+    return _persist_score(
+        repo,
+        run_id,
+        "project-init-policy-propagation",
+        {
+            "result": "PASS" if not missing else "FAIL",
+            "policy_path": POLICY_PATH,
+            "policy_sha256": policy_digest,
+            "missing_agents_contracts": missing,
+        },
+    )
+
+
 def score_project_init_helper_rejection(
     repo: Path,
     run_id: str,
@@ -866,6 +913,7 @@ def main() -> int:
     prd_score = actions.add_parser("score-prd")
     prd_score.add_argument("--phase", choices=["blocked", "resumed"], required=True)
     prd_score.add_argument("--status", required=True)
+    actions.add_parser("score-project-init-policy")
     actions.add_parser("score-project-init-helper")
     pi_luna = actions.add_parser("score-project-init-luna")
     pi_luna.add_argument("--status", required=True)
@@ -910,6 +958,12 @@ def main() -> int:
                 raise H08bError("--run-id is required")
             result = score_prd_phase(
                 args.repo, args.run_id, args.phase, args.status
+            )
+        elif args.action == "score-project-init-policy":
+            if not args.run_id:
+                raise H08bError("--run-id is required")
+            result = score_project_init_policy_propagation(
+                args.repo, args.run_id
             )
         elif args.action == "score-project-init-helper":
             if not args.run_id:
