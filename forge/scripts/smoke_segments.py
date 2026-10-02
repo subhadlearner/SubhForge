@@ -1182,6 +1182,39 @@ def record_gap_activity(
     return item
 
 
+def validate_terminal_integrity(
+    repo: Path,
+    run_id: str,
+    config_root: Optional[Path] = None,
+) -> dict:
+    """Revalidate the complete closed FULL chain immediately before terminal PASS."""
+    state, context = _state_context(repo, run_id)
+    if state.get("profile") != "FULL":
+        return {"result": "NOT_APPLICABLE", "profile": state.get("profile")}
+    pinned = assert_config_intact(repo, run_id, config_root)
+    runtime = _runtime(context)
+    if context.get("qualification_eligible") is not True:
+        raise SegmentError("Qualification is permanently ineligible for PASS")
+    if runtime.get("active_segment") is not None or runtime.get("gap") is not None:
+        raise SegmentError("FULL terminal integrity requires no active segment or open gap")
+    closed_ids = [
+        item.get("segment_id")
+        for item in runtime["closed_segments"]
+        if isinstance(item, dict) and item.get("status") == SEGMENT_COMPLETED
+    ]
+    expected_ids = [item["id"] for item in pinned["segments"]]
+    if closed_ids != expected_ids:
+        raise SegmentError("FULL terminal integrity requires completed S1 through S6")
+    if runtime["closed_segments"][-1].get("checkpoint") != "QUALIFICATION_EVIDENCE_READY":
+        raise SegmentError("S6 must close at QUALIFICATION_EVIDENCE_READY")
+    validate_closed_chain(repo, run_id, runtime)
+    return {
+        "result": "PASS",
+        "closed_segments": closed_ids,
+        "qualification_config_sha256": pinned["canonical_sha256"],
+    }
+
+
 def qualification_report(
     repo: Path,
     run_id: str,
@@ -1203,7 +1236,13 @@ def qualification_report(
     gaps = []
 
     if state.get("profile") == "FULL":
-        runtime = _runtime(context)
+        try:
+            pinned = assert_config_intact(repo, run_id)
+            runtime = _runtime(context)
+            validate_closed_chain(repo, run_id, runtime)
+        except SegmentError:
+            _disqualify_gap(repo, run_id, "FINAL_INTEGRITY_DRIFT")
+            raise
         configured = sum(item["limit_minutes"] for item in pinned["segments"])
         for close in runtime["closed_segments"]:
             active_seconds += float(close.get("charged_elapsed_seconds", 0))
