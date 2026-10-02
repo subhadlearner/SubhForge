@@ -8,6 +8,7 @@ permission:
     "*": allow
     "docs/verification/smoke/**": deny
     "**/smoke_reroute.py": deny
+    "**/smoke_h08b.py": deny
   glob:
     "*": allow
     "docs/verification/smoke/**": deny
