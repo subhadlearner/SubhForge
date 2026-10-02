@@ -92,15 +92,43 @@ class SmokeH08bTests(unittest.TestCase):
         refusal.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
         return refusal
 
-    def test_policy_ineligible_refusal_binds_report_policy_and_has_no_auth(self):
+    def test_policy_ineligible_refusal_binds_report_policy_and_has_no_auth_or_wait(self):
         refusal = self._write_refusal("POLICY_INELIGIBLE")
+        budget = self.repo / "docs/verification/smoke" / f"{self.run_id}.budget.json"
+        budget.write_text(
+            json.dumps(
+                {
+                    "started_at_utc": "2026-10-02T00:00:00+00:00",
+                    "stage_invocations": [],
+                    "human_wait_intervals": [],
+                    "continuation_blocker": None,
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
 
         result = smoke_h08b.validate_refusal(
-            self.repo, refusal.relative_to(self.repo).as_posix()
+            self.repo, refusal.relative_to(self.repo).as_posix(), self.run_id
         )
 
         self.assertEqual("PASS", result["result"])
         self.assertEqual("POLICY_INELIGIBLE", result["reason_code"])
+
+        data = json.loads(budget.read_text(encoding="utf-8"))
+        data["human_wait_intervals"].append(
+            {
+                "gate_type": "WAIVER_AUTHORIZATION",
+                "identity": {
+                    "verification_report": "docs/verification/VERIFY-SPEC-001-001.md"
+                },
+            }
+        )
+        budget.write_text(json.dumps(data) + "\n", encoding="utf-8")
+        with self.assertRaises(smoke_h08b.H08bError):
+            smoke_h08b.validate_refusal(
+                self.repo, refusal.relative_to(self.repo).as_posix(), self.run_id
+            )
 
     def test_authorization_missing_refusal_is_distinct(self):
         refusal = self._write_refusal("AUTHORIZATION_MISSING")
