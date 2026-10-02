@@ -1396,10 +1396,10 @@ referenced evidence/access, **not** by an unanswered product decision.
 1. preseed normal `DISC-001` with stable settled decision IDs plus one
    `BLOCKED_ON_EVIDENCE` decision using `smoke_h08b.py seed-discovery`
 2. run `/grill` and require `DISCOVERY_BLOCKED`
-3. score the blocked artifact with `smoke_h08b.py score-discovery --phase blocked`
+3. score the blocked artifact with `smoke_h08b.py score-discovery --phase blocked --status DISCOVERY_BLOCKED`
 4. restore exactly the referenced evidence with `smoke_h08b.py restore-evidence`
 5. rerun `/grill` in continuation mode without renumbering/reopening settled decisions
-6. score the resumed artifact with `--phase resumed`
+6. score the resumed artifact with `--phase resumed --status DISCOVERY_READY`
 
 A separate PRD probe, not the discovery probe, withholds an approved product
 decision and proves PRD block/resume behavior.
