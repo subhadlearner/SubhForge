@@ -11,7 +11,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import smoke_budget
 import smoke_state
+import smoke_segments
 import smoke_static
+import smoke_workspace
 
 
 class SmokeBootstrapError(RuntimeError):
@@ -33,8 +35,20 @@ def bootstrap(
     required_contracts: list[Path],
     optional_contracts: list[Path],
     config_root: Path | None = None,
+    source: Path | None = None,
 ) -> dict[str, object]:
     repo = repo.resolve()
+    resolved_config = (config_root or _installed_config_root()).resolve()
+
+    # Validate the selected live profile and (for FULL) the canonical invocation
+    # spec before creating any run state.
+    smoke_segments.build_snapshot(resolved_config, profile)
+    if source is None:
+        raise SmokeBootstrapError("Smoke bootstrap requires the exact SubhForge source checkout")
+    try:
+        source_fingerprint = smoke_workspace.source_guard(source.resolve())["fingerprint"]
+    except smoke_workspace.SmokeWorkspaceError as exc:
+        raise SmokeBootstrapError("Smoke source guard failed: {}".format(exc)) from exc
 
     parity = smoke_static.contract_parity(required_contracts, optional_contracts)
     if not parity["contract_equal"]:
@@ -49,14 +63,22 @@ def bootstrap(
         baseline_head,
     )
     budget = smoke_budget.start(repo, run_id)
+    smoke_segments.pin_qualification(
+        repo,
+        run_id,
+        resolved_config,
+        budget["started_at_utc"],
+        source_fingerprint=source_fingerprint,
+    )
 
+    state = smoke_state.load(repo, run_id)
     context = dict(state.get("context_index") or {})
     context["contract_parity"] = parity
     context["budget_started_at_utc"] = budget["started_at_utc"]
     smoke_state.set_values(repo, run_id, {"context_index": context})
 
     gate = smoke_static.release_gate(
-        (config_root or _installed_config_root()).resolve(),
+        resolved_config,
         repo,
         run_id,
     )
@@ -81,6 +103,7 @@ def main() -> int:
     parser.add_argument("--baseline-head", required=True)
     parser.add_argument("--required-contract", action="append", type=Path, default=[])
     parser.add_argument("--optional-contract", action="append", type=Path, default=[])
+    parser.add_argument("--source", type=Path, required=True)
     args = parser.parse_args()
 
     try:
@@ -93,6 +116,7 @@ def main() -> int:
             args.baseline_head,
             args.required_contract,
             args.optional_contract,
+            source=args.source,
         )
         ok = bool(result["release_gate"]["ok"])
         print(json.dumps({"ok": ok, **result}))
@@ -102,6 +126,7 @@ def main() -> int:
         smoke_state.SmokeStateError,
         smoke_budget.BudgetError,
         smoke_static.StaticGateError,
+        smoke_segments.SegmentError,
         OSError,
         ValueError,
         KeyError,

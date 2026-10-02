@@ -858,7 +858,10 @@ The smoke fixture should be simpler; the workflow contract should not be weaker.
 
 ## 3.5 Recommended minimal runtime invocation budget
 
-For a full end-to-end run from `/grill`, target approximately this number of substantive model invocations:
+The versioned machine-readable authority for FULL invocation ownership and counts is
+`FULL-INVOCATION-SPEC.json`. The table below is retained as a human-readable shorthand
+only; it must not be used to add calls beyond the canonical 50-call baseline / 51-call
+maximum, where the sole optional extra is the S4 adversarial recheck.
 
 | Stage/scenario | Target runtime invocations |
 | --- | ---: |
@@ -890,25 +893,25 @@ For a full end-to-end run from `/grill`, target approximately this number of sub
 
 This table is a target, not a mandate.
 
-The default tiny FULL run targets completion within 25 minutes. The 30-minute
-limit is an **active release-qualification ceiling**. Wall-clock measurement
-begins at smoke bootstrap and never resets on `RESUME`, but qualification
-elapsed time excludes only deterministic human-authorization wait intervals
-opened by `scripts/smoke_budget.py` for an allow-listed gate.
+FULL qualification is six sequential checkpoint-bound segments with bootstrap-pinned
+positive limits: S1=80, S2=48, S3=38, S4=53, S5=36, and S6=40 minutes. The
+295-minute sum is a derived configured allowance, not a second aggregate hard limit.
+Each segment clock begins only when its ACTIVE transition commits. Crash/recovery,
+transport, debugging, retry, and ordinary inactivity remain charged to that original
+segment clock. Only a helper-validated H07 `WAIVER_AUTHORIZATION` wait may be
+excluded, and only inside its owning ACTIVE segment.
 
-Stable v0.1 allow-lists only `WAIVER_AUTHORIZATION`. A bare
-`WAITING_FOR_USER` state, crash, retry, transport delay, debugging period, or
-ordinary inactivity never pauses the budget. The ledger is append-only across
-completed waits, permits at most one open interval, and sums all valid wait
-intervals. An invalid/rejected RESUME attempt does not close, replace, or
-restart the existing interval.
+After a committed segment close, the run enters an explicit `BETWEEN_SEGMENTS` gap.
+That gap is recorded separately and allows only operator inactivity/rest/read-only
+status plus bounded read-only preflight. No model call, scoring, mutation, repair, or
+qualifying execution is permitted there. Source/config/evidence/ledger drift detected
+before the next segment opens disqualifies the qualification.
 
-At 30 minutes of active qualification time, persist
-`PERFORMANCE_BUDGET_EXCEEDED`, stop launching new model stages, and retain the
-workspace/evidence for STATUS, diagnosis, or abandonment. Elapsed-time overrun
-is not evidence of a functional failure, but the same exhausted run cannot
-later continue to a release-qualifying PASS. A new FULL run is required after
-any framework/performance fix.
+When an ACTIVE segment reaches its pinned limit, persist
+`PERFORMANCE_BUDGET_EXCEEDED`, stop launching new model stages, retain the
+workspace/evidence for STATUS/diagnosis/abandonment, and permanently mark that
+qualification ineligible for PASS. A new FULL qualification ID is required after any
+framework/performance fix.
 
 If a valid artifact already exists because the smoke run resumes mid-workflow, subtract the corresponding completed stages.
 
@@ -1003,7 +1006,7 @@ fresh routing probes.
 | `content-mutation-stale-evidence` | D | `CP-REVIEWED` | none | Apply registered deterministic content mutation, run freshness preflight, require `MISMATCH`, zero reviewers, restore exact checkpoint |
 | `mode-type-identity` | D | `CP-REVIEWED` | none | Apply bounded deterministic mode/type mutation when representable, require `MISMATCH` or valid platform `UNRECONSTRUCTABLE`, zero reviewers, restore |
 | `verification-mutation` | S | `CP-REVIEWED` implementation identity | DeepSeek `/verify` only | Inject the registered verification-time mutation through deterministic smoke mechanics/hook, require delivery block; no reviewers; restore |
-| `direct-fix-loop` | M | `CP-REVIEWED` | DeepSeek `/verify` → DeepSeek `/fix` → DeepSeek `/verify` → DeepSeek pre-review → GPT-5.6 Sol senior review only if pre-review is ready | Use one deterministic obvious defect; persist failed and repaired evidence; after successful review record/update `CP-REPAIRED` |
+| `direct-fix-loop` | M | `CP-REVIEWED` | DeepSeek `/verify` (real behavioral-test `NOT_DONE`) → GPT-5.6 Luna `/waive` (early `POLICY_INELIGIBLE`; persist `WAIVER_BLOCKED`; no authorization/wait) → DeepSeek `/fix` → DeepSeek `/verify` → DeepSeek pre-review → GPT-5.6 Sol senior review only if pre-review is ready | H08 declares this six-call sequence; H08b proves the Luna refusal behavior. Persist failed/repaired evidence and close S2 at `CP-REPAIRED-V1` |
 | `diagnose-fix-loop` | M | clean reviewed/repaired checkpoint | DeepSeek `/verify` → DeepSeek `/diagnose` → DeepSeek `/fix` → DeepSeek `/verify` → DeepSeek pre-review → GPT-5.6 Sol senior review only if ready | Use one genuinely ambiguous deterministic symptom; no extra planning models; restore/use repaired clean state after evidence is persisted |
 | `waive-review-loop` | M | clean reviewed/repaired checkpoint | DeepSeek `/verify` → GPT-5.6 Luna `/waive` after explicit smoke authorization → DeepSeek pre-review → GPT-5.6 Sol senior review only if ready | Preserve factual `NOT_DONE`; prove `CLEAR_WITH_EXCEPTION`; persist review/waiver evidence |
 | `stale-waiver` | D | exact state from `waive-review-loop` | none | Mutate identity deterministically, require freshness failure before reviewers, restore/remediate after evidence |
@@ -3697,8 +3700,8 @@ The FULL orchestration budget is enforced by `scripts/smoke_budget.py`.
 - initialize the guard immediately after the smoke run record is created
 - check it before every substantive lifecycle/model stage
 - check it immediately after every child/subagent returns
-- compute active qualification time as wall-clock elapsed minus helper-validated
-  allow-listed human-authorization intervals
+- compute ACTIVE-segment charged time from its committed start minus helper-validated
+  allow-listed human-authorization intervals owned by that same segment
 - only `human-wait-start` may open an excluded interval, only from the rooted
   disposable run, and Stable v0.1 only accepts `WAIVER_AUTHORIZATION`
 - `WAITING_FOR_USER` alone never pauses the clock
@@ -3709,8 +3712,11 @@ The FULL orchestration budget is enforced by `scripts/smoke_budget.py`.
   after validating the disposable workspace, exact gate identity, exact waiver
   scope, and all required human decision fields
 - no smoke model stage may start while a human wait is open
-- at 30 minutes of active qualification time, do not launch another stage;
-  persist the blocker and return `PERFORMANCE_BUDGET_EXCEEDED`
+- derive the current ACTIVE segment and limit from the bootstrap-pinned qualification
+  snapshot; callers may not supply a numeric override
+- at the ACTIVE segment's pinned limit, do not launch another stage; persist the
+  blocker, mark the qualification permanently ineligible, and return
+  `PERFORMANCE_BUDGET_EXCEEDED`
 - this is an orchestration-boundary stop and does not forcibly terminate an
   already-running child model invocation
 

@@ -11,6 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import smoke_budget
+import smoke_segments
 import smoke_state
 
 
@@ -214,7 +215,8 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
     passed = all(checks.values()) and budget["result"] == "WITHIN_BUDGET"
     failures = [name for name, ok in checks.items() if not ok]
     if budget["result"] != "WITHIN_BUDGET":
-        failures.append("budget:30-minutes")
+        budget_scope = budget.get("segment_id") or state["profile"]
+        failures.append("budget:{}:pinned-limit".format(budget_scope))
     metric = {
         "stage": "static-release-gate", "model": "deterministic",
         "elapsed_seconds": budget["elapsed_seconds"], "context_paths": [],
@@ -223,8 +225,8 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
     completed = list(state["completed_scenarios"])
     if passed:
         completed.append("static-release-gate")
-    profiles = json.loads((config / "smoke/profiles.json").read_text(encoding="utf-8"))
-    required = profiles["profiles"][state["profile"]]["required_scenarios"]
+    pinned = smoke_segments.assert_config_intact(repo, run_id, config)
+    required = pinned["required_scenarios"]
     smoke_state.set_values(repo, run_id, {
         "completed_scenarios": completed,
         "pending_scenarios": [item for item in required if item not in completed],
@@ -263,7 +265,7 @@ def main() -> int:
             return 0 if result["ok"] else 3
         raise StaticGateError("Unsupported static gate action")
     except (StaticGateError, smoke_state.SmokeStateError, smoke_budget.BudgetError,
-            OSError, ValueError, KeyError) as exc:
+            smoke_segments.SegmentError, OSError, ValueError, KeyError) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}))
         return 2
 

@@ -5,8 +5,10 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import smoke_segments
 import smoke_state
 
 
@@ -19,9 +21,66 @@ class SmokeStateTests(unittest.TestCase):
         self.run_id = "SMOKE-FULL-test-20260927T000000Z-12345678"
 
     def init_full(self):
-        return smoke_state.init(
+        smoke_state.init(
             self.repo, self.run_id, "FULL", "full-minimal-api", "abc123", "base123"
         )
+        smoke_segments.pin_qualification(
+            self.repo,
+            self.run_id,
+            None,
+            "2026-09-27T00:00:00+00:00",
+            source_fingerprint="a" * 64,
+        )
+        return smoke_state.load(self.repo, self.run_id)
+
+    def mark_all_segments_closed(self):
+        state = smoke_state.load(self.repo, self.run_id)
+        context = dict(state["context_index"])
+        runtime = dict(context["segment_runtime"])
+        runtime["active_segment"] = None
+        runtime["active_status"] = None
+        runtime["active_started_at_utc"] = None
+        runtime["active_source_fingerprint"] = None
+        runtime["gap"] = None
+        runtime["gaps"] = []
+        runtime["disqualification_reason"] = None
+        closed = []
+        for index, segment in enumerate(context["qualification_config"]["segments"]):
+            checkpoint = segment["close_checkpoint"]
+            verified = (
+                segment["start_checkpoint"]
+                if checkpoint == "QUALIFICATION_EVIDENCE_READY"
+                else checkpoint
+            )
+            closed.append({
+                "segment_id": segment["id"],
+                "status": "COMPLETED",
+                "started_at_utc": "2026-09-27T00:00:00+00:00",
+                "closed_at_utc": "2026-09-27T00:10:00+00:00",
+                "charged_elapsed_seconds": 600.0,
+                "excluded_human_wait_seconds": 0.0,
+                "configured_limit_minutes": segment["limit_minutes"],
+                "assigned_scenarios": list(segment["scenarios"]),
+                "completed_scenarios": list(segment["scenarios"]),
+                "checkpoint": checkpoint,
+                "verified_checkpoint": verified,
+                "checkpoint_fingerprint": "b" * 64,
+                "source_fingerprint": "a" * 64,
+                "evidence_manifest": {
+                    "entries": [{
+                        "path": "docs/verification/smoke/fake-{}.json".format(segment["id"]),
+                        "sha256": "c" * 64,
+                    }],
+                    "sha256": "d" * 64,
+                },
+                "ledger_projection_sha256": "e" * 64,
+            })
+        runtime["closed_segments"] = closed
+        context["segment_runtime"] = runtime
+        context["qualification_eligible"] = True
+        state["context_index"] = context
+        smoke_state._validate_full_state(state, expected_run_id=self.run_id)
+        smoke_state._save(smoke_state.state_path(self.repo, self.run_id), state)
 
     def state_file(self):
         return self.repo / "docs/verification/smoke" / f"{self.run_id}.state.json"
@@ -83,6 +142,44 @@ class SmokeStateTests(unittest.TestCase):
 
         state.pop("surprise")
         state.pop("current_stage")
+        self.state_file().write_text(json.dumps(state), encoding="utf-8")
+        with self.assertRaises(smoke_state.SmokeStateError):
+            smoke_state.load(self.repo, self.run_id)
+
+    def test_segment_runtime_exact_schema_fails_closed_on_unknown_or_missing_field(self):
+        original = self.init_full()
+
+        state = json.loads(json.dumps(original))
+        runtime = dict(state["context_index"]["segment_runtime"])
+        runtime["surprise"] = True
+        state["context_index"]["segment_runtime"] = runtime
+        self.state_file().write_text(json.dumps(state), encoding="utf-8")
+        with self.assertRaises(smoke_state.SmokeStateError):
+            smoke_state.load(self.repo, self.run_id)
+
+        state = json.loads(json.dumps(original))
+        runtime = dict(state["context_index"]["segment_runtime"])
+        runtime.pop("disqualification_reason")
+        state["context_index"]["segment_runtime"] = runtime
+        self.state_file().write_text(json.dumps(state), encoding="utf-8")
+        with self.assertRaises(smoke_state.SmokeStateError):
+            smoke_state.load(self.repo, self.run_id)
+
+    def test_closed_segment_record_exact_schema_fails_closed(self):
+        self.init_full()
+        self.mark_all_segments_closed()
+        original = smoke_state.load(self.repo, self.run_id)
+
+        state = json.loads(json.dumps(original))
+        state["context_index"]["segment_runtime"]["closed_segments"][0]["surprise"] = True
+        self.state_file().write_text(json.dumps(state), encoding="utf-8")
+        with self.assertRaises(smoke_state.SmokeStateError):
+            smoke_state.load(self.repo, self.run_id)
+
+        state = json.loads(json.dumps(original))
+        state["context_index"]["segment_runtime"]["closed_segments"][0].pop(
+            "ledger_projection_sha256"
+        )
         self.state_file().write_text(json.dumps(state), encoding="utf-8")
         with self.assertRaises(smoke_state.SmokeStateError):
             smoke_state.load(self.repo, self.run_id)
@@ -526,24 +623,31 @@ class SmokeStateTests(unittest.TestCase):
 
         required, _optional, _all = smoke_state._profile_scenarios("FULL")
         completed = sorted(required)
-        passed = smoke_state.set_values(
-            self.repo,
-            self.run_id,
-            {
-                "context_index": self.bootstrap_context(),
-                "completed_scenarios": completed,
-                "pending_scenarios": [],
-                "current_stage": "COMPLETE",
-                "state": "PASS",
-                "final_result": "FULL_SMOKE_PASS",
-            },
-        )
+        self.mark_all_segments_closed()
+        with mock.patch.object(
+            smoke_segments,
+            "validate_terminal_integrity",
+            return_value={"result": "PASS"},
+        ):
+            passed = smoke_state.set_values(
+                self.repo,
+                self.run_id,
+                {
+                    "context_index": self.bootstrap_context(),
+                    "completed_scenarios": completed,
+                    "pending_scenarios": [],
+                    "current_stage": "COMPLETE",
+                    "state": "PASS",
+                    "final_result": "FULL_SMOKE_PASS",
+                },
+            )
         self.assertEqual("PASS", passed["state"])
         self.assertEqual("FULL_SMOKE_PASS", passed["final_result"])
 
     def test_terminal_result_token_must_match_state_and_profile(self):
         self.init_full()
         required, _optional, _all = smoke_state._profile_scenarios("FULL")
+        self.mark_all_segments_closed()
         base = {
             "context_index": self.bootstrap_context(),
             "completed_scenarios": sorted(required),

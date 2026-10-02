@@ -1,6 +1,7 @@
 """Tests for deterministic smoke elapsed-time budget enforcement."""
 
 import datetime as dt
+import io
 import json
 import os
 import sys
@@ -12,6 +13,8 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import smoke_budget
 import smoke_handoff
+import smoke_segments
+import smoke_state
 
 
 class SmokeBudgetTests(unittest.TestCase):
@@ -33,6 +36,32 @@ class SmokeBudgetTests(unittest.TestCase):
         self.implementation_fingerprint = "GIT_BLOB_OID:" + ("b" * 40)
         self.failures = ["DOCS_PUBLIC_API_MISSING"]
         self.classification = "NON_CRITICAL_QUALITY_GATE"
+
+        smoke_state.init(
+            self.repo,
+            self.run_id,
+            "FULL",
+            "full-minimal-api",
+            "source123",
+            "base123",
+        )
+        smoke_segments.pin_qualification(
+            self.repo,
+            self.run_id,
+            None,
+            self.started.isoformat(),
+            source_fingerprint="a" * 64,
+        )
+        smoke_state.set_values(
+            self.repo,
+            self.run_id,
+            {
+                "context_index": {
+                    "budget_started_at_utc": self.started.isoformat(),
+                    "contract_parity": {"contract_equal": True},
+                }
+            },
+        )
 
     def rooted(self, repo, run_id):
         self.rooted_calls.append((repo, run_id))
@@ -72,7 +101,37 @@ class SmokeBudgetTests(unittest.TestCase):
     def start_state(self, repo, run_id):
         return self.gate_state()
 
+    def _place_in_s4(self):
+        state = smoke_state.load(self.repo, self.run_id)
+        runtime = state["context_index"]["segment_runtime"]
+        if runtime.get("active_segment") == "S4":
+            return
+        state = smoke_state.set_values(
+            self.repo,
+            self.run_id,
+            {
+                "completed_scenarios": ["static-release-gate"],
+                "pending_scenarios": ["waive-review-loop"],
+                "current_stage": "waive",
+                "current_scenario": "waive-review-loop",
+            },
+        )
+        context = dict(state["context_index"])
+        runtime = dict(context["segment_runtime"])
+        runtime.update({
+            "active_segment": "S4",
+            "active_status": smoke_segments.SEGMENT_ACTIVE,
+            "active_started_at_utc": self.started.isoformat(),
+            "closed_segments": [],
+            "gap": None,
+        })
+        context["segment_runtime"] = runtime
+        state["context_index"] = context
+        smoke_state._validate_full_state(state, expected_run_id=self.run_id)
+        smoke_state._save(smoke_state.state_path(self.repo, self.run_id), state)
+
     def _start_wait(self, *, at=None, failures=None, state_guard=None):
+        self._place_in_s4()
         return smoke_budget.human_wait_start(
             self.repo,
             self.run_id,
@@ -134,17 +193,47 @@ class SmokeBudgetTests(unittest.TestCase):
     def test_budget_boundary(self):
         smoke_budget.start(self.repo, self.run_id, self.started)
         before = smoke_budget.check(
-            self.repo, self.run_id, 30,
-            self.started + dt.timedelta(minutes=29, seconds=59),
+            self.repo, self.run_id, self.started + dt.timedelta(minutes=79, seconds=59),
         )
         self.assertEqual("WITHIN_BUDGET", before["result"])
         self.assertEqual(1.0, before["remaining_seconds"])
         at_limit = smoke_budget.check(
-            self.repo, self.run_id, 30,
-            self.started + dt.timedelta(minutes=30),
+            self.repo, self.run_id, self.started + dt.timedelta(minutes=80),
         )
         self.assertEqual("PERFORMANCE_BUDGET_EXCEEDED", at_limit["result"])
         self.assertEqual(0.0, at_limit["remaining_seconds"])
+
+    def test_numeric_budget_override_is_rejected(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        with self.assertRaises(smoke_budget.BudgetError):
+            smoke_budget.check(self.repo, self.run_id, 30)
+
+    def test_cli_check_returns_json_error_when_pinned_config_is_missing(self):
+        smoke_budget.start(self.repo, self.run_id, self.started)
+        state_path = smoke_state.state_path(self.repo, self.run_id)
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        state["context_index"].pop("qualification_config")
+        state_path.write_text(json.dumps(state), encoding="utf-8")
+
+        output = io.StringIO()
+        with mock.patch.object(
+            sys,
+            "argv",
+            [
+                "smoke_budget.py",
+                "--repo",
+                str(self.repo),
+                "--run-id",
+                self.run_id,
+                "check",
+            ],
+        ), mock.patch("sys.stdout", output):
+            code = smoke_budget.main()
+
+        self.assertEqual(2, code)
+        payload = json.loads(output.getvalue())
+        self.assertFalse(payload["ok"])
+        self.assertIn("qualification_config", payload["error"])
 
     def test_duplicate_start_fails_closed(self):
         smoke_budget.start(self.repo, self.run_id, self.started)
@@ -159,7 +248,6 @@ class SmokeBudgetTests(unittest.TestCase):
         during = smoke_budget.check(
             self.repo,
             self.run_id,
-            30,
             self.started + dt.timedelta(hours=2, minutes=10),
         )
         self.assertEqual("WITHIN_BUDGET", during["result"])
@@ -177,12 +265,11 @@ class SmokeBudgetTests(unittest.TestCase):
         after = smoke_budget.check(
             self.repo,
             self.run_id,
-            30,
             self.started + dt.timedelta(hours=2, minutes=15),
         )
         self.assertEqual("WITHIN_BUDGET", after["result"])
         self.assertEqual(900.0, after["elapsed_seconds"])
-        self.assertEqual(900.0, after["remaining_seconds"])
+        self.assertEqual(2280.0, after["remaining_seconds"])
         self.assertIsNone(after["active_human_wait"])
         self.assertEqual(1, after["completed_human_wait_count"])
         self.assertEqual(
@@ -212,7 +299,6 @@ class SmokeBudgetTests(unittest.TestCase):
         result = smoke_budget.check(
             self.repo,
             self.run_id,
-            30,
             self.started + dt.timedelta(minutes=60),
         )
         self.assertEqual("WITHIN_BUDGET", result["result"])
@@ -481,7 +567,6 @@ class SmokeBudgetTests(unittest.TestCase):
             smoke_budget.check(
                 self.repo,
                 self.run_id,
-                30,
                 self.started + dt.timedelta(minutes=30),
             )
 
@@ -497,7 +582,6 @@ class SmokeBudgetTests(unittest.TestCase):
             smoke_budget.check(
                 self.repo,
                 self.run_id,
-                30,
                 self.started + dt.timedelta(minutes=10),
             )
 
@@ -558,19 +642,19 @@ class SmokeBudgetTests(unittest.TestCase):
                 rooted_guard=self.rooted,
             )
 
-    def test_old_budget_file_without_stage_ledger_remains_compatible(self):
+    def test_old_budget_file_without_stage_ledger_fails_closed_for_segmented_full(self):
         path = self.repo / "docs/verification/smoke" / f"{self.run_id}.budget.json"
         path.write_text(
             json.dumps({"started_at_utc": self.started.isoformat()}),
             encoding="utf-8",
         )
 
-        result = smoke_budget.stage_start(
-            self.repo, self.run_id, "grill", "openai/gpt-5.6-sol", self.started,
-            source_fingerprint=self.source_fingerprint,
-            rooted_guard=self.rooted,
-        )
-        self.assertEqual("grill-001", result["invocation_id"])
+        with self.assertRaises(smoke_budget.BudgetError):
+            smoke_budget.stage_start(
+                self.repo, self.run_id, "grill", "openai/gpt-5.6-sol", self.started,
+                source_fingerprint=self.source_fingerprint,
+                rooted_guard=self.rooted,
+            )
 
     def _budget_file(self):
         return json.loads((self.repo / "docs/verification/smoke" /

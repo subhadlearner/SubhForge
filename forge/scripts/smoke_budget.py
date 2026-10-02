@@ -15,6 +15,7 @@ from typing import Optional
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import smoke_handoff
 import smoke_state
+import smoke_segments
 import smoke_workspace
 
 
@@ -298,6 +299,7 @@ def _validate_human_wait_intervals(data: dict, run_id: str) -> None:
     required_interval_fields = {
         "gate_type",
         "gate_id",
+        "segment_id",
         "identity",
         "started_at_utc",
         "ended_at_utc",
@@ -317,6 +319,9 @@ def _validate_human_wait_intervals(data: dict, run_id: str) -> None:
         if not isinstance(item, dict) or set(item) != required_interval_fields:
             raise BudgetError("Human wait interval {} has an invalid schema".format(index))
         gate_type = _validate_gate_type(item.get("gate_type"))
+        segment_id = item.get("segment_id")
+        if segment_id not in {"S1", "S2", "S3", "S4", "S5", "S6"}:
+            raise BudgetError("Human wait segment_id must identify a FULL segment")
         gate_id = item.get("gate_id")
         if (
             not isinstance(gate_id, str)
@@ -510,52 +515,75 @@ def start(repo: Path, run_id: str, now: Optional[dt.datetime] = None) -> dict:
     return data
 
 
-def check(repo: Path, run_id: str, limit_minutes: int = 30,
+def check(repo: Path, run_id: str,
           now: Optional[dt.datetime] = None) -> dict:
+    """Check the pinned qualification budget; callers cannot supply a limit."""
+    if isinstance(now, (int, float)) and not isinstance(now, bool):
+        raise BudgetError(
+            "Numeric performance-budget overrides are not supported; use the pinned profile limit"
+        )
     _, data = _load(repo, run_id)
-    started = _aware_timestamp(data["started_at_utc"], "Budget start timestamp")
+    state = smoke_state.load(repo, run_id)
     current = _current_time(now, "Budget check timestamp")
+    try:
+        pinned = smoke_segments.assert_config_intact(repo, run_id)
+    except smoke_segments.SegmentError as exc:
+        raise BudgetError(str(exc)) from exc
+
+    if state.get("profile") == "FULL":
+        try:
+            result = smoke_segments.segment_timing(repo, run_id, current)
+        except smoke_segments.SegmentError as exc:
+            raise BudgetError(str(exc)) from exc
+        active_wait = None
+        for interval in data["human_wait_intervals"]:
+            if interval.get("ended_at_utc") is None:
+                active_wait = {
+                    "gate_type": interval["gate_type"],
+                    "gate_id": interval["gate_id"],
+                    "segment_id": interval["segment_id"],
+                    "identity": dict(interval["identity"]),
+                    "started_at_utc": interval["started_at_utc"],
+                }
+        result = {
+            **result,
+            "active_human_wait": active_wait,
+            "completed_human_wait_count": sum(
+                1 for interval in data["human_wait_intervals"]
+                if interval.get("ended_at_utc") is not None
+            ),
+        }
+        if result["result"] == "PERFORMANCE_BUDGET_EXCEEDED":
+            try:
+                smoke_segments.mark_budget_exceeded(repo, run_id, current)
+            except smoke_segments.SegmentError as exc:
+                raise BudgetError(str(exc)) from exc
+        return result
+
+    started = _aware_timestamp(data["started_at_utc"], "Budget start timestamp")
     wall_elapsed = max(0.0, (current - started).total_seconds())
     excluded = 0.0
-    active_wait = None
     for interval in data["human_wait_intervals"]:
-        wait_started = _aware_timestamp(
-            interval["started_at_utc"], "Human wait start timestamp"
-        )
-        ended_value = interval.get("ended_at_utc")
+        wait_started = _aware_timestamp(interval["started_at_utc"], "Human wait start timestamp")
         wait_ended = (
-            _aware_timestamp(ended_value, "Human wait end timestamp")
-            if ended_value is not None
-            else current
+            _aware_timestamp(interval["ended_at_utc"], "Human wait end timestamp")
+            if interval.get("ended_at_utc") is not None else current
         )
-        effective_end = min(wait_ended, current)
-        if effective_end > wait_started:
-            excluded += (effective_end - wait_started).total_seconds()
-        if ended_value is None:
-            active_wait = {
-                "gate_type": interval["gate_type"],
-                "gate_id": interval["gate_id"],
-                "identity": dict(interval["identity"]),
-                "started_at_utc": interval["started_at_utc"],
-            }
-
-    excluded = min(wall_elapsed, max(0.0, excluded))
-    elapsed = max(0.0, wall_elapsed - excluded)
-    limit = float(limit_minutes * 60)
-    exceeded = elapsed >= limit
+        if wait_ended > wait_started:
+            excluded += (min(wait_ended, current) - wait_started).total_seconds()
+    elapsed = max(0.0, wall_elapsed - min(wall_elapsed, excluded))
+    limit_seconds = int(pinned["limit_minutes"] * 60)
     return {
         "started_at_utc": started.isoformat(),
         "wall_elapsed_seconds": round(wall_elapsed, 3),
         "excluded_human_wait_seconds": round(excluded, 3),
         "elapsed_seconds": round(elapsed, 3),
-        "limit_seconds": int(limit),
-        "remaining_seconds": round(max(0.0, limit - elapsed), 3),
-        "active_human_wait": active_wait,
-        "completed_human_wait_count": sum(
-            1 for interval in data["human_wait_intervals"]
-            if interval.get("ended_at_utc") is not None
-        ),
-        "result": "PERFORMANCE_BUDGET_EXCEEDED" if exceeded else "WITHIN_BUDGET",
+        "limit_seconds": limit_seconds,
+        "remaining_seconds": round(max(0.0, limit_seconds - elapsed), 3),
+        "active_human_wait": None,
+        "completed_human_wait_count": 0,
+        "result": "PERFORMANCE_BUDGET_EXCEEDED"
+        if elapsed >= limit_seconds else "WITHIN_BUDGET",
     }
 
 
@@ -576,6 +604,16 @@ def human_wait_start(
     _validate_gate_type(gate_type)
     _require_rooted(repo, run_id, rooted_guard)
     state = _human_gate_state(repo, run_id, state_guard)
+    try:
+        segment = smoke_segments.active_segment(repo, run_id)
+        timing = smoke_segments.segment_timing(repo, run_id, now)
+    except smoke_segments.SegmentError as exc:
+        raise BudgetError(str(exc)) from exc
+    if segment["segment"]["id"] != "S4":
+        raise BudgetError("Human authorization wait is only valid inside FULL segment S4")
+    if timing["result"] != "WITHIN_BUDGET":
+        smoke_segments.mark_budget_exceeded(repo, run_id, now)
+        raise BudgetError("FULL segment budget is exhausted; human wait cannot start")
     path, data = _load(repo, run_id)
     if data.get("continuation_blocker") is not None:
         raise BudgetError("Smoke invocation recovery is blocked; human wait cannot start")
@@ -621,6 +659,7 @@ def human_wait_start(
     item = {
         "gate_type": gate_type,
         "gate_id": gate_id,
+        "segment_id": segment["segment"]["id"],
         "identity": identity,
         "started_at_utc": current.isoformat(),
         "ended_at_utc": None,
@@ -717,6 +756,22 @@ def stage_start(repo: Path, run_id: str, stage: str, model: str,
         raise BudgetError("Model is required")
     _validate_source_fingerprint(source_fingerprint)
     _require_rooted(repo, run_id, rooted_guard)
+    current = _current_time(now, "Stage start timestamp")
+    budget = check(repo, run_id, current)
+    if budget["result"] != "WITHIN_BUDGET":
+        raise BudgetError("Pinned smoke performance budget is exhausted")
+    try:
+        segment_id, scenario_id = smoke_segments.stage_ownership(repo, run_id)
+        state = smoke_state.load(repo, run_id)
+        if state.get("profile") == "FULL":
+            active = smoke_segments.active_segment(repo, run_id)
+            expected_source = active.get("source_fingerprint")
+            if not isinstance(expected_source, str):
+                raise BudgetError("ACTIVE FULL segment is missing its protected source fingerprint")
+            if source_fingerprint.lower() != expected_source:
+                raise BudgetError("Stage source fingerprint does not match ACTIVE segment source identity")
+    except smoke_segments.SegmentError as exc:
+        raise BudgetError(str(exc)) from exc
     path, data = _load(repo, run_id)
     invocations = data["stage_invocations"]
     if data.get("continuation_blocker") is not None:
@@ -727,11 +782,12 @@ def stage_start(repo: Path, run_id: str, stage: str, model: str,
         raise BudgetError("A smoke stage invocation is already active")
     sequence = 1 + sum(1 for item in invocations if item.get("stage") == stage)
     invocation_id = f"{stage}-{sequence:03d}"
-    current = _current_time(now, "Stage start timestamp")
     item = {
         "invocation_id": invocation_id,
         "stage": stage,
         "model": model,
+        "segment_id": segment_id,
+        "scenario_id": scenario_id,
         "source_fingerprint": source_fingerprint.lower(),
         "status": INVOCATION_ACTIVE,
         "started_at_utc": current.isoformat(),
@@ -907,8 +963,7 @@ def main() -> int:
     parser.add_argument("--run-id", required=True)
     actions = parser.add_subparsers(dest="action", required=True)
     actions.add_parser("start")
-    check_parser = actions.add_parser("check")
-    check_parser.add_argument("--limit-minutes", type=int, default=30)
+    actions.add_parser("check")
     wait_start_parser = actions.add_parser("human-wait-start")
     wait_start_parser.add_argument("--gate-type", required=True)
     wait_start_parser.add_argument("--verification-report", required=True)
@@ -944,7 +999,7 @@ def main() -> int:
         if args.action == "start":
             result = start(args.repo, args.run_id)
         elif args.action == "check":
-            result = check(args.repo, args.run_id, args.limit_minutes)
+            result = check(args.repo, args.run_id)
         elif args.action == "human-wait-start":
             result = human_wait_start(
                 args.repo,
@@ -997,7 +1052,14 @@ def main() -> int:
             )
         print(json.dumps({"ok": True, **result}))
         return 3 if result.get("result") == "PERFORMANCE_BUDGET_EXCEEDED" else 0
-    except (BudgetError, OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
+    except (
+        BudgetError,
+        smoke_segments.SegmentError,
+        OSError,
+        ValueError,
+        KeyError,
+        json.JSONDecodeError,
+    ) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}))
         return 2
 

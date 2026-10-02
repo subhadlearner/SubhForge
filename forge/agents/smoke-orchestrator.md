@@ -251,7 +251,7 @@ After new-run bootstrap, and after locating any RESUME workspace, invoke only:
 Run that shell-tool invocation with a per-command timeout of at least
 **3,600,000 ms (60 minutes)**. The timeout exists only to supervise the nested
 Kilo CLI process. It never replaces, resets, pauses, or extends the
-30-minute end-to-end `smoke_budget.py` release-qualification clock.
+checkpoint-bound pinned ACTIVE-segment `smoke_budget.py` release-qualification clock.
 
 That helper validates the initialized `smoke-run` target and either:
 
@@ -407,8 +407,8 @@ Before every substantive child/model stage:
 6. supply `SMOKE_RUN_DIRECTORY: <absolute run_directory>` to the child as an
    assertion of the actual current Kilo project root, not as an external path
    the child must switch into
-7. run `scripts/smoke_budget.py ... check --limit-minutes 30`; do not launch
-   the child when the end-to-end FULL budget is exhausted
+7. run `scripts/smoke_budget.py ... check`; do not launch
+   the child when the pinned ACTIVE-segment FULL budget is exhausted
 8. start deterministic invocation timing with
    `scripts/smoke_budget.py ... stage-start --stage <stage> --model <model> --source-fingerprint <fingerprint>`
    using the exact source fingerprint obtained in step 5, and retain the
@@ -456,7 +456,25 @@ Use `scripts/smoke_mechanics.py` for canonical manifest preflight, exact
 fixture mutation/restoration, and checkpoint comparisons. Fan out independent
 FULL probes from a valid checkpoint where their prerequisites match. Preserve
 all normal workflow gates and history-preserving evidence; stop when a
-checkpoint differs or the 30-minute FULL budget is exceeded.
+checkpoint differs or the pinned ACTIVE-segment FULL budget is exceeded.
+
+
+For FULL, use `scripts/smoke_segments.py` as the sole segment lifecycle helper.
+Bootstrap already commits S1 ACTIVE. Register every scored required subprobe with
+`register-evidence` and its exact accepted evidence paths; model-bearing subprobes
+must have file-backed evidence and cannot be closed from free-text facts alone. When
+all assigned scenarios/subprobes are complete, no child or H07 wait is open,
+source/config are intact, and the exact close checkpoint matches, call `close --source
+<source_checkout_path>`. S5/S6 close only after their H05/H06 helper status is PASS
+with the corresponding helper ledger accepted as evidence; S6 must also reproduce
+`CP-REPAIRED-STABLE` before `QUALIFICATION_EVIDENCE_READY` is committed. Between a committed close and `open-next --source
+<source_checkout_path>`, permit only inactivity/read-only status/read-only preflight;
+do not delegate models, score scenarios, mutate fixtures, repair evidence, or change
+source. Use `gap-record` only for the allow-listed read-only gap activity types.
+Every later open revalidates the cumulative closed evidence/ledger chain and compares
+the live checkpoint fingerprint with the immutable preceding close. `report` and
+terminal FULL PASS revalidate the complete chain again. Use `report` for aggregate
+timing; never invent a second aggregate hard limit.
 
 
 

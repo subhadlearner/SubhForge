@@ -1,5 +1,6 @@
 """Tests for deterministic Kilo smoke workspace handoff and rooted-session proof."""
 
+import datetime as dt
 import json
 import os
 import shutil
@@ -12,7 +13,9 @@ from types import SimpleNamespace
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import smoke_budget
 import smoke_handoff
+import smoke_segments
 import smoke_state
 
 
@@ -49,12 +52,25 @@ class SmokeHandoffTests(unittest.TestCase):
             "source123",
             self.git(self.repo, "rev-parse", "HEAD"),
         )
+        started = "2026-09-27T00:00:00+00:00"
+        smoke_budget.start(
+            self.repo,
+            self.run_id,
+            dt.datetime.fromisoformat(started),
+        )
+        smoke_segments.pin_qualification(
+            self.repo,
+            self.run_id,
+            None,
+            started,
+            source_fingerprint="a" * 64,
+        )
         smoke_state.set_values(
             self.repo,
             self.run_id,
             {
                 "context_index": {
-                    "budget_started_at_utc": "2026-09-27T00:00:00+00:00",
+                    "budget_started_at_utc": started,
                     "contract_parity": {"contract_equal": True},
                 },
                 "completed_scenarios": ["static-release-gate"],
