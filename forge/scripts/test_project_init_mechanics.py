@@ -22,6 +22,9 @@ class ProjectInitMechanicsTests(unittest.TestCase):
             self.assertTrue((repo / pim.CONTRACT_DEST).is_file())
             self.assertTrue(first["contract_copied"])
             self.assertIn("docs/specs", first["created_directories"])
+            self.assertTrue(
+                (repo / "docs/verification/waiver-refusals").is_dir()
+            )
 
             second = pim.prepare(repo, contract)
             self.assertFalse(second["contract_copied"])
