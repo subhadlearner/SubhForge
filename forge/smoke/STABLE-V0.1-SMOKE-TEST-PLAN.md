@@ -1717,6 +1717,12 @@ Require:
 - approved PRD
 - `ARCHITECTURE_READY`
 - `PROJECT_INIT_READY`
+
+For H08b, immediately score the successful initialization with
+`smoke_h08b.py score-project-init-policy`. It must prove the project
+`AGENTS.md` records the exact bootstrap-pinned waiver policy source, SHA-256,
+non-waivable failure types, and waivable failure types before the successful
+project-init subprobe is accepted.
 - project `AGENTS.md` aligned with approved stack
 
 ## Expected behavior
