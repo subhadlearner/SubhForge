@@ -187,7 +187,7 @@ class SmokeH08bTests(unittest.TestCase):
             "# Main PRD\n"
             "Status: PRD_READY\n"
             "Decision ID: PROD-DEC-001\n"
-            "For valid integer input n, the endpoint returns JSON value equal to n * 2.\n",
+            "Valid integer inputs produce a JSON value equal to twice the input.\n",
             encoding="utf-8",
         )
         self._complete_stage("prd", "prd")
