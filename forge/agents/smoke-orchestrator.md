@@ -141,7 +141,10 @@ corresponding completed invocation exists in the budget ledger.
 9. For project-init contract propagation, use a fresh `h08b-luna-probe`
    child for the successful Luna call. Include
    `docs/workflow/H08B-FIXTURE-WAIVER-POLICY.json` as an exact authoritative
-   `CONTEXT_PATHS` input alongside the canonical evidence contract. Do not
+   `CONTEXT_PATHS` input alongside the canonical evidence contract. Require the
+   child to pass that exact policy path to
+   `project_init_mechanics.py --waiver-policy docs/workflow/H08B-FIXTURE-WAIVER-POLICY.json`
+   so the helper, not Luna, writes the policy SHA/type trace lines. Do not
    provide an expected status to the child. Parse the child's actual returned
    status and pass only that actual value to
    `smoke_h08b.py score-project-init-policy --status <actual>`.
@@ -163,8 +166,10 @@ behavioral-test `NOT_DONE` report, invoke the single already-budgeted Luna
 `/waive` call **before** `/fix` through a fresh `h08b-luna-probe` child.
 
 Pass only the exact normal verification report and project waiver-policy context.
-Do not tell the child the expected terminal status or refusal reason. Parse the
-actual returned status and discover only the normal refusal artifact it created.
+Do not tell the child the expected terminal status or refusal reason. The child
+must obtain exact report/policy digests through the permitted read-only
+`file_digest.py` helper. Parse the actual returned status and discover only the
+normal refusal artifact it created.
 
 Parse the fresh Luna child's actual terminal status. Run
 `smoke_h08b.py validate-refusal --run-id <run-id> --status <actual> --path <refusal>`.
