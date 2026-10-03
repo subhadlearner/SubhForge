@@ -26,6 +26,16 @@ def digest(repo: Path, path: Path) -> dict[str, str]:
         raise FileDigestError("Digest path escapes repository") from exc
     if not target.is_file():
         raise FileDigestError("Digest target does not exist: {}".format(target))
+    if rel.startswith("docs/verification/smoke/"):
+        raise FileDigestError("Hidden smoke evidence cannot be digested")
+    if not (
+        rel == "AGENTS.md"
+        or rel.startswith("docs/verification/")
+        or rel.startswith("docs/workflow/")
+    ):
+        raise FileDigestError(
+            "Digest path is outside approved waiver evidence locations"
+        )
 
     h = hashlib.sha256()
     with target.open("rb") as handle:
