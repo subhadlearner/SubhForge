@@ -24,6 +24,7 @@ permission:
   bash:
     "*": deny
     "python *project_init_mechanics.py*": allow
+    "python *file_digest.py*": allow
     "git branch --show-current*": allow
     "git rev-parse*": allow
   task: deny
@@ -59,11 +60,15 @@ workflow result only from the command contract and the supplied normal evidence.
 
 For `/project-init`, use only the supplied canonical-contract input when the
 parent provides one. Do not substitute a different contract path merely to make
-initialization succeed.
+initialization succeed. When a waiver-policy path is supplied, pass that exact
+repository-relative path to `project_init_mechanics.py --waiver-policy`; the helper
+owns the policy SHA/type trace lines and the child must not calculate them itself.
 
 For `/waive`, evaluate the exact referenced verification report and normal
-project waiver policy. Persist any normal refusal/waiver artifact required by
-the command contract. Do not request or fabricate authorization unless the
-normal command contract and supplied evidence require it.
+project waiver policy. Use the permitted read-only `file_digest.py` helper for
+every required exact report/policy SHA-256; never calculate or infer a digest in
+model reasoning. Persist any normal refusal/waiver artifact required by the
+command contract. Do not request or fabricate authorization unless the normal
+command contract and supplied evidence require it.
 
 Return the normal workflow output/status. Do not add smoke scoring commentary.
