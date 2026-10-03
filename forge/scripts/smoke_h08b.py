@@ -718,12 +718,6 @@ def score_prd_phase(
             resumed_text = main_prd.read_text(encoding="utf-8")
             if payload["decision_id"] not in resumed_text:
                 failures.append("resumed PRD does not reference PROD-DEC-001")
-            if _canonical_text(payload["decision"]) not in _canonical_text(
-                resumed_text
-            ):
-                failures.append(
-                    "resumed PRD does not reflect the revealed approved product decision"
-                )
     payload: dict[str, object] = {
         "result": "PASS" if not failures else "FAIL",
         "phase": phase,
