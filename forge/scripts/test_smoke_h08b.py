@@ -9,6 +9,8 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import file_digest
+import project_init_mechanics
 import smoke_h08b
 
 
@@ -205,23 +207,30 @@ class SmokeH08bTests(unittest.TestCase):
             "waivable_failure_types": ["DOCUMENTATION_QUALITY", "LINT_QUALITY"],
             "purpose": "H08b fixed failure-type waiver policy.",
         }
-        written = smoke_h08b.write_fixture_policy(
+        smoke_h08b.write_fixture_policy(
             self.repo, policy, self.run_id
         )
         agents = self.repo / "AGENTS.md"
-        agents.write_text(
-            "Waiver Policy Source: {}\n"
-            "Waiver Policy SHA-256: {}\n"
-            "Non-waivable Failure Types: BEHAVIORAL_TEST\n"
-            "Waivable Failure Types: DOCUMENTATION_QUALITY, LINT_QUALITY\n".format(
-                smoke_h08b.POLICY_PATH,
-                written["sha256"],
-            ),
-            encoding="utf-8",
+        agents.write_text("# Project Rules\n", encoding="utf-8")
+        installed_contract = self.repo / "installed-contract.md"
+        installed_contract.write_text(
+            "implementation-state-evidence-v1\n", encoding="utf-8"
+        )
+        project_init_mechanics.prepare(
+            self.repo,
+            installed_contract,
+            Path(smoke_h08b.POLICY_PATH),
         )
         canonical = self.repo / smoke_h08b.CANONICAL_CONTRACT_PATH
-        canonical.parent.mkdir(parents=True, exist_ok=True)
-        canonical.write_text("implementation-state-evidence-v1\n", encoding="utf-8")
+        self.assertTrue(canonical.is_file())
+        self.assertIn(
+            "Waiver Policy SHA-256: {}".format(
+                file_digest.digest(
+                    self.repo, Path(smoke_h08b.POLICY_PATH)
+                )["sha256"]
+            ),
+            agents.read_text(encoding="utf-8"),
+        )
 
         self._complete_stage(
             "project-init-contract-propagation", "project-init"
@@ -386,11 +395,19 @@ class SmokeH08bTests(unittest.TestCase):
             "requested_failure_ids": ["behavioral-test"],
             "requested_failure_types": ["BEHAVIORAL_TEST"],
             "verification_report": "docs/verification/VERIFY-SPEC-001-001.md",
-            "verification_report_sha256": hashlib.sha256(report.read_bytes()).hexdigest(),
+            "verification_report_sha256": file_digest.digest(
+                self.repo, report.relative_to(self.repo)
+            )["sha256"],
             "implementation_state_fingerprint": "GIT_BLOB_OID:" + ("a" * 40),
             "classification": "NON_CRITICAL_QUALITY_GATE",
             "policy_reference": smoke_h08b.POLICY_PATH if reason == "POLICY_INELIGIBLE" else None,
-            "policy_sha256": hashlib.sha256(policy.read_bytes()).hexdigest() if reason == "POLICY_INELIGIBLE" else None,
+            "policy_sha256": (
+                file_digest.digest(
+                    self.repo, policy.relative_to(self.repo)
+                )["sha256"]
+                if reason == "POLICY_INELIGIBLE"
+                else None
+            ),
             "authorization_requested": reason == "AUTHORIZATION_MISSING",
             "authorization_receipt_present": False,
             "decision_timestamp": "2026-10-02T00:00:00+00:00",
