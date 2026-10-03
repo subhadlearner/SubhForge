@@ -98,6 +98,11 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
     h08b_luna = read("agent:h08b-luna-probe", config / "agents/h08b-luna-probe.md")
     read("helper:smoke-handoff", config / "scripts/smoke_handoff.py")
     h08b = read("helper:smoke-h08b", config / "scripts/smoke_h08b.py")
+    digest_helper = read("helper:file-digest", config / "scripts/file_digest.py")
+    project_init_helper = read(
+        "helper:project-init-mechanics",
+        config / "scripts/project_init_mechanics.py",
+    )
     segments = read("helper:smoke-segments", config / "scripts/smoke_segments.py")
     mechanics = read("helper:smoke-mechanics", config / "scripts/smoke_mechanics.py")
     resume = read("helper:smoke-resume", config / "scripts/smoke_resume.py")
@@ -130,8 +135,20 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
         and h08b_luna.count('"docs/verification/smoke/**": deny') >= 3
         and h08b_luna.count('"**/smoke_h08b.py": deny') >= 3
         and "task: deny" in h08b_luna
+        and '"python *file_digest.py*": allow' in h08b_luna
         and '"h08b-luna-probe": allow' in orchestrator
         and "instantiate it fresh per call" in orchestrator
+    )
+    checks["h08b:deterministic-digests"] = (
+        "def digest(" in digest_helper
+        and "Digest path escapes repository" in digest_helper
+        and "--waiver-policy" in project_init_helper
+        and "waiver_policy_sha256" in project_init_helper
+        and "project_init_mechanics.py --repo" in project_init
+        and "--waiver-policy <repository-relative-policy-path>" in project_init
+        and "file_digest.py --repo <project-root>" in waive
+        and "verification_report_sha256" in waive
+        and "policy_sha256" in waive
     )
     checks["h08b:scorer-no-leak"] = (
         worker.count('"**/smoke_h08b.py": deny') >= 3
