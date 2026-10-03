@@ -40,6 +40,18 @@ Confirm that the verification report is `NOT_DONE`.
 
 Identify the exact failed checks/blockers proposed for waiver.
 
+Whenever this command must persist an exact SHA-256 for a repository file, use
+the deterministic installed helper rather than calculating or guessing the digest:
+
+```text
+python <global-config>/scripts/file_digest.py --repo <project-root> --path <repository-relative-path>
+```
+
+Use the returned `sha256` only for the exact returned `path`. In particular,
+use this helper for `verification_report_sha256` and `policy_sha256` in
+machine-readable refusal records. A helper failure is not permission to invent a
+digest; fail closed.
+
 If the requested failure is not present in the referenced verification report:
 
 STOP.
@@ -165,13 +177,15 @@ overwrite an earlier refusal. The JSON object must contain:
 - `requested_failure_ids`: exact requested failed check IDs/names
 - `requested_failure_types`: exact failure types/categories when known
 - `verification_report`: exact repository-relative report path
-- `verification_report_sha256`: SHA-256 of the exact report bytes when available
+- `verification_report_sha256`: SHA-256 of the exact report bytes, obtained from
+  `file_digest.py` when the report file is available
 - `implementation_state_fingerprint`: exact Contract-v1 fingerprint when available
 - `classification`: requested waiver classification when known
 - `policy_reference`: project policy path/reference when applicable; when
   `AGENTS.md` names an authoritative waiver-policy source, use that exact source
   path rather than `AGENTS.md`
-- `policy_sha256`: SHA-256 of the exact bytes at `policy_reference` when applicable
+- `policy_sha256`: SHA-256 of the exact bytes at `policy_reference`, obtained
+  from `file_digest.py` when applicable
 - `authorization_requested`: boolean
 - `authorization_receipt_present`: boolean
 - `decision_timestamp`: timestamp of this blocked decision
