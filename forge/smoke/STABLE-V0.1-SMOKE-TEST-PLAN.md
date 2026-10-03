@@ -1674,8 +1674,11 @@ PROJECT_INIT_BLOCKED
 For H08b, use a fresh `h08b-luna-probe` for the successful
 `/project-init` call, ledgered as
 `scenario=project-init-contract-propagation`, `stage=project-init`.
-Do not tell the child the expected terminal status. Parse the actual result and
-run `smoke_h08b.py score-project-init-policy --status <actual>`.
+Supply the exact fixture waiver-policy path and require the child to pass it to
+`project_init_mechanics.py --waiver-policy`; that helper writes the exact
+policy source/SHA/type trace lines in `AGENTS.md`. Do not tell the child the
+expected terminal status. Parse the actual result and run
+`smoke_h08b.py score-project-init-policy --status <actual>`.
 It must prove the project `AGENTS.md` records the exact bootstrap-pinned
 waiver policy source, SHA-256, failure-type mappings, and synchronized canonical
 Contract-v1.
@@ -2420,8 +2423,10 @@ Before repair, invoke the single H08-budgeted Luna `/waive` call through a
 fresh `h08b-luna-probe`, ledgered as `scenario=direct-fix-loop`,
 `stage=waive`, against this same behavioral-test `NOT_DONE` report. Do not
 provide the expected terminal status or reason to the child. The fixed FULL
-fixture policy must make `BEHAVIORAL_TEST` non-waivable; the run-scoped scorer
-must independently require `POLICY_INELIGIBLE`.
+fixture policy must make `BEHAVIORAL_TEST` non-waivable. The child must use
+the permitted deterministic `file_digest.py` helper for the exact report/policy
+SHA-256 values written to the refusal record; it must never infer those hashes.
+The run-scoped scorer must independently require `POLICY_INELIGIBLE`.
 
 Expected:
 
