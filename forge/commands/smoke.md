@@ -719,7 +719,9 @@ The hidden approved value must not be supplied to the first child.
 For the normal successful Luna `/project-init`, use a fresh
 `h08b-luna-probe` child and include
 `docs/workflow/H08B-FIXTURE-WAIVER-POLICY.json` plus the canonical contract as
-exact authoritative context. Parse its actual terminal status, then require
+exact authoritative context. Require the child to pass that policy path to
+`project_init_mechanics.py --waiver-policy` so the helper writes the exact
+policy trace digest/type lines. Parse its actual terminal status, then require
 `score-project-init-policy --status <actual>` PASS.
 
 For the independent negative, use:
@@ -736,9 +738,11 @@ For S2 `direct-fix-loop`, the exact sequence remains:
 `DeepSeek /verify (behavioral-test NOT_DONE) → fresh h08b-luna-probe /waive →
 DeepSeek /fix → DeepSeek /verify → DeepSeek pre-review → Sol senior review when ready`.
 
-Do not provide the expected refusal reason/status to the Luna child. Parse its
-actual terminal status and the normal refusal artifact it creates, then validate
-with `smoke_h08b.py validate-refusal --run-id <run-id> --status <actual>`.
+Do not provide the expected refusal reason/status to the Luna child. Require it
+to obtain the exact verification-report and policy SHA-256 values through the
+permitted read-only `file_digest.py` helper. Parse its actual terminal status
+and the normal refusal artifact it creates, then validate with
+`smoke_h08b.py validate-refusal --run-id <run-id> --status <actual>`.
 The run-scoped scorer is the component that requires actual `WAIVER_BLOCKED`
 plus `POLICY_INELIGIBLE`, exact report/policy binding, and zero H07 wait.
 No extra/fallback verification is permitted.
