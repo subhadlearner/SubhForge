@@ -160,14 +160,16 @@ copy its failure-type/category rules faithfully into the project `AGENTS.md`. Do
 broaden waivability, rename failure types, or replace the fixed mapping with a model
 judgment. The source policy remains authoritative evidence for later `/waive` checks.
 
-The project `AGENTS.md` must make that policy mechanically traceable by recording:
+The project `AGENTS.md` must make that policy mechanically traceable with:
 
 - `Waiver Policy Source: <repository-relative-policy-path>`
 - `Waiver Policy SHA-256: <sha256-of-exact-policy-bytes>`
 - `Non-waivable Failure Types: <exact source-policy values>`
 - `Waivable Failure Types: <exact source-policy values>`
 
-Preserve the exact failure-type tokens from the source policy.
+Do not calculate or invent the digest in model reasoning. When a waiver policy is
+present, Stage 5's deterministic helper writes these four trace lines from the exact
+policy bytes and preserves the exact failure-type tokens from the source policy.
 
 When security verification is materially relevant, include the global `security-verification` skill in the Skill Coverage Matrix as `ALREADY_AVAILABLE`.
 
@@ -210,7 +212,7 @@ Distinguish clearly between:
 Use the deterministic installed helper for mechanical repository setup:
 
 ```text
-python <global-config>/scripts/project_init_mechanics.py --repo <project-root> --contract <global-config>/contracts/implementation-state-evidence-v1.md
+python <global-config>/scripts/project_init_mechanics.py --repo <project-root> --contract <global-config>/contracts/implementation-state-evidence-v1.md [--waiver-policy <repository-relative-policy-path>]
 ```
 
 The helper owns only deterministic mechanics:
@@ -218,13 +220,17 @@ The helper owns only deterministic mechanics:
 - standard workflow directory creation
 - synchronization of the implementation-state evidence contract
 - idempotent verification of the synchronized contract hash
+- when `--waiver-policy` is supplied, exact SHA-256/type extraction and
+  idempotent replacement of only the four waiver-policy trace lines in `AGENTS.md`
 
 Do not manually recreate those mechanics with shell loops, repeated directory
 probes, or contract-copy commands when the helper is available.
 
 The workflow still owns all project-specific reasoning and authoring, including
-technology extraction, `AGENTS.md`, README content, project-specific rules,
-skills, commands, and any clarification/blocking decisions.
+technology extraction, the substantive `AGENTS.md` content, README content,
+project-specific rules, skills, commands, and any clarification/blocking decisions.
+The four waiver-policy trace lines are the only `AGENTS.md` content owned by the
+mechanical helper.
 
 Ensure the repository contains the standard workflow artifact directories:
 
