@@ -142,6 +142,8 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
     checks["h08b:deterministic-digests"] = (
         "def digest(" in digest_helper
         and "Digest path escapes repository" in digest_helper
+        and "Hidden smoke evidence cannot be digested" in digest_helper
+        and "Digest path is outside approved waiver evidence locations" in digest_helper
         and "--waiver-policy" in project_init_helper
         and "waiver_policy_sha256" in project_init_helper
         and "project_init_mechanics.py --repo" in project_init
