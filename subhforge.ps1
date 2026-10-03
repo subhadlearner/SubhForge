@@ -41,5 +41,5 @@ if (Get-Command python3 -ErrorAction SilentlyContinue) {
     }
 }
 
-Write-Error "No working Python 3 interpreter was found. Install Python 3.8+ and ensure 'py -3', 'python', or 'python3' can execute successfully."
+Write-Error "No working Python 3 interpreter was found. Install Python 3.14+ and ensure 'py -3', 'python', or 'python3' can execute successfully."
 exit 2

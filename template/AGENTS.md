@@ -211,11 +211,12 @@ It must also ensure the standard workflow artifact directories exist, including:
 - `docs/diagnostics/`
 - `docs/verification/`
 - `docs/verification/waivers/`
+- `docs/verification/waiver-refusals/`
 - `docs/verification/smoke/`
 - `docs/reviews/`
 - `docs/workflow/`
 
-`docs/verification/smoke/` is reserved for restartable `/smoke` run-state records such as `SMOKE-FULL-full-minimal-api-001.md`. Smoke-run records are workflow evidence, not implementation authority, and remain inside the Contract-v1 evidence exclusion set.
+`docs/verification/smoke/` is reserved for restartable `/smoke` run-state records such as `SMOKE-FULL-full-minimal-api-20260927T080854Z-c033fcf5.state.json`. Smoke-run records are workflow evidence, not implementation authority, and remain inside the Contract-v1 evidence exclusion set.
 
 `/project-init` must also ensure `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md` exists and is synchronized verbatim with the global canonical Stable-v1 contract. If the canonical source is unavailable or exact synchronization cannot be established, project initialization must fail closed with `PROJECT_INIT_BLOCKED`.
 
@@ -658,6 +659,11 @@ RUN_VERIFY
 ```
 
 A waiver never turns a failed check into a pass.
+
+Blocked waiver attempts are historical evidence under
+`docs/verification/waiver-refusals/`. They are never active waivers and never
+establish `CLEAR_WITH_EXCEPTION`; active-waiver lookup remains restricted to
+`docs/verification/waivers/`.
 
 ## Review Workflow
 

@@ -63,6 +63,11 @@ Do not implement application code.
 
 ## Stage 1 — Preconditions
 
+When the caller supplies exact authoritative PRD, architecture, ADR,
+project-instruction, or project-init paths, validate and use those paths
+directly. Do not glob the repository merely to rediscover supplied authority.
+Use bounded discovery only for missing/stale/ambiguous prerequisites.
+
 Read:
 
 - approved PRD

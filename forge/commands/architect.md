@@ -77,6 +77,11 @@ The output must provide enough approved technical detail for `/project-init`,
 
 ## Stage 1 — Load Architecture Context
 
+When the caller supplies exact authoritative PRD, architecture, ADR, or
+project-instruction paths, validate and use those paths directly. Repository-
+wide discovery is a fallback only when required context is missing, stale,
+ambiguous, or unresolved.
+
 Read:
 
 - the approved PRD

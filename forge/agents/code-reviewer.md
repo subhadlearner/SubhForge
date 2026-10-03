@@ -50,7 +50,19 @@ Evaluate:
 
 ## Evidence Gathering
 
-1. Inspect the current Git status and diff.
+When the parent supplies a successful deterministic review-preflight result,
+verification report, canonical manifest path, exact changed-file paths, exact
+authority paths, and the persisted pre-review report, treat Contract-v1
+freshness/identity reconstruction as already proven for this review attempt.
+Do not repeat tracked/untracked enumeration, blob/fingerprint reconstruction,
+or broad repository globs solely to re-prove it.
+
+You must still independently assess the implementation and may run focused
+read-only Git inspection when a material review question cannot be resolved
+from the supplied evidence.
+
+1. Inspect the supplied current Git status/diff evidence, or run the minimum
+   focused Git command needed when that evidence is missing or inconsistent.
 2. Read the relevant specification.
 3. Read only the relevant architecture and ADR documents.
 4. Inspect affected tests and nearby implementation when necessary.

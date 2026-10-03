@@ -22,7 +22,32 @@ Do not perform the code review yourself.
 
 ## Stage 1 — Determine Review Context
 
-Read and apply `kilo/contracts/implementation-state-evidence-v1.md` as the normative freshness contract.
+Read and apply `<global-config>/contracts/implementation-state-evidence-v1.md` as the normative freshness contract.
+
+When a persisted verification report supplies its verification base HEAD and
+canonical manifest path, validate review freshness with the deterministic
+installed helper before invoking any reviewer:
+
+```text
+python <global-config>/scripts/review_preflight.py \
+  --repo <project-root> \
+  --base <verification-base-HEAD> \
+  --manifest <persisted-verification-manifest>
+```
+
+Treat the helper result as the authoritative Contract-v1 reconstruction for
+this review attempt:
+
+- `MATCH` permits reviewer invocation subject to the remaining verification/
+  waiver gates below
+- `MISMATCH` stops review and requires fresh verification
+- `UNRECONSTRUCTABLE` stops review and requires fresh verification/diagnosis
+
+Do not ask either reviewer to independently rebuild the canonical manifest or
+repeat Git identity/fingerprint reconstruction already proven by this preflight.
+The reviewers still independently judge code quality, correctness, security,
+architecture compliance, tests, and production risk.
+
 
 Identify:
 
@@ -31,9 +56,10 @@ Identify:
 - relevant architecture and ADRs
 - the latest **applicable** persisted verification report under `docs/verification/` for this specification/change and branch
 - any waiver under `docs/verification/waivers/` that explicitly references that exact verification report and implementation-state fingerprint
+- never treat records under the sibling `docs/verification/waiver-refusals/` directory as candidate or active waivers
 - current branch
 - current HEAD commit SHA as provenance
-- the current implementation-state manifest reconstructed relative to the verification report's base HEAD
+- the deterministic review-preflight result for the verification report's base HEAD
 
 Do not load unrelated project documentation.
 
@@ -50,9 +76,12 @@ A verification report is fresh for review only when all of these are true:
 - the current canonical implementation-state manifest can be reconstructed under Contract v1
 - reconstruction outcome is `MATCH`
 
-Reconstruct the current manifest using the exact Contract v1 rules, including effective Git mode/type for every identity-bearing path. Compare the reconstructed canonical manifest byte-for-byte with the persisted canonical manifest.
+Use the deterministic review-preflight helper's canonical-manifest comparison.
+Do not reconstruct the manifest again in the parent or reviewer agents.
 
-The persisted fingerprint is a compact checksum/identifier and should be checked for internal consistency when practical, but fingerprint equality never substitutes for canonical-manifest equality.
+The persisted fingerprint is a compact checksum/identifier. The preflight's
+canonical-manifest equality result is authoritative; fingerprint equality alone
+never substitutes for canonical-manifest equality.
 
 The current HEAD SHA may differ from the verification-time HEAD when the verified working-tree contents were committed after verification. A HEAD change alone does **not** make evidence stale if the reconstructed effective-content fingerprint is identical.
 
@@ -113,15 +142,19 @@ Documentation-only, planning-only, or other non-executable changes may proceed w
 
 Delegate the review to `pre-reviewer`.
 
-Provide the pre-reviewer with:
+Provide the pre-reviewer with one compact handoff containing:
 
-- the requested specification or change scope
-- relevant architecture/ADR references where available
-- the persisted verification report
-- any active waiver, verbatim
+- `CONTEXT_PATHS`: exact specification, relevant architecture/ADR, verification
+  report, canonical verification manifest, changed implementation/test/config
+  paths, and active waiver path when applicable
+- deterministic review-preflight result, including freshness and canonical
+  manifest equality
+- current branch/HEAD provenance already gathered by the parent
 - effective delivery gate: `CLEAR` or `CLEAR_WITH_EXCEPTION`
 
-The pre-reviewer must independently inspect the Git changes.
+Do not ask the pre-reviewer to rediscover supplied paths or reconstruct
+Contract-v1 identity again. The pre-reviewer must independently inspect the
+actual changed implementation and reach its own review judgment.
 
 Wait for its result.
 
@@ -160,19 +193,22 @@ Continue to Stage 3.
 
 Delegate to `code-reviewer`.
 
-Provide the senior reviewer with:
+Provide the senior reviewer with one compact handoff containing:
 
-- the intended change scope
-- the relevant specification
-- relevant architecture/ADR references
-- the persisted verification report
-- any active waiver, verbatim
+- `CONTEXT_PATHS`: exact specification, relevant architecture/ADR, verification
+  report, canonical verification manifest, changed implementation/test/config
+  paths, active waiver path when applicable, and persisted pre-review report
+- the same successful deterministic review-preflight result
+- current branch/HEAD provenance already gathered by the parent
 - effective delivery gate
 - the complete pre-review report, verbatim and without summarization
 
-Do not rewrite, summarize, reinterpret, or omit findings from the pre-review before passing them to `code-reviewer`.
+Do not rewrite, summarize, reinterpret, or omit findings from the pre-review
+before passing them to `code-reviewer`. Do not ask the senior reviewer to
+repeat Contract-v1 identity reconstruction already proven by the preflight.
 
-The senior reviewer must independently validate the implementation.
+The senior reviewer must independently validate the implementation and may
+perform focused evidence checks when a material review question remains.
 
 The pre-review is evidence, not authority.
 

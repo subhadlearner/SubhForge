@@ -109,6 +109,56 @@ The implementation agent must:
 
 If requirements conflict or a required architecture decision is missing, stop and report the blocker.
 
+## Python Helper Regression Discipline
+
+Python helpers under `forge/scripts/` are release-critical deterministic infrastructure.
+
+When creating or changing a production Python helper:
+
+- add or update its dedicated `test_<module>.py` regression module in the same change
+- cover the behavior or invariant being changed, including the exact regression when fixing a defect
+- do not rely only on indirect coverage through another helper's tests when the module owns reusable behavior
+- use a documented exemption only for genuinely non-behavioral changes where changing the paired test would add no value
+- run `python -m unittest discover -s forge/scripts -p "test_*.py"` before smoke testing or release validation
+- keep the repository policy test green; it checks that production helpers have paired tests and that changed helpers update their paired tests
+
+A Python-helper bug fix without a regression test is incomplete.
+
+### Deterministic regression runtime budget
+
+Deterministic helper tests are part of the engineering harness and must remain
+fast enough for normal iteration. Runtime growth is a regression even when all
+tests are green.
+
+On the reference Windows development host, use the unittest-reported
+`Ran <N> tests in <seconds>s` duration as the comparison value. Shell startup
+and `Measure-Command` wrapper overhead are diagnostic only.
+
+Budget:
+
+- focused/current-item deterministic suite: target **<=60s**, hard ceiling **90s**
+- full `forge/scripts` deterministic suite: target **<=180s**
+- temporary hard ceiling for the full `forge/scripts` suite during H06-H11: **300s**
+- `tools` deterministic suite: target **<=30s**, hard ceiling **60s**
+- any full-suite runtime regression greater than **10%** versus the last accepted
+  same-host baseline is merge-blocking until explained and optimized
+
+The temporary 300s full-suite ceiling is not a healthy steady-state target. H12
+must bring the full `forge/scripts` suite to the 180s target or below before
+release-gate closure.
+
+Iteration policy:
+
+1. run the focused current-item suite plus directly affected adjacent/shared suites while developing
+2. do not repeatedly pay the full-suite cost after every small patch
+3. run one complete deterministic regression before merge
+4. record the accepted full-suite runtime baseline in the PR/tracker evidence
+
+Never meet a runtime budget by deleting, skipping, quarantining, weakening, or
+excluding required tests, assertions, coverage, or fail-closed checks. Optimize
+fixtures, subprocess use, batching, caching of immutable setup, or other
+mechanics while preserving the same invariant coverage.
+
 ## Testing and Verification
 
 Use applicable:
@@ -149,6 +199,11 @@ When the human owner deliberately accepts a documented residual risk, use `/waiv
 A valid waiver may establish `Delivery Gate: CLEAR_WITH_EXCEPTION` for review, but it never changes the original verification result or makes the failed check pass.
 
 Waivers must be scoped, human-authorized, time-bounded, and tied to the exact verification report, its canonical implementation-state manifest/fingerprint, and failure set. Waived checks continue to execute.
+
+Blocked waiver attempts are historical evidence under
+`docs/verification/waiver-refusals/`. They are never active waivers, never establish
+`CLEAR_WITH_EXCEPTION`, and must not be discovered through active-waiver lookup under
+`docs/verification/waivers/`.
 
 ## Review
 

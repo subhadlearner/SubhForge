@@ -1,0 +1,1250 @@
+{
+  "schema_version": 1,
+  "qualification_profile": "FULL",
+  "call_budget": {
+    "baseline_total": 50,
+    "maximum_total": 51,
+    "only_optional_extra": "S4.adversarial-reconcile-only.optional-adversary-recheck",
+    "baseline_by_owner": {
+      "GPT-5.6 Sol": 16,
+      "GPT-5.6 Luna": 11,
+      "DeepSeek": 23
+    },
+    "baseline_by_segment": {
+      "S1": 13,
+      "S2": 7,
+      "S3": 6,
+      "S4": 7,
+      "S5": 8,
+      "S6": 9
+    }
+  },
+  "zero_substantive_call_scenarios": [
+    "static-release-gate",
+    "identical-commit-freshness",
+    "content-mutation-stale-evidence",
+    "mode-type-identity",
+    "stale-waiver",
+    "malformed-evidence",
+    "evidence-exclusion",
+    "static-claude-routing"
+  ],
+  "segment_order": [
+    "S1",
+    "S2",
+    "S3",
+    "S4",
+    "S5",
+    "S6"
+  ],
+  "scenarios": [
+    {
+      "id": "static-release-gate",
+      "segment": "S1",
+      "checkpoint_before": "BOOTSTRAP",
+      "checkpoint_after": null,
+      "calls": [],
+      "zero_substantive_calls": true,
+      "evidence": [
+        "static-release-gate metric"
+      ],
+      "prerequisite_checkpoint": "BOOTSTRAP",
+      "restored_or_close_checkpoint": "CP-REVIEWED",
+      "zero_reviewer": true,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "static-contract-routing-gate",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": false
+        }
+      ]
+    },
+    {
+      "id": "grill",
+      "segment": "S1",
+      "calls": [
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "evidence/access-blocked discovery",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "resumed discovery after evidence/access restoration",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "separate user-directed no-discovery PRD branch",
+          "required": true
+        }
+      ],
+      "contracts": [
+        "Evidence/access-blocked state must be resumable.",
+        "Stable decision IDs are H08b behavioral proof; H08 declares the contract only."
+      ],
+      "prerequisite_checkpoint": "BOOTSTRAP",
+      "restored_or_close_checkpoint": "CP-REVIEWED",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "settled decision ID/value expectations under docs/verification/smoke/**"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "evidence-access-blocked",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "settled-decisions-scored-after-block",
+          "required": true,
+          "order": 2,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "evidence-restored-and-resumed",
+          "required": true,
+          "order": 3,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "settled-decisions-scored-after-resume",
+          "required": true,
+          "order": 4,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "user-directed-no-discovery-prd",
+          "required": true,
+          "order": 5,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        }
+      ]
+    },
+    {
+      "id": "prd",
+      "segment": "S1",
+      "calls": [
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "main PRD blocked path",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "main PRD resumed path",
+          "required": true
+        }
+      ],
+      "contracts": [
+        "Direct user-selected PRD without discovery is declared for H08b proof.",
+        "Blocked/resumed main PRD is declared for H08b proof."
+      ],
+      "prerequisite_checkpoint": "BOOTSTRAP",
+      "restored_or_close_checkpoint": "CP-REVIEWED",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "main-prd-blocked",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "main-prd-resumed",
+          "required": true,
+          "order": 2,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        }
+      ]
+    },
+    {
+      "id": "architect",
+      "segment": "S1",
+      "calls": [
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "architecture authoring",
+          "required": true
+        }
+      ],
+      "prerequisite_checkpoint": "BOOTSTRAP",
+      "restored_or_close_checkpoint": "CP-REVIEWED",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "architecture-authored",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        }
+      ]
+    },
+    {
+      "id": "project-init-contract-propagation",
+      "segment": "S1",
+      "calls": [
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "successful project-init contract propagation and fixed waiver-policy recording",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "independent unavailable-contract rejection",
+          "required": true,
+          "behavioral_proof": "H08b"
+        }
+      ],
+      "contracts": [
+        "Live PROJECT_INIT_BLOCKED behavior is H08b proof."
+      ],
+      "prerequisite_checkpoint": "BOOTSTRAP",
+      "restored_or_close_checkpoint": "CP-REVIEWED",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "successful-project-init",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "unavailable-contract-helper-rejection",
+          "required": true,
+          "order": 2,
+          "conditional_call_id": null,
+          "requires_evidence_file": false
+        },
+        {
+          "id": "unavailable-contract-luna-rejection",
+          "required": true,
+          "order": 3,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        }
+      ]
+    },
+    {
+      "id": "spec",
+      "segment": "S1",
+      "calls": [
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "spec authoring",
+          "required": true
+        }
+      ],
+      "prerequisite_checkpoint": "BOOTSTRAP",
+      "restored_or_close_checkpoint": "CP-REVIEWED",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "spec-authored",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        }
+      ]
+    },
+    {
+      "id": "implement",
+      "segment": "S1",
+      "calls": [
+        {
+          "owner": "DeepSeek",
+          "purpose": "real implementation",
+          "required": true
+        }
+      ],
+      "prerequisite_checkpoint": "BOOTSTRAP",
+      "restored_or_close_checkpoint": "CP-REVIEWED",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "implementation-completed",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        }
+      ]
+    },
+    {
+      "id": "first-uncommitted-verify",
+      "segment": "S1",
+      "calls": [
+        {
+          "owner": "DeepSeek",
+          "purpose": "real uncommitted verification",
+          "required": true
+        }
+      ],
+      "prerequisite_checkpoint": "BOOTSTRAP",
+      "restored_or_close_checkpoint": "CP-REVIEWED",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "fresh-uncommitted-verification",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        }
+      ]
+    },
+    {
+      "id": "review-before-commit",
+      "segment": "S1",
+      "checkpoint_after": "CP-REVIEWED",
+      "calls": [
+        {
+          "owner": "DeepSeek",
+          "purpose": "ready pre-review",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "senior review",
+          "required": true
+        }
+      ],
+      "prerequisite_checkpoint": "BOOTSTRAP",
+      "restored_or_close_checkpoint": "CP-REVIEWED",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "ready-pre-review",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "ready-senior-review",
+          "required": true,
+          "order": 2,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        }
+      ]
+    },
+    {
+      "id": "identical-commit-freshness",
+      "segment": "S2",
+      "checkpoint_before": "CP-REVIEWED",
+      "calls": [],
+      "zero_substantive_calls": true,
+      "prerequisite_checkpoint": "CP-REVIEWED",
+      "restored_or_close_checkpoint": "CP-REPAIRED-V1",
+      "zero_reviewer": true,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "identical-commit-match",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": false
+        }
+      ]
+    },
+    {
+      "id": "content-mutation-stale-evidence",
+      "segment": "S2",
+      "calls": [],
+      "zero_substantive_calls": true,
+      "prerequisite_checkpoint": "CP-REVIEWED",
+      "restored_or_close_checkpoint": "CP-REPAIRED-V1",
+      "zero_reviewer": true,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "content-mutation-mismatch-and-restore",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": false
+        }
+      ]
+    },
+    {
+      "id": "mode-type-identity",
+      "segment": "S2",
+      "calls": [],
+      "zero_substantive_calls": true,
+      "prerequisite_checkpoint": "CP-REVIEWED",
+      "restored_or_close_checkpoint": "CP-REPAIRED-V1",
+      "zero_reviewer": true,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "mode-type-mismatch-or-qualified-unreconstructable",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": false
+        }
+      ]
+    },
+    {
+      "id": "verification-mutation",
+      "segment": "S2",
+      "calls": [
+        {
+          "owner": "DeepSeek",
+          "purpose": "verification under registered verification-time mutation",
+          "required": true
+        }
+      ],
+      "prerequisite_checkpoint": "CP-REVIEWED",
+      "restored_or_close_checkpoint": "CP-REPAIRED-V1",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "verification-time-mutation-block-and-restore",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        }
+      ]
+    },
+    {
+      "id": "direct-fix-loop",
+      "segment": "S2",
+      "calls": [
+        {
+          "owner": "DeepSeek",
+          "purpose": "verify real behavioral-test NOT_DONE",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "waive early POLICY_INELIGIBLE declaration",
+          "required": true,
+          "behavioral_proof": "H08b"
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "fix",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "fresh verify after fix",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "pre-review",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "senior review only when ready",
+          "required": true
+        }
+      ],
+      "contracts": [
+        "No authorization wait occurs for the early policy-ineligible declaration.",
+        "Persisted WAIVER_BLOCKED behavioral proof is H08b.",
+        "No extra/fallback S2 verification call is permitted."
+      ],
+      "prerequisite_checkpoint": "CP-REVIEWED",
+      "restored_or_close_checkpoint": "CP-REPAIRED-V1",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "failed-behavioral-verification",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "policy-ineligible-waiver-refusal",
+          "required": true,
+          "order": 2,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "repair",
+          "required": true,
+          "order": 3,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "fresh-post-fix-verification",
+          "required": true,
+          "order": 4,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "ready-pre-review",
+          "required": true,
+          "order": 5,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "ready-senior-review",
+          "required": true,
+          "order": 6,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        }
+      ]
+    },
+    {
+      "id": "malformed-evidence",
+      "segment": "S2",
+      "calls": [],
+      "zero_substantive_calls": true,
+      "prerequisite_checkpoint": "CP-REVIEWED",
+      "restored_or_close_checkpoint": "CP-REPAIRED-V1",
+      "zero_reviewer": true,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "malformed-evidence-unreconstructable",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": false
+        }
+      ]
+    },
+    {
+      "id": "evidence-exclusion",
+      "segment": "S2",
+      "checkpoint_after": "CP-REPAIRED-V1",
+      "calls": [],
+      "zero_substantive_calls": true,
+      "prerequisite_checkpoint": "CP-REVIEWED",
+      "restored_or_close_checkpoint": "CP-REPAIRED-V1",
+      "zero_reviewer": true,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "evidence-only-match-and-identity-mutation-mismatch",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": false
+        }
+      ]
+    },
+    {
+      "id": "diagnose-fix-loop",
+      "segment": "S3",
+      "checkpoint_before": "CP-REPAIRED-V1",
+      "checkpoint_after": "CP-REPAIRED-V2",
+      "calls": [
+        {
+          "owner": "DeepSeek",
+          "purpose": "failed verification",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "diagnose",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "fix after diagnosis",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "fresh verification",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "pre-review",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "senior review only when ready",
+          "required": true
+        }
+      ],
+      "prerequisite_checkpoint": "CP-REPAIRED-V1",
+      "restored_or_close_checkpoint": "CP-REPAIRED-V2",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "failed-verification",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "diagnosis",
+          "required": true,
+          "order": 2,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "repair-after-diagnosis",
+          "required": true,
+          "order": 3,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "fresh-post-diagnosis-verification",
+          "required": true,
+          "order": 4,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "ready-pre-review",
+          "required": true,
+          "order": 5,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "ready-senior-review",
+          "required": true,
+          "order": 6,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        }
+      ]
+    },
+    {
+      "id": "waive-review-loop",
+      "segment": "S4",
+      "checkpoint_before": "CP-REPAIRED-V2",
+      "calls": [
+        {
+          "owner": "DeepSeek",
+          "purpose": "verification producing safe waivable failure",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "waiver policy/authorization handling",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "pre-review",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "senior review only when ready",
+          "required": true
+        }
+      ],
+      "contracts": [
+        "Fixed-policy report reuse is required.",
+        "Reason-coded refusal contract is declared; behavioral proof is H08b.",
+        "Waiver policy eligibility must precede authorization in H08b."
+      ],
+      "prerequisite_checkpoint": "CP-REPAIRED-V2",
+      "restored_or_close_checkpoint": "CP-REPAIRED-STABLE",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "safe-waivable-failure-verification",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "authorized-waiver",
+          "required": true,
+          "order": 2,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "ready-pre-review",
+          "required": true,
+          "order": 3,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "ready-senior-review",
+          "required": true,
+          "order": 4,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        }
+      ]
+    },
+    {
+      "id": "stale-waiver",
+      "segment": "S4",
+      "depends_on": [
+        "waive-review-loop"
+      ],
+      "calls": [],
+      "zero_substantive_calls": true,
+      "prerequisite_checkpoint": "CP-REPAIRED-V2",
+      "restored_or_close_checkpoint": "CP-REPAIRED-STABLE",
+      "zero_reviewer": true,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "stale-waiver-freshness-block-and-restore",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": false
+        }
+      ]
+    },
+    {
+      "id": "adversarial-reconcile-only",
+      "segment": "S4",
+      "calls": [
+        {
+          "owner": "DeepSeek",
+          "purpose": "material adversarial challenge",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "RECONCILE_ONLY classification/reconciliation",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "optional adversarial recheck",
+          "required": false,
+          "optional_call_id": "S4.adversarial-reconcile-only.optional-adversary-recheck"
+        }
+      ],
+      "prerequisite_checkpoint": "CP-REPAIRED-V2",
+      "restored_or_close_checkpoint": "CP-REPAIRED-STABLE",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key; factual finding evidence only"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "material-adversarial-challenge",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "reconcile-only",
+          "required": true,
+          "order": 2,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "optional-adversarial-recheck",
+          "required": false,
+          "order": 3,
+          "conditional_call_id": "S4.adversarial-reconcile-only.optional-adversary-recheck",
+          "requires_evidence_file": true
+        }
+      ]
+    },
+    {
+      "id": "pre-review-blocker",
+      "segment": "S4",
+      "calls": [
+        {
+          "owner": "DeepSeek",
+          "purpose": "pre-review blocker",
+          "required": true
+        }
+      ],
+      "prerequisite_checkpoint": "CP-REPAIRED-V2",
+      "restored_or_close_checkpoint": "CP-REPAIRED-STABLE",
+      "zero_reviewer": true,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "pre-review-blocks-with-zero-senior",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        }
+      ]
+    },
+    {
+      "id": "static-claude-routing",
+      "segment": "S4",
+      "checkpoint_after": "CP-REPAIRED-STABLE",
+      "calls": [],
+      "zero_substantive_calls": true,
+      "prerequisite_checkpoint": "CP-REPAIRED-V2",
+      "restored_or_close_checkpoint": "CP-REPAIRED-STABLE",
+      "zero_reviewer": true,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "claude-default-denied-static-proof",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": false
+        }
+      ]
+    },
+    {
+      "id": "arbitrary-stage-resume",
+      "segment": "S5",
+      "checkpoint_before": "CP-REPAIRED-STABLE",
+      "checkpoint_after": "CP-REPAIRED-STABLE",
+      "calls": [
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "resume routing decision 1",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "resume routing decision 2",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "resume routing decision 3",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "resume routing decision 4",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "resume routing decision 5",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "resume routing decision 6",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Luna",
+          "purpose": "resume routing decision 7",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "bounded resume handoff",
+          "required": true
+        }
+      ],
+      "prerequisite_checkpoint": "CP-REPAIRED-STABLE",
+      "restored_or_close_checkpoint": "CP-REPAIRED-STABLE",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "resume-route-1",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "resume-route-2",
+          "required": true,
+          "order": 2,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "resume-route-3",
+          "required": true,
+          "order": 3,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "resume-route-4",
+          "required": true,
+          "order": 4,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "resume-route-5",
+          "required": true,
+          "order": 5,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "resume-route-6",
+          "required": true,
+          "order": 6,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "resume-route-7",
+          "required": true,
+          "order": 7,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "bounded-resume-handoff",
+          "required": true,
+          "order": 8,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        }
+      ]
+    },
+    {
+      "id": "upstream-rerouting",
+      "segment": "S6",
+      "checkpoint_before": "CP-REPAIRED-STABLE",
+      "checkpoint_after": "QUALIFICATION_EVIDENCE_READY",
+      "calls": [
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "upstream classifier 1",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "upstream classifier 2",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "upstream classifier 3",
+          "required": true
+        },
+        {
+          "owner": "GPT-5.6 Sol",
+          "purpose": "representative upstream handoff",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "upstream classifier 1",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "upstream classifier 2",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "upstream classifier 3",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "upstream classifier 4",
+          "required": true
+        },
+        {
+          "owner": "DeepSeek",
+          "purpose": "upstream classifier 5",
+          "required": true
+        }
+      ],
+      "prerequisite_checkpoint": "CP-REPAIRED-STABLE",
+      "restored_or_close_checkpoint": "QUALIFICATION_EVIDENCE_READY",
+      "zero_reviewer": false,
+      "test_data_boundary": {
+        "visible": "normal fixture/workflow evidence",
+        "hidden": "no hidden answer key unless a scored probe explicitly declares one"
+      },
+      "factual_evidence": [
+        "canonical scenario-evidence index record",
+        "referenced report/artifact bytes"
+      ],
+      "subprobes": [
+        {
+          "id": "upstream-sol-classifier-1",
+          "required": true,
+          "order": 1,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "upstream-sol-classifier-2",
+          "required": true,
+          "order": 2,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "upstream-sol-classifier-3",
+          "required": true,
+          "order": 3,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "upstream-sol-handoff",
+          "required": true,
+          "order": 4,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "upstream-deepseek-classifier-1",
+          "required": true,
+          "order": 5,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "upstream-deepseek-classifier-2",
+          "required": true,
+          "order": 6,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "upstream-deepseek-classifier-3",
+          "required": true,
+          "order": 7,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "upstream-deepseek-classifier-4",
+          "required": true,
+          "order": 8,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        },
+        {
+          "id": "upstream-deepseek-classifier-5",
+          "required": true,
+          "order": 9,
+          "conditional_call_id": null,
+          "requires_evidence_file": true
+        }
+      ]
+    }
+  ],
+  "deterministic_contracts": {
+    "unavailable_contract_helper_check": true,
+    "scenario_evidence_index_required": true,
+    "canonical_hash_algorithm": "SHA-256",
+    "hidden_visible_boundaries_are_explicit": true,
+    "zero_reviewer_scenarios_must_not_gain_substantive_calls": true
+  },
+  "scenario_evidence_contract": {
+    "schema_version": 1,
+    "path_pattern": "docs/verification/smoke/<run-id>.<segment-id>.scenario-evidence.json",
+    "accepted_status": "SCORED_PASS",
+    "immutable_per_scenario_subprobe": true,
+    "close_requires_all_required_subprobes": true,
+    "close_manifest_is_derived_from_index": true,
+    "model_bearing_subprobes_require_file_evidence": true,
+    "helper_bound_segments": {
+      "S5": "docs/verification/smoke/<run-id>.resume.json",
+      "S6": "docs/verification/smoke/<run-id>.reroute.json"
+    }
+  }
+}

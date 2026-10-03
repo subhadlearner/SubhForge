@@ -3,6 +3,8 @@ import unittest
 from pathlib import Path
 import sys
 import subprocess
+import contextlib
+import io
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import subhforge
@@ -22,15 +24,46 @@ class SubhForgeBootstrapTests(unittest.TestCase):
             config = Path(temp) / "kilo"
             backup = subhforge.install_config(config, self.root)
             self.assertIsNone(backup)
-            ok, detail = subhforge._same_tree(self.root / "forge", config)
+            manifest_path = config / ".subhforge-install.json"
+            self.assertTrue(manifest_path.is_file())
+            import json
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(str(self.root.resolve()), manifest["source_checkout_path"])
+            with subhforge._committed_forge(self.root, manifest["source_commit"]) as committed:
+                ok, detail = subhforge._same_tree(
+                    committed, config, ignore=(".subhforge-install.json",))
             self.assertTrue(ok, detail)
 
             (config / "local-change.txt").write_text("changed", encoding="utf-8")
             backup = subhforge.install_config(config, self.root)
             self.assertIsNotNone(backup)
             self.assertTrue((backup / "local-change.txt").is_file())
-            ok, detail = subhforge._same_tree(self.root / "forge", config)
+            with subhforge._committed_forge(self.root, manifest["source_commit"]) as committed:
+                ok, detail = subhforge._same_tree(
+                    committed, config, ignore=(".subhforge-install.json",))
             self.assertTrue(ok, detail)
+
+    def test_install_records_and_copies_exact_commit_even_when_forge_is_dirty(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / "source"
+            subprocess.run(["git", "clone", "--local", str(self.root), str(source)],
+                           check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            expected = (source / "forge/README.md").read_bytes()
+            (source / "forge/README.md").write_text("dirty edit\n", encoding="utf-8")
+            (source / "forge/untracked.txt").write_text("uncommitted\n", encoding="utf-8")
+            config = Path(temp) / "config"
+
+            subhforge.install_config(config, source)
+
+            self.assertEqual(expected, (config / "README.md").read_bytes())
+            self.assertFalse((config / "untracked.txt").exists())
+            import json
+            manifest = json.loads((config / ".subhforge-install.json").read_text(encoding="utf-8"))
+            self.assertEqual(subhforge._source_commit(source), manifest["source_commit"])
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                subhforge.doctor(config, root=source)
+            self.assertIn("[PASS] Installed Kilo config - exact match", output.getvalue())
 
     def test_init_is_exact_template_copy(self):
         with tempfile.TemporaryDirectory() as temp:

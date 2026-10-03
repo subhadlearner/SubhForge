@@ -1,5 +1,30 @@
 # Stable v0.1 Workflow Smoke-Test Runbook
 
+## Deterministic harness regression budget
+
+Before release-qualifying smoke, the deterministic harness itself must remain
+cheap enough to iterate on safely.
+
+Reference Windows-host budget:
+
+| Suite | Target | Hard ceiling during H06-H11 |
+| --- | ---: | ---: |
+| focused/current-item deterministic tests | <=60s | 90s |
+| Full `forge/scripts` deterministic tests | <=180s | 300s |
+| `tools` deterministic tests | <=30s | 60s |
+
+Use unittest's own reported runtime for the budget. A >10% regression in the
+full `forge/scripts` runtime versus the last accepted same-host baseline is a
+merge blocker until investigated/optimized.
+
+The 300s full-suite ceiling is temporary debt containment only. H12 requires
+the full `forge/scripts` suite to meet the <=180s target and `tools` to meet
+<=30s.
+
+During hardening, run focused + directly affected adjacent suites while
+iterating, then one complete deterministic regression before merge. Do not
+reduce runtime by weakening/skipping/quarantining required tests or assertions.
+
 ## Purpose
 
 This document is the executable smoke-test and recovery runbook for the Kilo workflow release:
@@ -89,16 +114,15 @@ The runbook validates:
 
 # 1. Release Under Test
 
-Validate the exact release/tag:
+Validate the exact candidate commit before creating the stable tag:
 
 ```text
-stable_v_0.1.0
+<SubhForge source commit SHA> (UNTAGGED_RELEASE_CANDIDATE)
 ```
 
 Before running any model workflow, record:
 
-- `kilo-configuration` tag
-- exact `kilo-configuration` commit SHA
+- SubhForge source commit SHA and installed configuration provenance
 - exact test-project baseline SHA
 - Kilo Code version
 - Git version
@@ -108,38 +132,97 @@ Before running any model workflow, record:
 
 Do not test an unrecorded moving branch.
 
-If the tag is intentionally moved after documentation-only additions, record the final SHA before testing.
+After a passing FULL run, merge and validate the exact merged content before tagging `stable_v_0.1.0`.
 
 ---
 
 # 2. Smoke-Test Repository and Fixture Selection
 
-Use a disposable branch, clone, or worktree based on the reusable project template.
+Smoke fixtures are provisioned internally from the exact `template/` tree at
+the installed SubhForge release commit. A fixture declares `source_template`
+in `smoke/fixtures.json`; it does not depend on a separate product repository.
 
-Each fixture declares its own `source_repository` in `smoke/fixtures.json`.
+The user must not be asked to open, clean, switch, or maintain
+`production-ai-project` (or any other external fixture repository) in order
+to run framework smoke tests.
 
-The current Stable-v0.1 fixtures all use:
+The deterministic smoke workspace helper materializes a temporary baseline Git
+repository from the recorded release commit, creates the isolated
+`smoke-run` clone, and removes the temporary provisioning repositories before
+returning control to the orchestrator.
 
-`subhadlearner/production-ai-project`
+Provisioning the clone is not sufficient isolation for model-bearing stages:
+Kilo `task` subagents use the same project directory/worktree as their parent.
+Before any substantive smoke child is delegated, the installed
+`scripts/smoke_handoff.py` helper must establish a top-level Kilo continuation
+whose actual project root is the disposable `smoke-run` repository. The
+source-root smoke session may provision and bootstrap deterministic state, but
+must not delegate lifecycle/reviewer/adversarial task children. The one
+long-lived handoff shell call uses a timeout of at least 60 minutes solely as
+process-transport headroom; the independent 30-minute smoke budget remains the
+release-qualification authority. Kilo autonomous mode used for that rooted
+continuation is likewise only a permission-transport mechanism and never
+substitutes for explicit human waiver/risk/paid-model authorization.
 
-Do not assume future fixtures use the same repository.
+Rooting is proven mechanically rather than by prompt discipline or the shell
+working directory. The handoff marks the continuation's process tree with a
+per-handoff secret token and records only its SHA-256 digest in
+`docs/verification/smoke/<run-id>.handoff.json`. `smoke_handoff.py
+assert-rooted` accepts a session only when the marker names this run and
+directory, the token matches the current record, and the working tree is the
+disposable repository. `smoke_budget.py stage-start`/`stage-end` call it, so no
+child stage can be timed or accepted outside the rooted run, and a fresh
+handoff invalidates any earlier rooted session. Because `--auto` approves every
+non-denied permission, the handoff's `KILO_CONFIG_CONTENT` overlay disables
+paid Claude adversaries and denies `external_directory` access to the source
+checkout. Kilo applies that check to file tools and to file-manipulation shell
+commands (`cd`, `cp`, `mv`, `rm`, `mkdir`, `Set-Content`, `Copy-Item`, ...),
+but not to arbitrary interpreters, so `source-guard` remains the after-the-fact
+detector for writes made from inside a program such as `python`.
 
-Recommended branch pattern:
+Do not mutate the SubhForge source checkout or its protected `main`.
 
-```text
-smoke/<profile>-<fixture>-<run-id>
-```
+### Interrupted child invocation recovery
 
-Do not mutate protected `main`.
+Every model-bearing stage has an explicit invocation lifecycle in the
+deterministic budget ledger:
+
+- `ACTIVE` after `stage-start`
+- `COMPLETED` after a normal returned child invocation and successful
+  post-child source guard
+- `ABORTED` when the child returned but its transport/tool invocation or
+  post-child source guard failed
+- `INTERRUPTED` when a later rooted RESUME discovers an ACTIVE record left by
+  a crashed/terminated session
+
+`stage-start` persists the exact pre-child source-checkout fingerprint. A
+rooted RESUME runs `recover-active --source <source_checkout_path>` before any
+new model call. The helper performs that persisted source comparison before it
+writes ACTIVE → INTERRUPTED, so another crash during RESUME cannot lose the
+source-integrity decision. MATCH permits normal state/evidence re-evaluation;
+MISMATCH persists a restart-safe `SOURCE_CHECKOUT_MUTATED` continuation
+blocker. The same blocker is written when a normal post-child source guard
+detects mutation and closes the invocation with `stage-abort`. If the guard
+itself cannot execute, leave the invocation ACTIVE so RESUME can retry it.
+Missing legacy fingerprint evidence persists
+`INTERRUPTED_SOURCE_GUARD_UNAVAILABLE` and is unreconstructable. If the guard
+itself cannot execute, the invocation remains ACTIVE for a later retry. Never
+take a new source fingerprint and treat it as proof for the interrupted
+interval.
+
+For INTERRUPTED invocations, the true child termination time is unknown.
+Therefore `ended_at_utc` and `elapsed_seconds` remain null and
+`recovered_at_utc` records only the recovery observation time. Do not count
+session downtime as model runtime.
 
 The implementation fixture should be deliberately small. The goal is to test the workflow, not application complexity.
 
 Approved fixture definitions and profile scenario registries are version-controlled in the source repository as:
 
 ```text
-kilo/smoke/fixtures.json
-kilo/smoke/profiles.json
-kilo/smoke/failure-recipes.json
+forge/smoke/fixtures.json
+forge/smoke/profiles.json
+forge/smoke/failure-recipes.json
 ```
 
 When installed as the global Kilo configuration, runtime lookups use:
@@ -151,7 +234,7 @@ smoke/failure-recipes.json
 smoke/STABLE-V0.1-SMOKE-TEST-PLAN.md
 ```
 
-Do not require the `kilo-configuration` repository checkout to exist at runtime.
+The installed provenance identifies the exact SubhForge source checkout and commit.
 
 Do not invent an additional fixture during an automated smoke run.
 
@@ -252,18 +335,17 @@ docs/verification/smoke/<run-id>.md
 The Run ID is allocated automatically before substantive smoke execution using:
 
 ```text
-SMOKE-<PROFILE>-<fixture-id>-<SEQ>
+SMOKE-<PROFILE>-<fixture-id>-<UTC timestamp>-<random suffix>
 ```
 
 Examples:
 
 ```text
-SMOKE-FAST-fast-micro-library-001
-SMOKE-FULL-full-minimal-api-001
-SMOKE-FULL-full-minimal-api-002
+SMOKE-FAST-fast-micro-library-20260927T080854Z-a1b2c3d4
+SMOKE-FULL-full-minimal-api-20260927T080854Z-c033fcf5
 ```
 
-The orchestrator scans existing run records for the selected profile/fixture, increments the highest valid three-digit suffix, creates the new run record immediately, and never overwrites an existing run.
+`smoke_workspace.py create` allocates the run ID and isolated workspace. The orchestrator uses its returned ID; it does not scan or sequence prior runs.
 
 Every smoke response must repeat the active Run ID near the top.
 
@@ -271,7 +353,13 @@ The run record, not chat history, is the continuation authority.
 
 `/smoke STATUS <run-id>` is read-only and reports progress, latest verification/review state, model/cost ledger, blockers, and the exact next action without invoking lifecycle/reviewer models.
 
-`/smoke RESUME <run-id>` reconstructs continuation from the run record plus current repository evidence and resumes from the earliest still-required or invalidated stage.
+`/smoke RESUME <run-id>` first locates the disposable workspace and passes
+through the deterministic workspace-root handoff. Lifecycle continuation occurs
+only in a Kilo session actually rooted in that repository; a source-root
+session must not delegate smoke task children and merely point them at a sibling
+path. Once rooted, continuation is reconstructed from the run record plus
+current repository evidence and resumes from the earliest still-required or
+invalidated stage.
 
 ## 2.3 Fixture versus architecture authority
 
@@ -590,6 +678,22 @@ Use branches/commits/worktrees appropriate to the disposable environment to rest
 
 Do not ask an LLM to reconstruct a prior fixture when Git can restore it deterministically.
 
+For the default tiny FULL fixture, persist a canonical verified implementation
+checkpoint and reuse it for independent probes. Record the exact verification
+base HEAD, full Contract-v1 manifest, fingerprint, applicable report path,
+and the checkpoint label. Use installed `scripts/smoke_mechanics.py` to
+construct/compare manifests and to apply/restore exact anchored text mutations
+in the disposable project. The excluded mechanics ledger is operational
+state, never verification or review authority. Reuse the applicable normal
+workflow evidence only while its scope, branch, and full manifest still match.
+Preserve separate history artifacts for actual reruns. Stop if restoration
+does not reproduce the checkpoint.
+
+The orchestrator keeps one compact path/identity index in the run record and
+passes exact relevant paths to each workflow owner. Reopen upstream Markdown
+only when its authority changed or the next stage needs a section not yet
+read. Do not re-glob unchanged artifact directories on each transition.
+
 Do not use destructive cleanup on a non-disposable repository.
 
 ### Principle H — negative freshness tests should consume zero reviewer tokens
@@ -754,7 +858,10 @@ The smoke fixture should be simpler; the workflow contract should not be weaker.
 
 ## 3.5 Recommended minimal runtime invocation budget
 
-For a full end-to-end run from `/grill`, target approximately this number of substantive model invocations:
+The versioned machine-readable authority for FULL invocation ownership and counts is
+`FULL-INVOCATION-SPEC.json`. The table below is retained as a human-readable shorthand
+only; it must not be used to add calls beyond the canonical 50-call baseline / 51-call
+maximum, where the sole optional extra is the S4 adversarial recheck.
 
 | Stage/scenario | Target runtime invocations |
 | --- | ---: |
@@ -785,6 +892,26 @@ For a full end-to-end run from `/grill`, target approximately this number of sub
 | Claude runtime calls | **0** |
 
 This table is a target, not a mandate.
+
+FULL qualification is six sequential checkpoint-bound segments with bootstrap-pinned
+positive limits: S1=80, S2=48, S3=38, S4=53, S5=36, and S6=40 minutes. The
+295-minute sum is a derived configured allowance, not a second aggregate hard limit.
+Each segment clock begins only when its ACTIVE transition commits. Crash/recovery,
+transport, debugging, retry, and ordinary inactivity remain charged to that original
+segment clock. Only a helper-validated H07 `WAIVER_AUTHORIZATION` wait may be
+excluded, and only inside its owning ACTIVE segment.
+
+After a committed segment close, the run enters an explicit `BETWEEN_SEGMENTS` gap.
+That gap is recorded separately and allows only operator inactivity/rest/read-only
+status plus bounded read-only preflight. No model call, scoring, mutation, repair, or
+qualifying execution is permitted there. Source/config/evidence/ledger drift detected
+before the next segment opens disqualifies the qualification.
+
+When an ACTIVE segment reaches its pinned limit, persist
+`PERFORMANCE_BUDGET_EXCEEDED`, stop launching new model stages, retain the
+workspace/evidence for STATUS/diagnosis/abandonment, and permanently mark that
+qualification ineligible for PASS. A new FULL qualification ID is required after any
+framework/performance fix.
 
 If a valid artifact already exists because the smoke run resumes mid-workflow, subtract the corresponding completed stages.
 
@@ -841,6 +968,137 @@ FULL_SMOKE
 because Stable v0.1 establishes the baseline framework behavior.
 
 ---
+
+## 3.5 Authoritative post-first-review execution matrix
+
+After the first successful `review-before-commit`, do not execute the remaining
+FULL scenarios as one long mutable chain. Treat the table below as the
+authoritative orchestration plan for the remaining required scenarios.
+
+### Canonical checkpoints
+
+Use these logical checkpoint identities:
+
+- `CP-VERIFIED` — first implementation is `DONE + CLEAR + MATCH`, still
+  uncommitted
+- `CP-REVIEWED` — same implementation identity as `CP-VERIFIED`, with the
+  successful pre-review/senior-review evidence persisted
+- `CP-COMMITTED` — the byte-identical verified implementation has been
+  committed and freshness is still `MATCH`
+- `CP-REPAIRED` — a recovery loop has produced a fresh
+  `DONE + CLEAR + MATCH` state after repair
+
+Checkpoint labels persisted internally must not reveal expected answers to
+fresh routing probes.
+
+### Execution classes
+
+- **D — deterministic probe:** no substantive model invocation is permitted.
+- **S — single-owner agent probe:** exactly the named workflow owner may run;
+  no other model is permitted unless the scenario explicitly transitions to a
+  different class below.
+- **M — bounded multi-agent workflow:** only the listed workflow/model sequence
+  is permitted. Do not add planning/review/adversarial calls that are not listed.
+
+| Remaining scenario | Class | Start checkpoint/state | Permitted substantive model invocations | Completion/restoration rule |
+| --- | --- | --- | --- | --- |
+| `identical-commit-freshness` | D | `CP-REVIEWED` | none | Commit byte-identical implementation deterministically, prove `MATCH`, record `CP-COMMITTED`; do not review again |
+| `content-mutation-stale-evidence` | D | `CP-REVIEWED` | none | Apply registered deterministic content mutation, run freshness preflight, require `MISMATCH`, zero reviewers, restore exact checkpoint |
+| `mode-type-identity` | D | `CP-REVIEWED` | none | Apply bounded deterministic mode/type mutation when representable, require `MISMATCH` or valid platform `UNRECONSTRUCTABLE`, zero reviewers, restore |
+| `verification-mutation` | S | `CP-REVIEWED` implementation identity | DeepSeek `/verify` only | Inject the registered verification-time mutation through deterministic smoke mechanics/hook, require delivery block; no reviewers; restore |
+| `direct-fix-loop` | M | `CP-REVIEWED` | DeepSeek `/verify` (real behavioral-test `NOT_DONE`) → GPT-5.6 Luna `/waive` (early `POLICY_INELIGIBLE`; persist `WAIVER_BLOCKED`; no authorization/wait) → DeepSeek `/fix` → DeepSeek `/verify` → DeepSeek pre-review → GPT-5.6 Sol senior review only if pre-review is ready | H08 declares this six-call sequence; H08b proves the Luna refusal behavior. Persist failed/repaired evidence and close S2 at `CP-REPAIRED-V1` |
+| `diagnose-fix-loop` | M | clean reviewed/repaired checkpoint | DeepSeek `/verify` → DeepSeek `/diagnose` → DeepSeek `/fix` → DeepSeek `/verify` → DeepSeek pre-review → GPT-5.6 Sol senior review only if ready | Use one genuinely ambiguous deterministic symptom; no extra planning models; restore/use repaired clean state after evidence is persisted |
+| `waive-review-loop` | M | clean reviewed/repaired checkpoint | DeepSeek `/verify` → GPT-5.6 Luna `/waive` after explicit smoke authorization → DeepSeek pre-review → GPT-5.6 Sol senior review only if ready | Preserve factual `NOT_DONE`; prove `CLEAR_WITH_EXCEPTION`; persist review/waiver evidence |
+| `stale-waiver` | D | exact state from `waive-review-loop` | none | Mutate identity deterministically, require freshness failure before reviewers, restore/remediate after evidence |
+| `malformed-evidence` | D | clean checkpoint + copied disposable evidence | none | Corrupt only copied evidence, require `UNRECONSTRUCTABLE`, zero reviewers, discard copied corruption |
+| `evidence-exclusion` | D | `CP-REVIEWED` or `CP-REPAIRED` | none | Evidence-only mutation must preserve `MATCH`; identity-bearing mutation must produce `MISMATCH`; restore exact checkpoint |
+| `adversarial-reconcile-only` | M | approved architecture/spec checkpoint appropriate to challenged decision | DeepSeek adversary once; GPT-5.6 Sol planning-worker in `RECONCILE_ONLY` only when finding is material; at most one additional DeepSeek adversarial recheck if reconciliation materially changed the decision | No AUTHOR restart; persist finding/reconciliation evidence; restore/advance only according to authority result |
+| `arbitrary-stage-resume` | M (bounded routing probes) | seven deterministic persisted-state probes | seven bounded GPT-5.6 Luna routing decisions; Scenario C additionally permits one DeepSeek `/implement` handoff only | Six stop after correct routing decision; Scenario C stops after real handoff acceptance; no repeated downstream lifecycle |
+| `upstream-rerouting` | M (routing-focused) | deterministic blocked states representing PRD/architecture/project-init/spec/repository authority boundaries | only the owner needed to classify the active blocker: GPT-5.6 Sol planning-worker for planning authority cases, DeepSeek `/fix` for fix-origin cases; downstream owners are not invoked merely to prove routing | Persist correct authority destination. At least one representative case must prove the selected upstream handoff is executable; do not replay every downstream regeneration path for every subcase |
+| `pre-review-blocker` | S | clean verified checkpoint with one registered review-only blocker | DeepSeek pre-review only | Require `CHANGES_REQUIRED`; GPT-5.6 Sol senior-review invocation count MUST remain zero; restore blocker afterward |
+| `static-claude-routing` | D | installed release config | none | Validate routes/configuration statically; Claude runtime calls remain zero |
+
+The orchestrator MUST NOT exceed the permitted model sequence for a scenario.
+If extra model reasoning appears necessary, persist the reason and classify it
+as a smoke-framework defect or scenario-design defect rather than silently
+expanding the workflow.
+
+### 3.5.1 Exact failure-loop context packets
+
+For every model-bearing recovery loop, construct `CONTEXT_PATHS` from
+canonical smoke state before the call. Do not let the child rediscover these
+known inputs.
+
+Minimum packets:
+
+**`/verify` after injected failure**
+
+- exact active Spec
+- exact changed source/test/config paths
+- verification base HEAD/checkpoint identity
+- registered mutation ID/recipe
+- exact prior applicable verification path when relevant
+
+**`/fix`**
+
+- exact active Spec
+- exact failing verification report
+- exact diagnosis artifact when the scenario includes diagnosis
+- exact blocking review report when the fix is review-driven
+- exact changed source/test paths
+- registered mutation/failure context
+
+**`/diagnose`**
+
+- exact active Spec
+- exact failing verification report
+- exact failing source/test paths
+- exact symptom/mutation context
+- relevant architecture/ADR paths only when the failure crosses an architectural boundary
+
+**waiver/review path**
+
+- exact failed verification report
+- exact canonical verification manifest
+- exact waiver artifact
+- exact changed paths
+- deterministic freshness preflight result
+
+A child may widen context only when one of these supplied items is
+missing/stale/ambiguous and must record the reason.
+
+### 3.5.2 Fan-out and restoration rule
+
+Independent deterministic scenarios MUST fan out from the nearest valid clean
+checkpoint rather than inherit mutations from the previous probe.
+
+Default fan-out after first successful review:
+
+```text
+CP-REVIEWED
+  ├─ identical-commit-freshness → CP-COMMITTED
+  ├─ content-mutation-stale-evidence → restore CP-REVIEWED
+  ├─ mode-type-identity → restore CP-REVIEWED
+  ├─ verification-mutation → restore CP-REVIEWED
+  ├─ malformed-evidence → discard copied evidence / retain CP-REVIEWED
+  └─ evidence-exclusion → restore CP-REVIEWED
+```
+
+Recovery loops may create their own clean `CP-REPAIRED` state, but one loop's
+temporary mutation must never become another loop's accidental starting state.
+
+Before every fan-out probe:
+
+1. verify checkpoint identity deterministically
+2. persist the scenario/checkpoint association in canonical smoke state
+3. apply only the scenario's registered mutation; for
+   `verification-mutation`, arm it here but fire it only inside `/verify`
+   after checks and before the post-check manifest
+4. run only the permitted mechanics/model sequence
+5. restore and re-check the checkpoint when the scenario is independent
+
+If restoration does not reproduce the checkpoint exactly, stop with
+`SMOKE_BLOCKED`; do not ask an LLM to repair checkpoint drift.
 
 # 4. Core Rule: Determine Where to Start
 
@@ -1060,7 +1318,7 @@ Confirm architecture still treats cloud/operating cost as first-class and evalua
 Confirm these are byte-for-byte identical:
 
 ```text
-kilo/contracts/implementation-state-evidence-v1.md
+<global-config>/contracts/implementation-state-evidence-v1.md
 
 docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md
 ```
@@ -1132,11 +1390,24 @@ DISCOVERY_BLOCKED
 
 ## Resume rules
 
-If `DISCOVERY_BLOCKED`:
+For the H08b acceptance probe, `DISCOVERY_BLOCKED` is caused by missing required
+referenced evidence/access, **not** by an unanswered product decision.
 
-1. resolve the specific unanswered product decision,
-2. rerun `/grill`,
-3. do not restart unrelated settled questions.
+1. preseed normal `DISC-001` with stable settled decision IDs plus one
+   `BLOCKED_ON_EVIDENCE` decision using `smoke_h08b.py seed-discovery`
+2. bracket a real `/grill` child with the normal smoke invocation ledger
+   (`scenario=grill`, `stage=grill`) and parse its actual terminal status
+3. score the blocked artifact with
+   `smoke_h08b.py score-discovery --phase blocked --status <actual>`; never
+   substitute the expected status for the child's returned value
+4. restore exactly the referenced evidence with `smoke_h08b.py restore-evidence`
+5. rerun a second real `/grill` child in continuation mode, again ledgered as
+   `scenario=grill`, `stage=grill`, without renumbering/reopening settled decisions
+6. parse that child's actual status and score with
+   `--phase resumed --status <actual>`
+
+A separate PRD probe, not the discovery probe, withholds an approved product
+decision and proves PRD block/resume behavior.
 
 If a discovery artifact already exists and remains valid, do not rerun `/grill` merely because a later stage failed.
 
@@ -1149,6 +1420,27 @@ DISCOVERY_READY → /prd
 ---
 
 # 9. Phase 2 — /prd
+
+## H08b isolated direct and blocked/resumed probes
+
+Before the normal main PRD path, prove the explicit ceremony-skip branch with
+`smoke_h08b.py begin-direct-prd`. The harness temporarily protects/removes
+`DISC-001`; invoke exactly one user-selected clear-intent Sol `/prd`, ledgered
+as `scenario=grill`, `stage=prd`, targeting
+`docs/prd/PRD-H08B-DIRECT.md`. Parse the actual status and require
+`score-direct-prd` PASS with zero discovery artifacts. The scorer retains the
+actual PRD bytes under protected smoke evidence before `restore-direct-prd`
+deletes the isolated normal artifact and restores exact discovery bytes. Register
+both the score path and retained PRD evidence path for S1 close.
+
+For the main PRD path, `seed-product-decision` stores the approved answer only
+in protected smoke data. The first Sol PRD call receives the ambiguous product
+context but not that answer and must block normally. Score its actual status with
+`score-prd --phase blocked`. Then `reveal-product-decision` writes the normal
+approved decision artifact; provide that exact path to the second Sol PRD call and
+require `score-prd --phase resumed` with actual `PRD_READY`.
+
+These are the already-declared H08 calls. Do not add a planning retry.
 
 ## When to run
 
@@ -1379,6 +1671,27 @@ or:
 PROJECT_INIT_BLOCKED
 ```
 
+For H08b, use a fresh `h08b-luna-probe` for the successful
+`/project-init` call, ledgered as
+`scenario=project-init-contract-propagation`, `stage=project-init`.
+Supply the exact fixture waiver-policy path and require the child to pass it to
+`project_init_mechanics.py --waiver-policy`; that helper writes the exact
+policy source/SHA/type trace lines in `AGENTS.md`. Do not tell the child the
+expected terminal status. Parse the actual result and run
+`smoke_h08b.py score-project-init-policy --status <actual>`.
+It must prove the project `AGENTS.md` records the exact bootstrap-pinned
+waiver policy source, SHA-256, failure-type mappings, and synchronized canonical
+Contract-v1.
+
+For the independent negative, run
+`begin-project-init-negative → score-project-init-helper → fresh h08b-luna-probe
+/project-init → parse actual status/OWNER/BLOCKING_ISSUE/REQUIRED_ACTION/NEXT_COMMAND →
+score-project-init-luna with those exact values → restore-project-init-negative`.
+The prepared branch removes the project canonical Contract-v1 file. The negative
+must remain blocked, explicitly identify canonical-contract unavailability with
+owner `REPOSITORY`, route back to `/project-init`, and must not invent a
+substitute contract.
+
 ## Blocked routing
 
 Architecture conflict/missing decision:
@@ -1434,6 +1747,7 @@ Require:
 - approved PRD
 - `ARCHITECTURE_READY`
 - `PROJECT_INIT_READY`
+
 - project `AGENTS.md` aligned with approved stack
 
 ## Expected behavior
@@ -1923,23 +2237,47 @@ On Windows, use WSL for the specific mode test if necessary rather than faking m
 
 # 19. Phase 12 — Verification mutation test
 
-Use a disposable verification behavior that changes an identity-bearing non-evidence path while verification runs.
+Start from a matching `CP-REVIEWED` implementation identity.
 
-Expected:
+Arm the registered deterministic verification mutation:
+
+```text
+python <global-config>/scripts/smoke_mechanics.py --repo <run-directory> --run-id <run-id> arm-verification-mutation --mutation-id verification-mutation-1 --checkpoint CP-REVIEWED
+```
+
+Delegate exactly one DeepSeek `/verify` with
+`VERIFICATION_MUTATION_ID: verification-mutation-1`. The smoke executor must:
+
+1. capture the normal pre-check Contract-v1 manifest
+2. run all required checks and acceptance evidence
+3. fire the registered mutation with
+   `fire-verification-mutation --mutation-id verification-mutation-1`
+4. capture the post-check manifest
+
+The mutation hook creates only its harness-owned untracked, non-ignored,
+non-evidence identity marker. It must itself prove the checkpoint becomes
+`MISMATCH`; it does not decide the verification verdict.
+
+Expected when the checks themselves pass:
 
 ```text
 Verification Result: DONE
 Freshness: MISMATCH
 Delivery Gate: BLOCKED
+Reviewer calls: 0
 ```
 
-assuming checks themselves pass.
-
-Then restore/stabilize and rerun:
+Then restore and require exact checkpoint reproduction:
 
 ```text
-/verify
+python <global-config>/scripts/smoke_mechanics.py --repo <run-directory> --run-id <run-id> restore --mutation-id verification-mutation-1
+python <global-config>/scripts/smoke_mechanics.py --repo <run-directory> --run-id <run-id> check-checkpoint --label CP-REVIEWED
 ```
+
+Do not spend a second `/verify` solely to close this bounded scenario; the
+authoritative §3.5 matrix permits only the one DeepSeek `/verify` invocation.
+The restored implementation still requires fresh verification before any later
+review use.
 
 ---
 
@@ -2078,6 +2416,32 @@ Delivery Gate: BLOCKED
 ```
 
 The verification report should identify the failing test and acceptance criterion.
+
+### Required policy-ineligible /waive probe before /fix
+
+Before repair, invoke the single H08-budgeted Luna `/waive` call through a
+fresh `h08b-luna-probe`, ledgered as `scenario=direct-fix-loop`,
+`stage=waive`, against this same behavioral-test `NOT_DONE` report. Do not
+provide the expected terminal status or reason to the child. The fixed FULL
+fixture policy must make `BEHAVIORAL_TEST` non-waivable. The child must use
+the permitted deterministic `file_digest.py` helper for the exact report/policy
+SHA-256 values written to the refusal record; it must never infer those hashes.
+The run-scoped scorer must independently require `POLICY_INELIGIBLE`.
+
+Expected:
+
+- policy eligibility is checked before any authorization request
+- a new JSON refusal is persisted under `docs/verification/waiver-refusals/`
+- reason code is `POLICY_INELIGIBLE`
+- `authorization_requested=false`
+- `authorization_receipt_present=false`
+- no `WAIVER_AUTHORIZATION` interval exists for the report
+- terminal token is `WAIVER_BLOCKED`
+
+Parse the Luna child's actual terminal status and validate the record with
+`smoke_h08b.py validate-refusal --run-id <run-id> --status <actual>`.
+The scorer requires actual `WAIVER_BLOCKED` plus `POLICY_INELIGIBLE`.
+Do not run another verification to manufacture this negative case.
 
 ### Expected /fix behavior
 
@@ -2437,6 +2801,34 @@ Run:
 /waive
 ```
 
+If the required human authorization is not already present, the rooted smoke
+orchestrator must first create the deterministic wait interval with
+`smoke_budget.py human-wait-start`.
+
+For the current Stable-v0.1 FULL fixture, the only enabled human gate type is:
+
+```text
+WAIVER_AUTHORIZATION
+```
+
+Before opening a wait, the helper must validate canonical smoke state is the
+required FULL `waive-review-loop`, the current stage is the waiver
+verification/waive boundary, and the latest verification is exactly
+`NOT_DONE / BLOCKED / MATCH`. Merely naming an existing verification report
+must never be sufficient to pause the qualification clock.
+
+The helper derives a collision-resistant `gate_id` from a canonical payload
+containing the smoke run ID, gate type, exact verification-report path,
+SHA-256 of the exact verification-report bytes, Contract-v1 implementation-state
+fingerprint, exact canonically ordered failure set, and waiver classification.
+The orchestrator does not invent the ID. If those report bytes change while the
+gate is open, authorization must fail closed without mutating the interval.
+
+Persist `WAITING_FOR_USER` plus that exact gate identity, return
+`SMOKE_USER_INPUT_REQUIRED`, and launch no further model stage while the gate
+is open. Repeating the same gate request is idempotent; a different request
+cannot replace it.
+
 Provide explicit smoke-test authorization, for example:
 
 ```text
@@ -2472,6 +2864,35 @@ Delivery Gate: CLEAR_WITH_EXCEPTION
 ```
 
 The verification report itself must remain `NOT_DONE`.
+
+On the later `/smoke RESUME <run-id>`, the human must include the requested
+authorization fields in that same user message. A bare RESUME while the gate
+is open is a no-op that returns `SMOKE_USER_INPUT_REQUIRED`; authorization
+must not be recovered from earlier chat history. The source-root orchestrator
+must capture the current human response before autonomous handoff using
+`smoke_budget.py human-wait-authorize` against the exact persisted
+`gate_type` and `gate_id`. The helper requires canonical FULL `waive-review-loop` state, current
+`NOT_DONE / BLOCKED / MATCH` verification, `WAITING_FOR_USER` with a blocker
+carrying the same `gate_type/gate_id`, the exact verification report, failure
+set, classification, `ACCEPTED_TEMPORARILY` decision, and non-empty human
+justification, residual risk, compensating control, remediation, and expiry
+before mutating the ledger.
+
+If any authorization field is missing or mismatched, or the verification-report
+bytes no longer match the report digest bound into the gate identity, the helper
+rejects the attempt without changing the existing open interval. The run remains
+`WAITING_FOR_USER`; no close/reopen cycle occurs. Only a valid authorization
+closes the interval. The persisted authorization then crosses the source-root
+to rooted-continuation boundary as repository evidence; `--auto` and chat
+history are never substitutes for that human decision.
+
+A deliberate human decline does not call `human-wait-authorize`. The gate
+remains open; use `/smoke ABANDON <run-id>` when the user chooses to terminate
+the run rather than accept the waiver.
+
+A completed gate ID cannot be reopened. If a later verification run changes
+the verification report, Contract-v1 fingerprint, failure set, or
+classification, it is a new request with a new derived gate identity.
 
 ### Step 3 — review with exception
 
@@ -2664,133 +3085,425 @@ Do not automatically cycle indefinitely.
 
 # 26. Phase 19 — Restart from an arbitrary middle stage
 
-This phase specifically validates that the workflow can be followed without prior conversational baggage.
+This phase validates **routing from persisted repository state**, not repeated
+end-to-end execution from seven different starting points.
 
-Create separate restart scenarios.
+The acceptance question is:
 
-## Scenario A — approved architecture already exists
+> Given a fresh conversational context and only the persisted repository state,
+> can SubhForge identify the earliest correct continuation stage without relying
+> on prior chat history?
 
-Start a fresh chat/session.
+Do not tell the probe the expected stage. The harness may know the expected
+answer for scoring, but that expected answer must not appear in the child
+context, artifact names, prompt text, or checkpoint label exposed to the
+routing decision.
 
-Provide only repository access.
+## 26.1 Cost-controlled execution rule
 
-Expected behavior:
+Use seven bounded subcases, but do **not** replay the full downstream lifecycle
+for each subcase.
 
-- agent discovers existing PRD/architecture
-- does not rerun `/grill` or `/prd`
-- starts at `/project-init` if initialization is incomplete
+- six subcases are **routing-only**
+- one subcase is **routing + real handoff**
+- routing-only cases stop immediately after the correct next stage and reason
+  are persisted
+- the routing + handoff case crosses into the selected normal lifecycle command
+  only far enough to prove that the persisted artifact/context handoff is
+  executable; it does not need to complete the downstream feature again
+- do not count a routing case as passed merely because a deterministic helper
+  computed the expected stage; the routing decision must be produced by the
+  workflow/orchestrator reasoning under test
 
-## Scenario B — project-init already ready
+The normal SubhForge workflow is unchanged. Outside smoke testing, resume
+continues into the selected lifecycle command normally.
 
-Fresh session.
+## 26.2 Subcases
 
-Expected:
+### Scenario A — approved architecture already exists
 
-- discovers project baseline and artifacts
-- starts at `/spec`
+Fresh routing context receives repository access only.
 
-## Scenario C — approved spec exists
+Persisted state:
 
-Fresh session.
+- PRD ready
+- architecture/ADRs ready
+- project-init incomplete
 
-Expected:
+Expected routing decision:
 
-- identifies relevant spec
-- starts at `/implement`
+`/project-init`
 
-## Scenario D — implementation exists, no verification
+Do not rerun `/grill`, `/prd`, or `/architect`.
 
-Fresh session.
+### Scenario B — project-init already ready
 
-Expected:
+Persisted state:
 
-- starts at `/verify`
+- project-init ready
+- no approved Spec
 
-## Scenario E — valid fresh verification exists
+Expected routing decision:
 
-Fresh session.
+`/spec`
 
-Expected:
+### Scenario C — approved Spec exists
 
-- starts at `/review`
+Persisted state:
 
-## Scenario F — stale verification exists
+- approved Spec exists
+- implementation not yet complete
 
-Fresh session.
+Expected routing decision:
 
-Expected:
+`/implement`
 
-- detects stale state
-- requires `/verify`
-- does not trust prior chat
+This is the **routing + real handoff** subcase.
 
-## Scenario G — review blocker exists
+After the routing decision is persisted, invoke the normal `/implement`
+owner with the exact persisted Spec/context paths and prove that the command
+accepts the handoff and begins from that Spec. Stop the resume subcase after
+handoff correctness is evidenced; do not require a second full implementation,
+verification, and review cycle merely for this resume test.
 
-Fresh session.
+### Scenario D — implementation exists, no verification
 
-Expected:
+Persisted state:
 
-- `/fix` consumes persisted review evidence
-- no need to reproduce reviewer conversation
+- implementation exists
+- no applicable current verification evidence
 
-## Pass condition
+Expected routing decision:
 
-Persisted repository artifacts are sufficient to determine the correct continuation point.
+`/verify`
 
-Chat memory must not be required.
+Routing-only.
+
+### Scenario E — valid fresh verification exists
+
+Persisted state:
+
+- applicable verification exists
+- delivery gate is clear
+- deterministic Contract-v1 freshness is `MATCH`
+
+Expected routing decision:
+
+`/review`
+
+Routing-only. Do not invoke reviewers merely to prove routing; review behavior
+is already exercised by its dedicated smoke scenarios.
+
+### Scenario F — stale verification exists
+
+Persisted state:
+
+- applicable historical verification exists
+- current implementation identity no longer matches it
+
+Expected routing decision:
+
+`/verify`
+
+The probe must establish staleness through the normal deterministic freshness
+mechanism. It must not trust the previous verification merely because a report
+exists.
+
+Routing-only.
+
+### Scenario G — review blocker exists
+
+Persisted state:
+
+- blocking review evidence exists
+- no later repair has superseded it
+
+Expected routing decision:
+
+`/fix`
+
+Routing-only. The persisted review artifact must be sufficient; prior reviewer
+conversation must not be required.
+
+## 26.3 Probe isolation
+
+Each subcase must start from a deterministic known repository/checkpoint state.
+
+H05 uses the installed `scripts/smoke_resume.py` helper. The helper owns
+preparation, validation, scoring, snapshotting, and restoration only; it does
+not choose the continuation stage.
+
+Use seven opaque harness IDs (`r01` through `r07`). Their mapping to the
+seven subcases/expected stages remains inside deterministic harness code and
+must not be written into the prepared repository or resume ledger before the
+routing decision.
+
+### Preparation source
+
+Start every probe from the same applicable clean reviewed/repaired checkpoint
+unless a later clean checkpoint is explicitly selected. Supply the helper with:
+
+- the checkpoint label
+- disposable baseline HEAD
+- exact active Spec path
+- exact implementation/test/config paths that constitute the implemented change
+- exact applicable fresh verification path
+
+The helper snapshots all Git-tracked and non-ignored untracked files except
+`docs/verification/smoke/**`, then constructs the required persisted state:
+
+- architecture-ready/project-init-incomplete restores project-init-owned
+  project instructions/rules/workflow files to the disposable baseline and
+  hides downstream Spec/implementation/evidence
+- project-init-ready hides Spec/implementation/evidence
+- Spec-ready hides implementation/evidence
+- implementation/no-verification keeps implementation and hides verification/review
+- fresh-verification keeps only the applicable verification and requires the
+  clean checkpoint identity to remain `MATCH`
+- stale-verification keeps that historical verification and creates a
+  deterministic identity change in one supplied implementation path, requiring
+  checkpoint `MISMATCH`
+- review-blocked keeps fresh verification and writes one normal blocking
+  review artifact with `CHANGES_REQUIRED`/senior `NOT_RUN`
+
+The prepared state may contain the normal workflow status/next-action fields
+that a genuine persisted artifact would contain. Those are the evidence under
+test, not harness answer leakage.
+
+### Fresh routing context
+
+For every probe start a new GPT-5.6 Luna `resume-router` task.
+
+The routing task receives only:
+
+- the already-rooted disposable repository
+- the deterministic manifest helper path as infrastructure
+- the generic request to determine the earliest correct normal continuation
+  stage from persisted repository evidence
+
+It receives none of:
+
+- opaque probe ID
+- expected stage
+- expected-route text
+- checkpoint label
+- prior probe stage/reason/result
+- resume helper/scoring ledger
+- canonical smoke state
+- global smoke runbook/profiles/fixtures/failure recipes
+
+The router may inspect normal project evidence only. It is read-only and must
+not invoke the selected workflow. Access to `docs/verification/smoke/**` must
+also be denied mechanically for `read`, `glob`, and `grep`; do not expose a
+general `git status` permission that could reveal smoke-ledger/snapshot
+filenames.
+
+When applicable verification evidence exists, it must establish freshness from
+the persisted Contract-v1 identity rather than trusting report existence.
+
+### Scoring and restoration
+
+After the routing child returns exactly one selected stage and concise reason:
+
+1. persist only that **actual** stage/reason through
+   `smoke_resume.py score`
+2. let the helper compare it with its internal harness-owned expectation
+3. on mismatch, restore exactly and stop the scenario as failed
+4. for six routing-only cases, restore immediately after a passing score
+5. for the approved-Spec case only, perform one DeepSeek
+   `WORKFLOW: /implement` request with `HANDOFF_PROBE_ONLY: true`; require
+   `SMOKE_IMPLEMENT_HANDOFF_ACCEPTED`, record the handoff result, then restore
+6. after restoration require both the helper's complete snapshot digest and the
+   declared Contract-v1 checkpoint to reproduce exactly
+
+Do not carry one probe's prepared state into the next.
+
+## 26.4 Pass condition
+
+The `arbitrary-stage-resume` scenario passes only when:
+
+- all seven subcases choose the correct continuation stage
+- none relies on chat history or smoke-ledger answer leakage
+- every prepared state passes deterministic validation
+- every probe is isolated from the next and restores the exact clean snapshot
+  plus Contract-v1 checkpoint
+- no subcase reruns already-valid upstream ceremony
+- stale verification is a real deterministic identity `MISMATCH` and routes
+  to fresh `/verify`
+- review-blocker state routes to `/fix`
+- Scenario C successfully hands off into the normal DeepSeek `/implement`
+  owner using persisted Spec/context evidence without implementing again
+- `smoke_resume.py status` reports all seven opaque probes passing and restored
+
+The scenario does **not** require seven repeated downstream lifecycle
+executions.
 
 ---
 
 # 27. Phase 20 — upstream-change rerouting tests
 
-Validate that blocked workflows route to authority rather than inventing decisions.
+Validate that blocked workflows route to the owning authority rather than
+inventing decisions downstream.
 
-## Architecture discovers product ambiguity
+## 27.1 H06 deterministic preparation boundary
 
-Expected:
+Use installed `scripts/smoke_reroute.py`. It owns only:
+
+- complete non-smoke working-tree snapshotting
+- deterministic blocked-state preparation
+- preparation validation
+- hidden comparison of the model's **actual** blocked status/owner/next command
+- regeneration-path derivation after a passing authority classification
+- representative handoff recording
+- exact snapshot/checkpoint restoration
+- final all-probe status
+
+It does **not** choose the authority on behalf of the model.
+
+Use eight opaque IDs, `u01` through `u08`. Their hidden expected
+status/owner/next-command mapping must remain inside deterministic harness code
+and must not be written into normal project evidence or the reroute ledger
+before model classification.
+
+Every probe starts from the same applicable clean reviewed/repaired checkpoint
+unless another clean checkpoint is explicitly selected. Supply exact paths for
+the active PRD, architecture, one relevant ADR, Spec, `AGENTS.md`,
+implementation/test/config files, and applicable normal verification report.
+
+## 27.2 Required prepared cases
+
+| Probe meaning | Classifier | Expected authority destination |
+| --- | --- | --- |
+| Architecture sees contradictory product behavior | GPT-5.6 Sol planning-worker | product → `/prd` |
+| Spec sees conflicting architecture/ADR decisions | GPT-5.6 Sol planning-worker | architecture → `/architect` |
+| Implementation would require an unapproved architecture/persistence change | GPT-5.6 Sol planning-worker | architecture → `/architect` |
+| Fix exposes contradictory product requirements | DeepSeek `/fix` | product → `/prd` |
+| Fix requires changing approved architecture | DeepSeek `/fix` | architecture → `/architect` |
+| Fix is blocked by repository initialization that no longer matches architecture | DeepSeek `/fix` | project-init → `/project-init` |
+| Fix is blocked by contradictory Spec/acceptance criteria | DeepSeek `/fix` | specification → `/spec` |
+| Fix is blocked by repository/environment state that must be preserved/corrected | DeepSeek `/fix` | repository → `/fix` |
+
+These eight cases preserve all original Phase-20 examples while covering the
+five normal H06 corrective authority destinations required by the current
+blocked-output contracts. `USER_APPROVAL` is out of scope for H06.
+
+## 27.3 Fresh classification context
+
+For planning cases delegate exactly one GPT-5.6 Sol `planning-worker` with:
 
 ```text
-ARCHITECTURE_BLOCKED
-→ /prd
+MODE: AUTHOR
+UPSTREAM_ROUTE_PROBE_ONLY: true
+WORKFLOW: /architect | /spec | /implement
+DISCOVERY_POLICY: EXACT_ONLY
 ```
 
-## Spec discovers architecture ambiguity
-
-Expected:
+For fix-origin cases delegate exactly one DeepSeek `smoke-executor` with:
 
 ```text
-SPEC_BLOCKED
-→ /architect
+WORKFLOW: /fix
+UPSTREAM_ROUTE_PROBE_ONLY: true
 ```
 
-## Implementation requires unapproved architecture change
+Supply only exact normal project context. Never supply:
 
-Expected:
+- opaque probe ID
+- expected blocked token
+- expected owner
+- expected next command
+- checkpoint label
+- prior probe result
+- reroute score
+- `docs/verification/smoke/**`
+- `smoke_reroute.py` source/path as semantic context
+- canonical smoke state
+
+The child returns exactly:
 
 ```text
-IMPLEMENTATION_BLOCKED
-→ /architect
+BLOCKED_STATUS: <normal blocked token>
+OWNER: <normal owner>
+NEXT_COMMAND: </command>
+REASON: <one concise evidence-based reason>
 ```
 
-## Fix reveals requirement contradiction
+Before scoring, the helper must prove the prepared repository snapshot is
+unchanged.
 
-Expected:
+Only after a passing model classification may the helper expose the mechanical
+downstream regeneration chain implied by the selected authority:
+
+- product: `/prd → /architect → /project-init → /spec → /implement → /verify`
+- architecture: `/architect → /project-init → /spec → /implement → /verify`
+- project-init: `/project-init → /spec → /implement → /verify`
+- specification: `/spec → /implement → /verify`
+- repository: `/fix → /verify`
+
+This chain is deterministic workflow mechanics **after** authority judgment; it
+must not be used to predetermine the authority result.
+
+## 27.4 Representative executable handoff
+
+The conflicting-architecture Spec case is the one real handoff probe. After a
+passing route to `/architect`, invoke one GPT-5.6 Sol `planning-worker` with:
 
 ```text
-FIX_BLOCKED
-→ /prd
+MODE: AUTHOR
+UPSTREAM_HANDOFF_PROBE_ONLY: true
+WORKFLOW: /architect
+DISCOVERY_POLICY: EXACT_ONLY
 ```
 
-## Fix reveals architecture defect
+and exact persisted normal context.
 
-Expected:
+Require:
 
 ```text
-FIX_BLOCKED
-→ /architect
+SMOKE_UPSTREAM_HANDOFF_ACCEPTED
 ```
 
-After upstream correction, explicitly regenerate invalidated downstream artifacts.
+The handoff proves the selected upstream owner can accept that exact persisted
+context. It must not edit the repository, resolve the architecture conflict, or
+regenerate project-init/Spec/implementation/verification. The helper must prove
+the prepared snapshot remains unchanged before recording the handoff.
+
+## 27.5 Restoration and pass condition
+
+After every routing-only case, restore immediately. After the representative
+handoff, record acceptance then restore.
+
+Every restoration must reproduce:
+
+1. the helper's complete tracked + non-ignored untracked snapshot excluding
+   `docs/verification/smoke/**`
+2. the declared Contract-v1 checkpoint as `MATCH`
+
+Do not carry one prepared blocker into the next probe.
+
+If a classifier/handoff child is interrupted before deterministic scoring,
+first complete normal H02 stage recovery, then restore the active H06 probe.
+A `RESTORED + NOT_SCORED` record may be prepared again under the same opaque
+ID with an incremented attempt count. Scored `PASS` and `FAIL` records are
+single-use and cannot be retried.
+
+The scenario passes only when all eight opaque probes:
+
+- were deterministically prepared and validated
+- were classified by the permitted normal model owner
+- matched hidden blocked-status/owner/next-command expectations
+- did not mutate their prepared evidence during classification/handoff
+- restored exactly
+- and the representative architecture handoff was accepted
+
+Finally require:
+
+```text
+smoke_reroute.py ... status
+→ result=PASS
+```
+
+Do not replay every downstream regeneration path inside H06. The real FULL
+workflow continues to validate the ordinary lifecycle elsewhere.
 
 ---
 
@@ -3060,3 +3773,165 @@ The smoke test should demonstrate that the workflow can be entered and resumed f
 The core guarantee is:
 
 > The workflow preserves authority boundaries, reuses valid prior artifacts, invalidates downstream work when upstream authority changes, and ensures that the exact repository state that was deterministically verified is the state being reviewed—even when implementation was never committed before verification.
+
+
+## Executable FULL runtime guard
+
+The FULL orchestration budget is enforced by `scripts/smoke_budget.py`.
+
+- initialize the guard immediately after the smoke run record is created
+- check it before every substantive lifecycle/model stage
+- check it immediately after every child/subagent returns
+- compute ACTIVE-segment charged time from its committed start minus helper-validated
+  allow-listed human-authorization intervals owned by that same segment
+- only `human-wait-start` may open an excluded interval, only from the rooted
+  disposable run, and Stable v0.1 only accepts `WAIVER_AUTHORIZATION`
+- `WAITING_FOR_USER` alone never pauses the clock
+- at most one wait interval may be open; completed intervals remain append-only
+  and their durations are summed
+- invalid/rejected authorization is a pure no-op on the open interval
+- `human-wait-authorize` may close an existing gate before rooted handoff only
+  after validating the disposable workspace, exact gate identity, exact waiver
+  scope, and all required human decision fields
+- no smoke model stage may start while a human wait is open
+- derive the current ACTIVE segment and limit from the bootstrap-pinned qualification
+  snapshot; callers may not supply a numeric override
+- at the ACTIVE segment's pinned limit, do not launch another stage; persist the
+  blocker, mark the qualification permanently ineligible, and return
+  `PERFORMANCE_BUDGET_EXCEEDED`
+- this is an orchestration-boundary stop and does not forcibly terminate an
+  already-running child model invocation
+
+Smoke `/verify` must use `scripts/smoke_mechanics.py manifest` for pre/post
+Contract-v1 implementation identity. It must not generate ad-hoc manifest or
+report-generator scripts such as `build_manifest.py` or `gen_report.py`.
+
+## Canonical smoke-state validation boundary
+
+`scripts/smoke_state.py` owns structural validation of
+`<run-id>.state.json`. Both reads and targeted writes fail closed when the
+canonical record contains unknown/missing top-level fields, invalid run-state,
+stage or selected-profile scenario IDs, duplicate/overlapping scenario lists,
+premature pre-static scenario completion, invalid blocker/final-result shapes,
+terminal PASS/FAIL tokens inconsistent with profile/completion state, or
+corrupted immutable identity.
+
+`context_index` and `stage_metrics` remain delta-merge maps, but bootstrap
+identity inside `context_index` is protected: `contract_parity` and
+`budget_started_at_utc` may first be established only while
+`static-release-gate` is the current incomplete bootstrap stage, and may later
+be repeated identically but never replaced. The workflow cannot advance past
+the static gate without completing that scenario and retaining both protected
+bootstrap values. Invalid updates are validated as a whole before persistence;
+the helper does not partially write or silently repair the candidate state.
+
+This validation is mechanical only. It does not decide which lifecycle stage
+should run next and must not replace the orchestrator's routing judgment.
+
+## Open Stable-v0.1 smoke hardening TODOs
+
+The Git-authoritative tracker for audit-discovered FULL hardening work is:
+
+`forge/smoke/STABLE-V0.1-FULL-HARDENING-TRACKER.md`
+
+Use that tracker for H01–H14 status, acceptance gates, sequencing, and closing
+commit SHAs. Do not rely on chat history as the work queue.
+
+
+
+- [x] **Make the static Contract-v1 parity check path-aware and non-brittle.**
+  Implemented with `scripts/smoke_static.py contract-parity`. Only required
+  canonical contract paths determine `contract_equal`; missing optional paths
+  are reported separately as diagnostics. Missing required paths and required
+  content mismatches fail closed.
+
+
+- [x] **Add a repository-level `.gitignore`.**
+  Added a conservative root `.gitignore` covering generated Python, editor,
+  OS, build, temporary, IaC, and local Kilo scratch artifacts without excluding
+  SubhForge workflow evidence, design documents, or source files.
+
+- [ ] **Add design-time workflow contract validation and a dry orchestration simulator.**
+  SubhForge should catch obvious orchestration defects before spending real
+  model/runtime budget in FAST/FULL smoke. Add a cheap deterministic validation
+  layer between Python unit tests and agentic smoke execution that can inspect
+  command/agent contracts and simulate the expected orchestration skeleton
+  without simulating model reasoning. It should validate, at minimum, stage
+  ownership/model routing, required handoff fields, exact-context/discovery
+  policy, state-transition invariants, scenario class/checkpoint/model budgets,
+  zero-reviewer negative-freshness rules, referenced helper existence/test
+  coverage, and contradictory/duplicated orchestration instructions. A dry
+  FULL plan should be able to emit the expected stage sequence, context packet
+  shape, state transition, checkpoint, and allowed model sequence for each
+  scenario. FULL smoke should then focus on emergent agent behavior and true
+  integration failures rather than discovering static contract mistakes.
+  Preserve the existing principle: deterministic infrastructure, probabilistic
+  agents; this simulator must not replace or predetermine planning,
+  implementation, verification, review, adversarial, or routing judgments.
+
+- [ ] **Design an approved ceremony-bypass path for existing upstream authority.**
+  Stable-v0.1.0 should support starting from a later lifecycle stage such as
+  `/spec` when valid upstream authority already exists, for example an
+  existing PRD that should be used as the governing input for implementation.
+  This is needed for the planned v0.2.0 work, where an accepted PRD already
+  exists and repeating `/grill`, `/prd`, and `/architect` would add ceremony
+  without useful new information. The exact authority checks, permitted skip
+  combinations, provenance requirements, and safety rules are intentionally
+  **deferred for discussion when this TODO is picked up**. Do not design or
+  implement the bypass as part of the current smoke-efficiency work.
+
+- [x] **Make smoke-run state updates structured instead of long-text patch matching.**
+  Implemented with `scripts/smoke_state.py`. Canonical orchestration state now
+  lives in `<run-id>.state.json`; the Markdown run record remains the
+  human-readable audit projection. Stage transitions use targeted structured
+  updates instead of relying on exact long-block Markdown matches.
+
+
+- [x] **Raise SubhForge runtime baseline to Python 3.14+.**
+  SubhForge itself now requires Python 3.14+ in bootstrap validation,
+  documentation, and the PowerShell wrapper. New helper code uses modern Python
+  typing accordingly. This requirement applies to the SubhForge harness only;
+  runtimes for generated projects remain architecture decisions.
+
+
+- [x] **Enforce deterministic static Contract-v1 parity in /smoke.**
+  Implemented through mandatory `scripts/smoke_bootstrap.py`, which invokes
+  the path-aware `smoke_static.contract_parity` logic before any model stage,
+  persists the result into canonical smoke state, and fails closed on required
+  mismatch. **Runtime revalidation is required in the next fresh FULL run.**
+
+- [x] **Enforce canonical structured smoke state during real runs.**
+  New-run bootstrap now initializes `<run-id>.state.json` and the budget in one
+  deterministic prerequisite. The smoke orchestrator must load canonical state
+  before every substantive child, persist targeted `smoke_state.py set`
+  updates immediately after the child, verify the update, then update Markdown
+  as the human-readable projection. **Runtime revalidation is required in the
+  next fresh FULL run.**
+
+- [x] **Eliminate avoidable rediscovery when exact context paths are already known.**
+  Smoke delegation now uses an explicit `CONTEXT_PATHS` contract. Planning and
+  execution workers must consume valid supplied paths directly, may not glob a
+  directory merely to rediscover them, and must report the concrete reason when
+  bounded discovery is genuinely required. **Runtime revalidation is required
+  in the next fresh FULL run.**
+
+
+- [x] **Reduce pre-review and senior-review deterministic reconstruction overhead.**
+  Added shared `scripts/implementation_state.py` as the general Contract-v1
+  identity engine and `scripts/review_preflight.py` to reconstruct/compare
+  review freshness once. Both reviewer stages now receive exact context paths,
+  the successful preflight result, verification evidence, and prior review
+  evidence instead of independently rebuilding repository identity. Reviewer
+  judgment, security analysis, architecture checks, and independent production
+  assessment remain unchanged. **Runtime revalidation is required in the next
+  fresh FULL run.**
+
+
+- [x] **Make arbitrary-stage resume validation routing-focused instead of replaying seven downstream lifecycles.**
+  The FULL resume scenario now uses seven isolated persisted-state probes: six
+  stop after the workflow independently chooses and persists the correct next
+  stage, while the approved-Spec case additionally crosses into a real
+  `/implement` handoff to prove executability. Expected-stage answers remain
+  harness-owned and are not exposed to the routing context. Normal SubhForge
+  resume behavior outside smoke remains unchanged. **Runtime revalidation is
+  required in the next fresh FULL run.**

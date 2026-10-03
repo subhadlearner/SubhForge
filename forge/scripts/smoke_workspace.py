@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import json
+import os
 import shutil
 import stat
 import subprocess
@@ -36,6 +38,62 @@ def _run_git(repo: Path, *args: str) -> str:
     return proc.stdout.strip()
 
 
+def source_guard(source: Path) -> Dict[str, str]:
+    """Fingerprint the source checkout so smoke stages can prove they did not mutate it."""
+    source = source.resolve()
+    if not source.is_dir():
+        raise SmokeWorkspaceError("SubhForge source checkout does not exist: {}".format(source))
+    if _run_git(source, "rev-parse", "--is-inside-work-tree").lower() != "true":
+        raise SmokeWorkspaceError("SubhForge source path is not a Git work tree: {}".format(source))
+
+    git = shutil.which("git")
+    assert git is not None
+    proc = subprocess.run(
+        [git, "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+        cwd=str(source),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if proc.returncode != 0:
+        raise SmokeWorkspaceError("git ls-files failed: {}".format(
+            proc.stderr.decode("utf-8", errors="replace").strip()))
+
+    digest = hashlib.sha256()
+    digest.update(_run_git(source, "rev-parse", "HEAD").encode("ascii"))
+    digest.update(b"\0")
+    digest.update((_run_git(source, "branch", "--show-current") or "DETACHED").encode("utf-8"))
+    digest.update(b"\0")
+
+    raw_paths = [item for item in proc.stdout.split(b"\0") if item]
+    for raw in sorted(raw_paths):
+        rel = raw.decode("utf-8", errors="surrogateescape")
+        path = source / rel
+        digest.update(raw)
+        digest.update(b"\0")
+        if path.is_symlink():
+            digest.update(b"SYMLINK\0")
+            digest.update(os.readlink(path).encode("utf-8", errors="surrogateescape"))
+        elif path.is_file():
+            digest.update(b"FILE\0")
+            digest.update(hashlib.sha256(path.read_bytes()).digest())
+        elif path.exists():
+            digest.update(b"OTHER\0")
+        else:
+            digest.update(b"MISSING\0")
+        digest.update(b"\0")
+
+    return {
+        "source_checkout_path": str(source),
+        "fingerprint": digest.hexdigest(),
+    }
+
+
+def verify_source_guard(source: Path, expected: str) -> Dict[str, str]:
+    current = source_guard(source)
+    result = "MATCH" if current["fingerprint"] == expected else "MISMATCH"
+    return {**current, "expected_fingerprint": expected, "result": result}
+
+
 def _repo_name(source: Path) -> str:
     return source.name or "project"
 
@@ -50,24 +108,17 @@ def _new_run_id(profile: str, fixture: str) -> str:
     return "SMOKE-{}-{}-{}-{}".format(profile.upper(), fixture, stamp, suffix)
 
 
-def create_workspace(source: Path, profile: str, fixture: str) -> Dict[str, str]:
+def create_workspace(source: Path, source_commit: str, profile: str, fixture: str) -> Dict[str, str]:
+    """Provision a disposable project from SubhForge/template at an exact release commit."""
     source = source.resolve()
     if not source.is_dir():
-        raise SmokeWorkspaceError("Source repository does not exist: {}".format(source))
+        raise SmokeWorkspaceError("SubhForge source checkout does not exist: {}".format(source))
+    if _run_git(source, "rev-parse", "--is-inside-work-tree").lower() != "true":
+        raise SmokeWorkspaceError("SubhForge source path is not a Git work tree: {}".format(source))
 
-    inside = _run_git(source, "rev-parse", "--is-inside-work-tree")
-    if inside.lower() != "true":
-        raise SmokeWorkspaceError("Source path is not a Git work tree: {}".format(source))
-
-    dirty = _run_git(source, "status", "--porcelain")
-    if dirty:
-        raise SmokeWorkspaceError(
-            "Source repository must be clean before a smoke run. "
-            "Commit, stash, or remove unrelated changes first."
-        )
-
-    baseline_head = _run_git(source, "rev-parse", "HEAD")
-    baseline_branch = _run_git(source, "branch", "--show-current") or "DETACHED"
+    resolved_commit = _run_git(source, "rev-parse", "{}^{{commit}}".format(source_commit))
+    if resolved_commit != source_commit:
+        source_commit = resolved_commit
 
     root = _run_root(source)
     root.mkdir(parents=True, exist_ok=True)
@@ -82,37 +133,79 @@ def create_workspace(source: Path, profile: str, fixture: str) -> Dict[str, str]
 
     git = shutil.which("git")
     assert git is not None
-    clone = subprocess.run(
-        [git, "clone", "--no-hardlinks", "--local", str(source), str(target)],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-    if clone.returncode != 0:
-        detail = (clone.stderr or clone.stdout).strip()
-        raise SmokeWorkspaceError("git clone failed: {}".format(detail))
-
+    token = uuid.uuid4().hex[:8]
+    release_clone = root / (".release-" + token)
+    baseline = root / (".baseline-" + token)
     try:
-        _run_git(target, "switch", "-c", "smoke-run")
-    except Exception:
-        shutil.rmtree(str(target), ignore_errors=True)
-        raise
-
-    cloned_head = _run_git(target, "rev-parse", "HEAD")
-    if cloned_head != baseline_head:
-        shutil.rmtree(str(target), ignore_errors=True)
-        raise SmokeWorkspaceError(
-            "Disposable clone HEAD {} does not match baseline HEAD {}.".format(
-                cloned_head, baseline_head
-            )
+        clone_release = subprocess.run(
+            [git, "clone", "--no-hardlinks", "--local", "--no-checkout", str(source), str(release_clone)],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
         )
+        if clone_release.returncode != 0:
+            raise SmokeWorkspaceError("release clone failed: {}".format(
+                (clone_release.stderr or clone_release.stdout).strip()))
+        _run_git(release_clone, "checkout", "--detach", source_commit)
+
+        template = release_clone / "template"
+        if not template.is_dir():
+            raise SmokeWorkspaceError("template/ is missing at release commit {}".format(source_commit))
+        shutil.copytree(str(template), str(baseline))
+
+        init = subprocess.run([git, "init", "-b", "main"], cwd=str(baseline),
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if init.returncode != 0:
+            init = subprocess.run([git, "init"], cwd=str(baseline),
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if init.returncode != 0:
+            raise SmokeWorkspaceError("baseline git init failed: {}".format(
+                (init.stderr or init.stdout).strip()))
+        # Normalize the baseline branch name even when older Git required the
+        # fallback init path.
+        _run_git(baseline, "branch", "-M", "main")
+        _run_git(baseline, "add", "-A")
+        env = os.environ.copy()
+        env["GIT_AUTHOR_DATE"] = "2000-01-01T00:00:00Z"
+        env["GIT_COMMITTER_DATE"] = "2000-01-01T00:00:00Z"
+        commit = subprocess.run(
+            [git, "-c", "user.name=SubhForge", "-c", "user.email=subhforge@local",
+             "commit", "-m", "Initialize smoke fixture from SubhForge template"],
+            cwd=str(baseline), env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+        if commit.returncode != 0:
+            raise SmokeWorkspaceError("baseline commit failed: {}".format(
+                (commit.stderr or commit.stdout).strip()))
+        baseline_head = _run_git(baseline, "rev-parse", "HEAD")
+
+        clone = subprocess.run(
+            [git, "clone", "--no-hardlinks", "--local", str(baseline), str(target)],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+        if clone.returncode != 0:
+            raise SmokeWorkspaceError("git clone failed: {}".format(
+                (clone.stderr or clone.stdout).strip()))
+        _run_git(target, "switch", "-c", "smoke-run")
+        cloned_head = _run_git(target, "rev-parse", "HEAD")
+        if cloned_head != baseline_head:
+            raise SmokeWorkspaceError(
+                "Disposable clone HEAD {} does not match generated baseline HEAD {}.".format(
+                    cloned_head, baseline_head))
+    except Exception:
+        if target.exists():
+            shutil.rmtree(str(target), onerror=_remove_readonly)
+        raise
+    finally:
+        if release_clone.exists():
+            shutil.rmtree(str(release_clone), onerror=_remove_readonly)
+        if baseline.exists():
+            shutil.rmtree(str(baseline), onerror=_remove_readonly)
 
     return {
         "run_id": run_id,
         "profile": profile.upper(),
         "fixture": fixture,
-        "source_repository": str(source),
-        "baseline_branch": baseline_branch,
+        "source_checkout_path": str(source),
+        "source_commit": source_commit,
+        "baseline_branch": "main",
         "baseline_head": baseline_head,
         "run_directory": str(target),
         "run_branch": "smoke-run",
@@ -128,7 +221,7 @@ def locate_workspace(source: Path, run_id: str) -> Dict[str, str]:
     branch = _run_git(target, "branch", "--show-current") or "DETACHED"
     return {
         "run_id": run_id,
-        "source_repository": str(source),
+        "source_checkout_path": str(source),
         "run_directory": str(target),
         "current_head": head,
         "run_branch": branch,
@@ -150,7 +243,7 @@ def destroy_workspace(source: Path, run_id: str) -> Dict[str, str]:
     if not target.exists():
         return {
             "run_id": run_id,
-            "source_repository": str(source),
+            "source_checkout_path": str(source),
             "run_directory": str(target),
             "destroyed": "false",
             "reason": "NOT_FOUND",
@@ -163,10 +256,10 @@ def destroy_workspace(source: Path, run_id: str) -> Dict[str, str]:
             "Refusing to delete workspace whose current branch is not smoke-run: {}".format(branch)
         )
 
-    shutil.rmtree(str(target), onexc=_remove_readonly)
+    shutil.rmtree(str(target), onerror=_remove_readonly)
     return {
         "run_id": run_id,
-        "source_repository": str(source),
+        "source_checkout_path": str(source),
         "run_directory": str(target),
         "destroyed": "true",
     }
@@ -178,6 +271,7 @@ def _parser() -> argparse.ArgumentParser:
 
     create = sub.add_parser("create")
     create.add_argument("--source", required=True)
+    create.add_argument("--source-commit", required=True)
     create.add_argument("--profile", required=True, choices=["FAST", "FULL"])
     create.add_argument("--fixture", required=True)
 
@@ -189,6 +283,10 @@ def _parser() -> argparse.ArgumentParser:
     destroy.add_argument("--source", required=True)
     destroy.add_argument("--run-id", required=True)
 
+    guard = sub.add_parser("source-guard")
+    guard.add_argument("--source", required=True)
+    guard.add_argument("--expected")
+
     return parser
 
 
@@ -196,11 +294,18 @@ def main() -> int:
     args = _parser().parse_args()
     try:
         if args.command == "create":
-            result = create_workspace(Path(args.source), args.profile, args.fixture)
+            result = create_workspace(Path(args.source), args.source_commit, args.profile, args.fixture)
         elif args.command == "locate":
             result = locate_workspace(Path(args.source), args.run_id)
-        else:
+        elif args.command == "destroy":
             result = destroy_workspace(Path(args.source), args.run_id)
+        elif args.expected:
+            result = verify_source_guard(Path(args.source), args.expected)
+            if result["result"] != "MATCH":
+                print(json.dumps({"ok": False, **result}))
+                return 3
+        else:
+            result = source_guard(Path(args.source))
     except SmokeWorkspaceError as exc:
         print(json.dumps({"ok": False, "error": str(exc)}))
         return 2

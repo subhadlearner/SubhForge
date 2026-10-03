@@ -6,7 +6,7 @@ model: openai/gpt-5.6-luna
 
 # Verification Waiver Workflow
 
-Apply `kilo/contracts/implementation-state-evidence-v1.md` whenever establishing waiver freshness.
+Apply the installed global `<global-config>/contracts/implementation-state-evidence-v1.md` whenever establishing waiver freshness.
 
 Create a governed exception for a specific failed verification result.
 
@@ -34,10 +34,23 @@ Read:
 - the requested specification
 - relevant diagnosis artifact when one exists
 - project-level waiver/security policy from `AGENTS.md`
+- any authoritative waiver-policy source referenced by `AGENTS.md`, when present
 
 Confirm that the verification report is `NOT_DONE`.
 
 Identify the exact failed checks/blockers proposed for waiver.
+
+Whenever this command must persist an exact SHA-256 for a repository file, use
+the deterministic installed helper rather than calculating or guessing the digest:
+
+```text
+python <global-config>/scripts/file_digest.py --repo <project-root> --path <repository-relative-path>
+```
+
+Use the returned `sha256` only for the exact returned `path`. In particular,
+use this helper for `verification_report_sha256` and `policy_sha256` in
+machine-readable refusal records. A helper failure is not permission to invent a
+digest; fail closed.
 
 If the requested failure is not present in the referenced verification report:
 
@@ -47,10 +60,51 @@ Return:
 
 `WAIVER_BLOCKED`
 
-## Stage 2 — Require Explicit Human Authorization
+## Stage 2 — Check Failure-Type Policy Eligibility
 
-A waiver requires an explicit user request to accept the risk.
+Before requesting, reading, or waiting for human authorization, read the exact
+persisted `Failure Type` for every requested failed check from the loaded verification
+report and compare those types against the project waiver policy recorded in `AGENTS.md`
+and its referenced authoritative policy source when applicable.
 
+If any requested blocker lacks a persisted `Failure Type`, fail closed before
+authorization. Persist a reason-coded blocked record with
+`FAILURE_TYPE_UNAVAILABLE` and finish with `WAIVER_BLOCKED`; do not guess the type
+from prose or choose waiver eligibility yourself.
+
+If any requested failure type/category is non-waivable:
+
+- do **not** request human authorization
+- do **not** start or wait on a `WAIVER_AUTHORIZATION` gate
+- persist a reason-coded blocked record under
+  `docs/verification/waiver-refusals/`
+- use reason code `POLICY_INELIGIBLE`
+- finish with `WAIVER_BLOCKED`
+
+This ordering is mandatory. Human willingness to accept risk cannot make a
+policy-ineligible failure waivable.
+
+For a policy-eligible request, assign exactly one waiver classification:
+
+- `TEST_FLAKINESS`
+- `ENVIRONMENT_FAILURE`
+- `NON_CRITICAL_QUALITY_GATE`
+- `KNOWN_PRODUCT_DEFECT`
+- `SECURITY_EXCEPTION`
+- `DATA_INTEGRITY_EXCEPTION`
+- `COMPLIANCE_EXCEPTION`
+
+For `SECURITY_EXCEPTION`, `DATA_INTEGRITY_EXCEPTION`, and
+`COMPLIANCE_EXCEPTION`, retain the existing stricter treatment:
+
+- require explicit acknowledgement of the specific residual risk
+- require concrete compensating controls/evidence
+- do not describe the result as secure, compliant, or safe
+- preserve reviewer/CI/production approval gates
+
+## Stage 3 — Require Explicit Human Authorization
+
+A policy-eligible waiver requires an explicit user request to accept the risk.
 Do not infer authorization from:
 
 - a previous general statement
@@ -58,6 +112,33 @@ Do not infer authorization from:
 - a reviewer suggestion
 - the mere presence of a flaky test
 - urgency or schedule pressure
+
+### Smoke human-authorization receipt
+
+During a Stable-v0.1 FULL smoke run, live human input cannot cross directly into
+the rooted autonomous continuation. The only permitted substitute for a live
+Stage-3 user message is the exact persisted authorization attached to a closed
+`WAIVER_AUTHORIZATION` interval in that run's deterministic
+`<run-id>.budget.json` ledger.
+
+Treat that receipt as explicit human authorization only when all of these hold:
+
+- it was closed by `smoke_budget.py human-wait-authorize`
+- its `gate_type` is exactly `WAIVER_AUTHORIZATION`
+- its helper-derived `gate_id` still matches the canonical gate identity,
+  including the persisted SHA-256 of the exact verification-report bytes
+- the current verification-report bytes still match that persisted report digest
+- its verification report, Contract-v1 implementation-state fingerprint,
+  failure set, and classification exactly match the waiver request being evaluated
+- its decision is exactly `ACCEPTED_TEMPORARILY`
+- justification, residual risk, compensating control, remediation, and expiry
+  are all present
+- normal Stage-4 freshness/policy validation still succeeds
+
+Do not treat `WAITING_FOR_USER`, Kilo `--auto`, a smoke blocker, chat history,
+or any model-generated prose as authorization. The smoke receipt transports the
+human decision; it does not weaken or bypass normal waiver freshness, scope,
+classification, expiry, or policy requirements.
 
 Require the human owner to supply or explicitly approve:
 
@@ -72,27 +153,45 @@ Require the human owner to supply or explicitly approve:
 
 The agent may help structure these fields, but must not fabricate the owner's justification.
 
-## Stage 3 — Classify the Waiver
+If the requested failures are policy-eligible but explicit authorization is absent,
+persist a reason-coded blocked record with `AUTHORIZATION_MISSING` and finish with
+`WAIVER_BLOCKED`.
 
-Use one classification:
+### Machine-readable blocked record
 
-- `TEST_FLAKINESS`
-- `ENVIRONMENT_FAILURE`
-- `NON_CRITICAL_QUALITY_GATE`
-- `KNOWN_PRODUCT_DEFECT`
-- `SECURITY_EXCEPTION`
-- `DATA_INTEGRITY_EXCEPTION`
-- `COMPLIANCE_EXCEPTION`
+Every blocked waiver attempt that has enough failure evidence to identify the request
+must create a new immutable JSON record only under:
 
-If project policy marks a category non-waivable, STOP with `WAIVER_BLOCKED`.
+`docs/verification/waiver-refusals/`
 
-For `SECURITY_EXCEPTION`, `DATA_INTEGRITY_EXCEPTION`, and `COMPLIANCE_EXCEPTION`:
+Never place refusal records under `docs/verification/waivers/`; refusal records are
+historical evidence and are never active waivers.
 
-- require explicit acknowledgement of the specific residual risk
-- require concrete compensating controls/evidence
-- require a short expiry
-- do not describe the result as secure, compliant, or safe
-- preserve any reviewer/CI/production approval gates
+Use a unique attempt filename such as `WAIVER-REFUSAL-<SPEC-ID>-001.json`. Never
+overwrite an earlier refusal. The JSON object must contain:
+
+- `schema_version`: `1`
+- `status`: `WAIVER_BLOCKED`
+- `reason_code`: `POLICY_INELIGIBLE`, `AUTHORIZATION_MISSING`, or another
+  documented distinct reason for the actual block
+- `requested_failure_ids`: exact requested failed check IDs/names
+- `requested_failure_types`: exact failure types/categories when known
+- `verification_report`: exact repository-relative report path
+- `verification_report_sha256`: SHA-256 of the exact report bytes, obtained from
+  `file_digest.py` when the report file is available
+- `implementation_state_fingerprint`: exact Contract-v1 fingerprint when available
+- `classification`: requested waiver classification when known
+- `policy_reference`: project policy path/reference when applicable; when
+  `AGENTS.md` names an authoritative waiver-policy source, use that exact source
+  path rather than `AGENTS.md`
+- `policy_sha256`: SHA-256 of the exact bytes at `policy_reference`, obtained
+  from `file_digest.py` when applicable
+- `authorization_requested`: boolean
+- `authorization_receipt_present`: boolean
+- `decision_timestamp`: timestamp of this blocked decision
+
+Use JSON `null` for unavailable optional identity values. Never invent a value merely
+to fill the schema.
 
 ## Stage 4 — Validate Scope and Freshness
 
