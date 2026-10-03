@@ -88,21 +88,47 @@ def _policy_trace(repo: Path, waiver_policy: Path) -> dict[str, object]:
         raise ProjectInitError(
             "Project AGENTS.md must exist before waiver policy traceability is applied"
         )
-    trace = [
-        "Waiver Policy Source: {}".format(rel),
-        "Waiver Policy SHA-256: {}".format(sha256(policy)),
-        "Non-waivable Failure Types: {}".format(", ".join(non_waivable)),
-        "Waivable Failure Types: {}".format(", ".join(waivable)),
-    ]
-    original = agents.read_text(encoding="utf-8").splitlines()
-    retained = [
-        line for line in original
-        if not any(line.startswith(prefix) for prefix in WAIVER_TRACE_PREFIXES)
-    ]
-    while retained and not retained[-1].strip():
-        retained.pop()
-    rendered = "\n".join(retained + [""] + trace) + "\n"
-    changed = agents.read_text(encoding="utf-8") != rendered
+    trace = {
+        "Waiver Policy Source:": "Waiver Policy Source: {}".format(rel),
+        "Waiver Policy SHA-256:": "Waiver Policy SHA-256: {}".format(sha256(policy)),
+        "Non-waivable Failure Types:": "Non-waivable Failure Types: {}".format(
+            ", ".join(non_waivable)
+        ),
+        "Waivable Failure Types:": "Waivable Failure Types: {}".format(
+            ", ".join(waivable)
+        ),
+    }
+    original = agents.read_text(encoding="utf-8")
+    rendered_lines: list[str] = []
+    seen: set[str] = set()
+    for line in original.splitlines(keepends=True):
+        bare = line.rstrip("\r\n")
+        matched = next(
+            (prefix for prefix in WAIVER_TRACE_PREFIXES if bare.startswith(prefix)),
+            None,
+        )
+        if matched is None:
+            rendered_lines.append(line)
+            continue
+        if matched in seen:
+            continue
+        newline = "\r\n" if line.endswith("\r\n") else "\n"
+        rendered_lines.append(trace[matched] + newline)
+        seen.add(matched)
+
+    rendered = "".join(rendered_lines)
+    if rendered and not rendered.endswith(("\n", "\r")):
+        rendered += "\n"
+    if len(seen) < len(WAIVER_TRACE_PREFIXES):
+        if rendered and not rendered.endswith("\n\n"):
+            rendered += "\n"
+        rendered += "\n".join(
+            trace[prefix]
+            for prefix in WAIVER_TRACE_PREFIXES
+            if prefix not in seen
+        ) + "\n"
+
+    changed = original != rendered
     if changed:
         agents.write_text(rendered, encoding="utf-8")
     return {
