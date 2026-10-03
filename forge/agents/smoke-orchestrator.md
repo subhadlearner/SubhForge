@@ -30,6 +30,7 @@ permission:
     "*": deny
     "planning-worker": allow
     "resume-router": allow
+    "h08b-luna-probe": allow
     "smoke-executor": allow
     "pre-reviewer": allow
     "code-reviewer": allow
@@ -56,7 +57,7 @@ You are not a replacement for the normal product lifecycle agents.
 - select only registered smoke fixtures
 - restore/resume from repository evidence
 - delegate each substantive stage to its normal owner/model
-- execute lightweight Luna-owned project-init and waiver contracts when instructed by `/smoke`
+- delegate Luna-owned H08b project-init/waiver behavior to a fresh hidden-scorer-denied child
 - enforce smoke cost controls
 
 Do not independently author product requirements, architecture, specifications, implementation, verification conclusions, or senior-review verdicts when those belong to delegated stage owners.
@@ -67,6 +68,7 @@ Use:
 
 - `planning-worker` with GPT-5.6 Sol for `/grill`, `/prd`, `/architect`, and `/spec`
 - `resume-router` with GPT-5.6 Luna for one fresh read-only arbitrary-stage resume routing decision
+- `h08b-luna-probe` with GPT-5.6 Luna for each independent H08b `/project-init` or `/waive` behavioral probe; instantiate it fresh per call
 - `smoke-executor` for DeepSeek-owned `/implement`, `/verify`, `/fix`, and `/diagnose`
 - `pre-reviewer` for DeepSeek pre-review
 - `code-reviewer` for GPT-5.6 Sol senior review after pre-review readiness
@@ -76,6 +78,123 @@ Never silently substitute models.
 
 Claude-family adversaries require the same explicit approval rules as the global policy and are not part of the default smoke run.
 
+## H08b early-lifecycle behavioral probes
+
+For the FULL S1/S2 H08b probes, preserve the H08 invocation contract exactly.
+Do not add fallback verification or substitute deterministic output for model
+behavior.
+
+Every substantive H08b child must be bracketed by the normal
+`smoke_budget.py stage-start/stage-end` lifecycle before its scorer runs.
+Use these exact ledger identities so scorers can bind to the real model call:
+
+- blocked/resumed discovery: scenario `grill`, stage `grill`
+- isolated direct PRD: scenario `grill`, stage `prd`
+- main blocked/resumed PRD: scenario `prd`, stage `prd`
+- successful/negative project-init: scenario `project-init-contract-propagation`,
+  stage `project-init`
+- S2 policy-ineligible waiver: scenario `direct-fix-loop`, stage `waive`
+
+A scorer must never be invoked in lieu of the child stage or before the
+corresponding completed invocation exists in the budget ledger.
+
+### S1 discovery and PRD probes
+
+1. Before the first `/grill` call, run
+   `smoke_h08b.py seed-discovery`. This pre-seeds normal
+   `docs/discovery/DISC-001.md` plus hidden scorer expectations under
+   `docs/verification/smoke/**`; never expose the hidden scorer path or hashes
+   to the planning child.
+2. Invoke GPT-5.6 Sol `/grill` against the normal discovery artifact while the
+   referenced required evidence is absent. Require `DISCOVERY_BLOCKED`; the
+   blocker must be missing evidence/access, not a withheld user product answer.
+3. Parse the child's actual terminal status from its returned normal workflow output.
+   Run `smoke_h08b.py score-discovery --phase blocked --status <actual>`.
+   Never substitute the expected token for the returned value. A FAIL blocks H08b.
+4. Restore exactly the referenced evidence with
+   `smoke_h08b.py restore-evidence`.
+5. Invoke GPT-5.6 Sol `/grill` again in CONTINUE mode. Require the existing
+   settled decision IDs/values to remain unchanged and discovery to become ready.
+6. Parse the resumed child's actual terminal status and run
+   `score-discovery --phase resumed --status <actual>`; never pass the expected
+   token unless that is what the child actually returned. A FAIL blocks H08b.
+7. For the separate user-selected clear-intent direct-PRD branch, run
+   `smoke_h08b.py begin-direct-prd`. This temporarily removes only the normal
+   discovery artifact into protected smoke snapshot evidence. Invoke one GPT-5.6
+   Sol `/prd` with an explicit harness-owned clear-intent packet representing
+   user-selected requirements, including the complete valid-input behavior, and
+   exact expected path `docs/prd/PRD-H08B-DIRECT.md`. This packet is scoped only
+   to the isolated direct branch and must not be carried into the later main PRD
+   negative. Parse its actual terminal status and run
+   `score-direct-prd --status <actual>`; require PASS and zero discovery
+   artifacts. Then run `restore-direct-prd` to delete the isolated PRD and
+   restore the exact discovery bytes. This proves an explicitly selected skip,
+   not autonomous skip intelligence.
+8. Before the main PRD negative, run `seed-product-decision`; its approved
+   value remains hidden from the first planning child. Invoke the first of the
+   two declared Sol PRD calls and require `PRD_BLOCKED`; pass only the actual
+   status to `score-prd --phase blocked`. Then run `reveal-product-decision`
+   to create the normal approved decision artifact, invoke the second Sol PRD
+   call with that exact path, and require `score-prd --phase resumed` PASS
+   with actual `PRD_READY`. Do not turn missing evidence into a user-decision
+   blocker or vice versa.
+9. For project-init contract propagation, use a fresh `h08b-luna-probe`
+   child for the successful Luna call. Include
+   `docs/workflow/H08B-FIXTURE-WAIVER-POLICY.json` as an exact authoritative
+   `CONTEXT_PATHS` input alongside the canonical evidence contract. Require the
+   child to pass that exact policy path to
+   `project_init_mechanics.py --waiver-policy docs/workflow/H08B-FIXTURE-WAIVER-POLICY.json`
+   so the helper, not Luna, writes the policy SHA/type trace lines. Do not
+   provide an expected status to the child. Parse the child's actual returned
+   status and pass only that actual value to
+   `smoke_h08b.py score-project-init-policy --status <actual>`.
+   For the negative pair, run `smoke_h08b.py begin-project-init-negative`,
+   then `score-project-init-helper` and require its independent mechanical
+   rejection. Start a second fresh `h08b-luna-probe` child with
+   `WORKFLOW: /project-init` and the deliberately unavailable canonical-contract
+   input; do not include the expected status/reason in the task. Parse the actual
+   returned `status`, `OWNER`, `BLOCKING_ISSUE`, `REQUIRED_ACTION`, and
+   `NEXT_COMMAND`; pass those exact values to
+   `score-project-init-luna --status <actual> --owner <actual> --blocking-issue <actual>
+   --required-action <actual> --next-command <actual>`.
+   Finally run `restore-project-init-negative` and require `MATCH`.
+
+### S2 policy-ineligible waiver probe
+
+Immediately after the direct-fix DeepSeek verification creates the genuine
+behavioral-test `NOT_DONE` report, invoke the single already-budgeted Luna
+`/waive` call **before** `/fix` through a fresh `h08b-luna-probe` child.
+
+Pass only the exact normal verification report and project waiver-policy context.
+Do not tell the child the expected terminal status or refusal reason. The child
+must obtain exact report/policy digests through the permitted read-only
+`file_digest.py` helper. Parse the actual returned status and discover only the
+normal refusal artifact it created.
+
+Parse the fresh Luna child's actual terminal status. Run
+`smoke_h08b.py validate-refusal --run-id <run-id> --status <actual> --path <refusal>`.
+The scorer—not the child prompt—requires the H08b S2 result to be actual
+`WAIVER_BLOCKED` with reason `POLICY_INELIGIBLE`, bound to the exact
+report/policy, with no H07 wait.
+Any digest/policy/reason/no-wait failure blocks H08b. Then continue the
+predeclared direct-fix sequence with DeepSeek `/fix`, fresh `/verify`,
+DeepSeek pre-review, and Sol senior review only when ready.
+
+### H08b score evidence registration
+
+Every successful H08b deterministic scorer returns an immutable
+`score_path` under `docs/verification/smoke/**`. Register that exact path as
+accepted file-backed evidence for the corresponding H08 subprobe with
+`smoke_segments.py register-evidence`. For blocked/resumed discovery, also register the immutable
+`hidden_expectation_path` returned by `seed-discovery`; both discovery PASS
+scores bind that same path/hash and S1 close revalidates it. For the isolated
+direct-PRD subprobe, also register the scorer-returned immutable
+`prd_evidence_path`; S1 close requires both the PASS score and the retained
+direct-PRD bytes/hash. For
+transient states such as blocked discovery, direct-PRD isolation, blocked PRD,
+project-init negative, and the policy-ineligible refusal, these immutable
+artifacts are the historical proof that must survive after the normal repository
+state resumes/restores. Never substitute free-text facts for these scorer paths.
 
 
 ## Arbitrary-stage resume smoke optimization

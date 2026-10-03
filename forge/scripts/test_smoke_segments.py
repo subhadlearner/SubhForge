@@ -63,6 +63,64 @@ class SmokeSegmentsTests(unittest.TestCase):
     def _budget_file(self):
         return self.repo / "docs/verification/smoke" / f"{self.run_id}.budget.json"
 
+    def _h08b_pass_evidence(self, segment_id):
+        labels = smoke_segments.H08B_REQUIRED_SCORE_LABELS[segment_id]
+        rels = []
+        hidden_rel = None
+        hidden_sha = None
+        if segment_id == "S1":
+            hidden_rel = (
+                "docs/verification/smoke/"
+                + f"{self.run_id}.h08b-discovery-expected.json"
+            )
+            hidden = self.repo / hidden_rel
+            hidden.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "settled_expectations": {
+                            "DEC-001": {"value_sha256": "a" * 64}
+                        },
+                    },
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            hidden_sha = smoke_segments._sha256_file(hidden)
+            rels.append(hidden_rel)
+        for label in labels:
+            rel, path = smoke_segments._h08b_score_path(
+                self.repo, self.run_id, label
+            )
+            path.parent.mkdir(parents=True, exist_ok=True)
+            payload = {
+                "schema_version": 1,
+                "score_label": label,
+                "result": "PASS",
+            }
+            if label in {"discovery-blocked", "discovery-resumed"}:
+                payload["hidden_expectation_path"] = hidden_rel
+                payload["hidden_expectation_sha256"] = hidden_sha
+            if label == "direct-prd":
+                artifact_rel = (
+                    "docs/verification/smoke/"
+                    + f"{self.run_id}.h08b-direct-prd-artifact.md"
+                )
+                artifact = self.repo / artifact_rel
+                artifact.write_text("# Direct PRD\n", encoding="utf-8")
+                payload["prd_evidence_path"] = artifact_rel
+                payload["prd_evidence_sha256"] = (
+                    smoke_segments._sha256_file(artifact)
+                )
+                rels.append(artifact_rel)
+            path.write_text(
+                json.dumps(payload, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            rels.append(rel)
+        return rels
+
     def _complete_s1(self):
         pinned = smoke_segments.assert_config_intact(self.repo, self.run_id)
         s1 = pinned["segments"][0]
@@ -78,6 +136,7 @@ class SmokeSegmentsTests(unittest.TestCase):
         evidence.parent.mkdir(parents=True, exist_ok=True)
         evidence.write_text('{"result":"PASS"}\n', encoding="utf-8")
         evidence_rel = "docs/verification/S1-EVIDENCE.json"
+        h08b_evidence = self._h08b_pass_evidence("S1")
         spec = smoke_segments._load_full_invocation_spec()
         for scenario_id in s1["scenarios"]:
             scenario = smoke_segments._scenario_definition(spec, scenario_id)
@@ -89,7 +148,7 @@ class SmokeSegmentsTests(unittest.TestCase):
                         scenario_id,
                         subprobe["id"],
                         ["scored PASS for focused H08 test"],
-                        [evidence_rel],
+                        [evidence_rel, *h08b_evidence],
                         self.started + dt.timedelta(minutes=1),
                     )
         return s1, evidence_rel
@@ -220,6 +279,36 @@ class SmokeSegmentsTests(unittest.TestCase):
                 )
             smoke_segments._validate_helper_bound_segment(
                 self.repo, self.run_id, "S6", [reroute_rel]
+            )
+
+    def test_h08b_bound_segments_require_pass_scores_and_direct_prd_artifact(self):
+        s1_paths = self._h08b_pass_evidence("S1")
+        smoke_segments._validate_h08b_bound_segment(
+            self.repo, self.run_id, "S1", s1_paths
+        )
+
+        fail_rel, fail_path = smoke_segments._h08b_score_path(
+            self.repo, self.run_id, "discovery-blocked"
+        )
+        payload = json.loads(fail_path.read_text(encoding="utf-8"))
+        payload["result"] = "FAIL"
+        fail_path.write_text(
+            json.dumps(payload, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        with self.assertRaises(smoke_segments.SegmentError):
+            smoke_segments._validate_h08b_bound_segment(
+                self.repo, self.run_id, "S1", s1_paths
+            )
+
+        fail_path.unlink()
+        s2_paths = self._h08b_pass_evidence("S2")
+        smoke_segments._validate_h08b_bound_segment(
+            self.repo, self.run_id, "S2", s2_paths
+        )
+        with self.assertRaises(smoke_segments.SegmentError):
+            smoke_segments._validate_h08b_bound_segment(
+                self.repo, self.run_id, "S2", []
             )
 
     def test_close_rechecks_budget_after_slow_validation(self):

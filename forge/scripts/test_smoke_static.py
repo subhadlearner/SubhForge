@@ -23,9 +23,13 @@ class SmokeStaticTests(unittest.TestCase):
             shutil.copytree(source / folder, config / folder)
         (config / "scripts").mkdir()
         shutil.copy2(source / "scripts/smoke_handoff.py", config / "scripts/smoke_handoff.py")
+        shutil.copy2(source / "scripts/smoke_h08b.py", config / "scripts/smoke_h08b.py")
+        shutil.copy2(source / "scripts/file_digest.py", config / "scripts/file_digest.py")
+        shutil.copy2(source / "scripts/project_init_mechanics.py", config / "scripts/project_init_mechanics.py")
         shutil.copy2(source / "scripts/smoke_mechanics.py", config / "scripts/smoke_mechanics.py")
         shutil.copy2(source / "scripts/smoke_resume.py", config / "scripts/smoke_resume.py")
         shutil.copy2(source / "scripts/smoke_reroute.py", config / "scripts/smoke_reroute.py")
+        shutil.copy2(source / "scripts/smoke_segments.py", config / "scripts/smoke_segments.py")
         shutil.copy2(source / "AGENTS.md", config / "AGENTS.md")
         repo = root / "repo"
         evidence = repo / "docs/verification/smoke"
@@ -69,6 +73,114 @@ class SmokeStaticTests(unittest.TestCase):
             self.assertEqual(["static-release-gate"], state["completed_scenarios"])
             self.assertNotIn("static-release-gate", state["pending_scenarios"])
             self.assertEqual("grill", state["current_stage"])
+
+    def test_release_gate_blocks_h08b_luna_hidden_scorer_access(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            agent = config / "agents/h08b-luna-probe.md"
+            agent.write_text(
+                agent.read_text(encoding="utf-8").replace(
+                    '"**/smoke_h08b.py": deny',
+                    '"**/smoke_h08b.py": allow',
+                    1,
+                ),
+                encoding="utf-8",
+            )
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("h08b:luna-probe-isolation", result["failures"])
+
+    def test_release_gate_blocks_h08b_luna_digest_helper_loss(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            agent = config / "agents/h08b-luna-probe.md"
+            agent.write_text(
+                agent.read_text(encoding="utf-8").replace(
+                    '"python *file_digest.py*": allow',
+                    '"python *file_digest.py*": deny',
+                ),
+                encoding="utf-8",
+            )
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("h08b:luna-probe-isolation", result["failures"])
+
+    def test_release_gate_blocks_grill_decision_id_contract_drift(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            grill = config / "commands/grill.md"
+            grill.write_text(
+                grill.read_text(encoding="utf-8").replace(
+                    "| Decision ID | Status | Decision / Value | Prerequisite Evidence |",
+                    "| Decision | Status | Value | Evidence |",
+                ),
+                encoding="utf-8",
+            )
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("h08b:grill-stable-decisions", result["failures"])
+
+    def test_release_gate_blocks_refusal_records_becoming_active_waivers(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            review = config / "commands/review.md"
+            review.write_text(
+                review.read_text(encoding="utf-8").replace(
+                    "never treat records under the sibling",
+                    "consider records under the sibling",
+                ),
+                encoding="utf-8",
+            )
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("h08b:refusal-not-active-waiver", result["failures"])
+
+    def test_release_gate_blocks_missing_project_init_waiver_policy_trace(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            project_init = config / "commands/project-init.md"
+            project_init.write_text(
+                project_init.read_text(encoding="utf-8").replace(
+                    "Waiver Policy SHA-256:",
+                    "Policy digest:",
+                ),
+                encoding="utf-8",
+            )
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn(
+                "h08b:project-init-policy-propagation",
+                result["failures"],
+            )
+
+    def test_release_gate_blocks_missing_verify_failure_type_contract(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            verify = config / "commands/verify.md"
+            verify.write_text(
+                verify.read_text(encoding="utf-8").replace(
+                    "Failure Type taxonomy",
+                    "Failure classification",
+                ),
+                encoding="utf-8",
+            )
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("h08b:verify-failure-type", result["failures"])
+
+    def test_release_gate_blocks_waive_policy_after_authorization(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, repo, run_id = self._gate_fixture(Path(temp))
+            waive = config / "commands/waive.md"
+            text = waive.read_text(encoding="utf-8")
+            text = text.replace(
+                "## Stage 2 — Check Failure-Type Policy Eligibility",
+                "## Stage 4 — Check Failure-Type Policy Eligibility",
+            )
+            waive.write_text(text, encoding="utf-8")
+            result = smoke_static.release_gate(config, repo, run_id)
+            self.assertFalse(result["ok"])
+            self.assertIn("h08b:waive-policy-before-auth", result["failures"])
 
     def test_release_gate_blocks_missing_mode_without_false_pass(self):
         with tempfile.TemporaryDirectory() as temp:

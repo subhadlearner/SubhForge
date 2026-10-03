@@ -200,6 +200,11 @@ A valid waiver may establish `Delivery Gate: CLEAR_WITH_EXCEPTION` for review, b
 
 Waivers must be scoped, human-authorized, time-bounded, and tied to the exact verification report, its canonical implementation-state manifest/fingerprint, and failure set. Waived checks continue to execute.
 
+Blocked waiver attempts are historical evidence under
+`docs/verification/waiver-refusals/`. They are never active waivers, never establish
+`CLEAR_WITH_EXCEPTION`, and must not be discovered through active-waiver lookup under
+`docs/verification/waivers/`.
+
 ## Review
 
 Review occurs only when the delivery gate is `CLEAR` or `CLEAR_WITH_EXCEPTION` **and** Contract v1 freshness is `MATCH` for the current specification/change and branch. A later commit of those same contents does not by itself invalidate verification. Fingerprint equality alone is insufficient; exact canonical-manifest equality is authoritative.

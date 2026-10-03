@@ -9,14 +9,17 @@ permission:
     "*": allow
     "docs/verification/smoke/**": deny
     "**/smoke_reroute.py": deny
+    "**/smoke_h08b.py": deny
   glob:
     "*": allow
     "docs/verification/smoke/**": deny
     "**/smoke_reroute.py": deny
+    "**/smoke_h08b.py": deny
   grep:
     "*": allow
     "docs/verification/smoke/**": deny
     "**/smoke_reroute.py": deny
+    "**/smoke_h08b.py": deny
   edit: ask
   bash:
     "*": ask
@@ -43,6 +46,7 @@ permission:
     "git clean*": deny
     "*docs/verification/smoke*": deny
     "*smoke_reroute.py*": deny
+    "*smoke_h08b.py*": deny
   task: deny
   skill: allow
   websearch: ask

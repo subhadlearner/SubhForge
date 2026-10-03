@@ -82,13 +82,28 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
         checks[key] = path.is_file()
         return path.read_text(encoding="utf-8") if checks[key] else ""
 
-    for name in REQUIRED_COMMANDS:
-        read(f"command:{name}", config / "commands" / f"{name}.md")
+    command_text = {
+        name: read(f"command:{name}", config / "commands" / f"{name}.md")
+        for name in REQUIRED_COMMANDS
+    }
+    grill = command_text["grill"]
+    verify = command_text["verify"]
+    waive = command_text["waive"]
+    review = command_text["review"]
+    project_init = command_text["project-init"]
     worker = read("agent:planning-worker", config / "agents/planning-worker.md")
     orchestrator = read("agent:smoke-orchestrator", config / "agents/smoke-orchestrator.md")
     router = read("agent:resume-router", config / "agents/resume-router.md")
     executor = read("agent:smoke-executor", config / "agents/smoke-executor.md")
+    h08b_luna = read("agent:h08b-luna-probe", config / "agents/h08b-luna-probe.md")
     read("helper:smoke-handoff", config / "scripts/smoke_handoff.py")
+    h08b = read("helper:smoke-h08b", config / "scripts/smoke_h08b.py")
+    digest_helper = read("helper:file-digest", config / "scripts/file_digest.py")
+    project_init_helper = read(
+        "helper:project-init-mechanics",
+        config / "scripts/project_init_mechanics.py",
+    )
+    segments = read("helper:smoke-segments", config / "scripts/smoke_segments.py")
     mechanics = read("helper:smoke-mechanics", config / "scripts/smoke_mechanics.py")
     resume = read("helper:smoke-resume", config / "scripts/smoke_resume.py")
     reroute = read("helper:smoke-reroute", config / "scripts/smoke_reroute.py")
@@ -96,6 +111,107 @@ def release_gate(config: Path, repo: Path, run_id: str) -> dict[str, object]:
     architecture = read("policy:architecture", config / "commands/architect.md")
     contract = read("contract:installed", config / "contracts/implementation-state-evidence-v1.md")
     project_contract = read("contract:project", repo / "docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md")
+
+    checks["h08b:helper"] = all(term in h08b for term in (
+        "def seed_discovery(",
+        "def score_discovery(",
+        "def begin_direct_prd_probe(",
+        "def score_direct_prd(",
+        "def seed_product_decision(",
+        "def score_prd_phase(",
+        "def score_project_init_policy_propagation(",
+        "def begin_project_init_negative(",
+        "def score_project_init_helper_rejection(",
+        "def score_project_init_luna(",
+        "def restore_project_init_negative(",
+        "def _require_completed_invocations(",
+        "def validate_refusal(",
+        "def _persist_score(",
+        "H08B-REQUIRED-EVIDENCE.md",
+        "docs/verification/waiver-refusals/",
+    ))
+    checks["h08b:luna-probe-isolation"] = (
+        "model: openai/gpt-5.6-luna" in h08b_luna
+        and h08b_luna.count('"docs/verification/smoke/**": deny') >= 3
+        and h08b_luna.count('"**/smoke_h08b.py": deny') >= 3
+        and "task: deny" in h08b_luna
+        and '"python *file_digest.py*": allow' in h08b_luna
+        and '"h08b-luna-probe": allow' in orchestrator
+        and "instantiate it fresh per call" in orchestrator
+    )
+    checks["h08b:deterministic-digests"] = (
+        "def digest(" in digest_helper
+        and "Digest path escapes repository" in digest_helper
+        and "Hidden smoke evidence cannot be digested" in digest_helper
+        and "Digest path is outside approved waiver evidence locations" in digest_helper
+        and "--waiver-policy" in project_init_helper
+        and "waiver_policy_sha256" in project_init_helper
+        and "project_init_mechanics.py --repo" in project_init
+        and "--waiver-policy <repository-relative-policy-path>" in project_init
+        and "file_digest.py --repo <project-root>" in waive
+        and "verification_report_sha256" in waive
+        and "policy_sha256" in waive
+    )
+    checks["h08b:scorer-no-leak"] = (
+        worker.count('"**/smoke_h08b.py": deny') >= 3
+        and executor.count('"**/smoke_h08b.py": deny') >= 3
+        and '"*smoke_h08b.py*": deny' in executor
+    )
+    checks["h08b:segment-close-binding"] = all(term in segments for term in (
+        "H08B_REQUIRED_SCORE_LABELS",
+        "def _validate_h08b_bound_segment(",
+        '"S1": (',
+        '"S2": ("waiver-refusal",)',
+        "must be schema-valid PASS",
+        "direct-PRD PASS score must bind retained artifact evidence",
+    ))
+    checks["h08b:grill-stable-decisions"] = all(term in grill for term in (
+        "| Decision ID | Status | Decision / Value | Prerequisite Evidence |",
+        "BLOCKED_ON_EVIDENCE",
+        "preserve every already-settled decision ID",
+        "DISCOVERY_BLOCKED",
+    ))
+    policy_pos = waive.find("## Stage 2 — Check Failure-Type Policy Eligibility")
+    auth_pos = waive.find("## Stage 3 — Require Explicit Human Authorization")
+    checks["h08b:project-init-policy-propagation"] = all(
+        term in project_init
+        for term in (
+            "Waiver Policy Source:",
+            "Waiver Policy SHA-256:",
+            "Non-waivable Failure Types:",
+            "Waivable Failure Types:",
+            "source policy remains authoritative",
+            "OWNER: REPOSITORY",
+            "BLOCKING_ISSUE:",
+            "REQUIRED_ACTION:",
+            "NEXT_COMMAND: /project-init",
+        )
+    )
+    checks["h08b:verify-failure-type"] = all(term in verify for term in (
+        "Failure Type taxonomy",
+        "BEHAVIORAL_TEST",
+        "DOCUMENTATION_QUALITY",
+        "LINT_QUALITY",
+        "Failure Summary",
+    ))
+    checks["h08b:refusal-not-active-waiver"] = (
+        "docs/verification/waivers/" in review
+        and "docs/verification/waiver-refusals/" in review
+        and "never treat records under the sibling" in review
+        and "waiver-refusals/" in policy
+        and "never active waivers" in policy
+    )
+    checks["h08b:waive-policy-before-auth"] = (
+        policy_pos >= 0
+        and auth_pos > policy_pos
+        and "POLICY_INELIGIBLE" in waive
+        and "AUTHORIZATION_MISSING" in waive
+        and "FAILURE_TYPE_UNAVAILABLE" in waive
+        and "docs/verification/waiver-refusals/" in waive
+        and "authorization_requested" in waive
+        and "authorization_receipt_present" in waive
+        and "do **not** start or wait on a `WAIVER_AUTHORIZATION` gate" in waive
+    )
 
     checks["planning:modes"] = all(f"`{mode}`" in worker for mode in
                                     ("AUTHOR", "CONTINUE", "RECONCILE_ONLY"))

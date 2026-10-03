@@ -1390,11 +1390,24 @@ DISCOVERY_BLOCKED
 
 ## Resume rules
 
-If `DISCOVERY_BLOCKED`:
+For the H08b acceptance probe, `DISCOVERY_BLOCKED` is caused by missing required
+referenced evidence/access, **not** by an unanswered product decision.
 
-1. resolve the specific unanswered product decision,
-2. rerun `/grill`,
-3. do not restart unrelated settled questions.
+1. preseed normal `DISC-001` with stable settled decision IDs plus one
+   `BLOCKED_ON_EVIDENCE` decision using `smoke_h08b.py seed-discovery`
+2. bracket a real `/grill` child with the normal smoke invocation ledger
+   (`scenario=grill`, `stage=grill`) and parse its actual terminal status
+3. score the blocked artifact with
+   `smoke_h08b.py score-discovery --phase blocked --status <actual>`; never
+   substitute the expected status for the child's returned value
+4. restore exactly the referenced evidence with `smoke_h08b.py restore-evidence`
+5. rerun a second real `/grill` child in continuation mode, again ledgered as
+   `scenario=grill`, `stage=grill`, without renumbering/reopening settled decisions
+6. parse that child's actual status and score with
+   `--phase resumed --status <actual>`
+
+A separate PRD probe, not the discovery probe, withholds an approved product
+decision and proves PRD block/resume behavior.
 
 If a discovery artifact already exists and remains valid, do not rerun `/grill` merely because a later stage failed.
 
@@ -1407,6 +1420,27 @@ DISCOVERY_READY → /prd
 ---
 
 # 9. Phase 2 — /prd
+
+## H08b isolated direct and blocked/resumed probes
+
+Before the normal main PRD path, prove the explicit ceremony-skip branch with
+`smoke_h08b.py begin-direct-prd`. The harness temporarily protects/removes
+`DISC-001`; invoke exactly one user-selected clear-intent Sol `/prd`, ledgered
+as `scenario=grill`, `stage=prd`, targeting
+`docs/prd/PRD-H08B-DIRECT.md`. Parse the actual status and require
+`score-direct-prd` PASS with zero discovery artifacts. The scorer retains the
+actual PRD bytes under protected smoke evidence before `restore-direct-prd`
+deletes the isolated normal artifact and restores exact discovery bytes. Register
+both the score path and retained PRD evidence path for S1 close.
+
+For the main PRD path, `seed-product-decision` stores the approved answer only
+in protected smoke data. The first Sol PRD call receives the ambiguous product
+context but not that answer and must block normally. Score its actual status with
+`score-prd --phase blocked`. Then `reveal-product-decision` writes the normal
+approved decision artifact; provide that exact path to the second Sol PRD call and
+require `score-prd --phase resumed` with actual `PRD_READY`.
+
+These are the already-declared H08 calls. Do not add a planning retry.
 
 ## When to run
 
@@ -1637,6 +1671,27 @@ or:
 PROJECT_INIT_BLOCKED
 ```
 
+For H08b, use a fresh `h08b-luna-probe` for the successful
+`/project-init` call, ledgered as
+`scenario=project-init-contract-propagation`, `stage=project-init`.
+Supply the exact fixture waiver-policy path and require the child to pass it to
+`project_init_mechanics.py --waiver-policy`; that helper writes the exact
+policy source/SHA/type trace lines in `AGENTS.md`. Do not tell the child the
+expected terminal status. Parse the actual result and run
+`smoke_h08b.py score-project-init-policy --status <actual>`.
+It must prove the project `AGENTS.md` records the exact bootstrap-pinned
+waiver policy source, SHA-256, failure-type mappings, and synchronized canonical
+Contract-v1.
+
+For the independent negative, run
+`begin-project-init-negative → score-project-init-helper → fresh h08b-luna-probe
+/project-init → parse actual status/OWNER/BLOCKING_ISSUE/REQUIRED_ACTION/NEXT_COMMAND →
+score-project-init-luna with those exact values → restore-project-init-negative`.
+The prepared branch removes the project canonical Contract-v1 file. The negative
+must remain blocked, explicitly identify canonical-contract unavailability with
+owner `REPOSITORY`, route back to `/project-init`, and must not invent a
+substitute contract.
+
 ## Blocked routing
 
 Architecture conflict/missing decision:
@@ -1692,6 +1747,7 @@ Require:
 - approved PRD
 - `ARCHITECTURE_READY`
 - `PROJECT_INIT_READY`
+
 - project `AGENTS.md` aligned with approved stack
 
 ## Expected behavior
@@ -2360,6 +2416,32 @@ Delivery Gate: BLOCKED
 ```
 
 The verification report should identify the failing test and acceptance criterion.
+
+### Required policy-ineligible /waive probe before /fix
+
+Before repair, invoke the single H08-budgeted Luna `/waive` call through a
+fresh `h08b-luna-probe`, ledgered as `scenario=direct-fix-loop`,
+`stage=waive`, against this same behavioral-test `NOT_DONE` report. Do not
+provide the expected terminal status or reason to the child. The fixed FULL
+fixture policy must make `BEHAVIORAL_TEST` non-waivable. The child must use
+the permitted deterministic `file_digest.py` helper for the exact report/policy
+SHA-256 values written to the refusal record; it must never infer those hashes.
+The run-scoped scorer must independently require `POLICY_INELIGIBLE`.
+
+Expected:
+
+- policy eligibility is checked before any authorization request
+- a new JSON refusal is persisted under `docs/verification/waiver-refusals/`
+- reason code is `POLICY_INELIGIBLE`
+- `authorization_requested=false`
+- `authorization_receipt_present=false`
+- no `WAIVER_AUTHORIZATION` interval exists for the report
+- terminal token is `WAIVER_BLOCKED`
+
+Parse the Luna child's actual terminal status and validate the record with
+`smoke_h08b.py validate-refusal --run-id <run-id> --status <actual>`.
+The scorer requires actual `WAIVER_BLOCKED` plus `POLICY_INELIGIBLE`.
+Do not run another verification to manufacture this negative case.
 
 ### Expected /fix behavior
 

@@ -205,6 +205,55 @@ class SmokeResumeTests(unittest.TestCase):
         )
         self.score_and_restore("r05")
 
+    def test_h05_resume_preserves_historical_waiver_refusal_as_non_active_evidence(self):
+        refusal = (
+            self.repo
+            / "docs/verification/waiver-refusals"
+            / "WAIVER-REFUSAL-SPEC-001-001.json"
+        )
+        refusal.parent.mkdir(parents=True, exist_ok=True)
+        refusal.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "status": "WAIVER_BLOCKED",
+                    "reason_code": "POLICY_INELIGIBLE",
+                },
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        active_waiver = (
+            self.repo
+            / "docs/verification/waivers"
+            / "WAIVER-SPEC-001-001.md"
+        )
+        active_waiver.parent.mkdir(parents=True, exist_ok=True)
+        active_waiver.write_text(
+            "# Active waiver fixture\n",
+            encoding="utf-8",
+        )
+
+        self.prepare("r05")
+        self.assertTrue(refusal.is_file())
+        self.assertFalse(active_waiver.exists())
+        self.score_and_restore("r05")
+
+        self.assertTrue(refusal.is_file())
+        self.assertIn(
+            '"status": "WAIVER_BLOCKED"',
+            refusal.read_text(encoding="utf-8"),
+        )
+        # restore() must return the exact pre-probe snapshot. The active-waiver
+        # fixture was intentionally present before prepare(), so it reappears
+        # only after restoration; it was already asserted absent during routing.
+        self.assertTrue(active_waiver.is_file())
+        self.assertEqual(
+            "# Active waiver fixture\n",
+            active_waiver.read_text(encoding="utf-8"),
+        )
+
     def test_r06_stale_verification_is_real_identity_mismatch(self):
         before = (self.repo / "app.py").read_bytes()
         self.prepare("r06")

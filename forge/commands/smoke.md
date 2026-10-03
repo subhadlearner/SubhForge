@@ -698,6 +698,63 @@ completion semantics.
 
 For the default Stable-v0.1 smoke path, use GPT-5.6 Sol for these planning stages.
 
+### H08b bounded early-lifecycle procedure
+
+For FULL S1, the orchestrator MUST use `smoke_h08b.py` to seed and score the
+normal blocked/resumed discovery artifact without exposing hidden expectations:
+`seed-discovery → real /grill → parse actual status → score-discovery --phase blocked --status <actual> →
+restore-evidence → real /grill CONTINUE → parse actual status →
+score-discovery --phase resumed --status <actual>`.
+Never replace a parsed child status with the expected status token.
+
+For the user-selected direct-to-PRD branch use:
+`begin-direct-prd → one Sol /prd → score-direct-prd → restore-direct-prd`.
+The scorer requires zero discovery artifacts during that isolated call.
+
+For the main PRD blocked/resumed path use:
+`seed-product-decision → one Sol /prd → score-prd blocked →
+reveal-product-decision → one Sol /prd → score-prd resumed`.
+The hidden approved value must not be supplied to the first child.
+
+For the normal successful Luna `/project-init`, use a fresh
+`h08b-luna-probe` child and include
+`docs/workflow/H08B-FIXTURE-WAIVER-POLICY.json` plus the canonical contract as
+exact authoritative context. Require the child to pass that policy path to
+`project_init_mechanics.py --waiver-policy` so the helper writes the exact
+policy trace digest/type lines. Parse its actual terminal status, then require
+`score-project-init-policy --status <actual>` PASS.
+
+For the independent negative, use:
+`begin-project-init-negative → score-project-init-helper → fresh h08b-luna-probe
+/project-init → parse actual status/OWNER/BLOCKING_ISSUE/REQUIRED_ACTION/NEXT_COMMAND →
+score-project-init-luna with those exact actual fields →
+restore-project-init-negative`.
+The prepared branch removes the project canonical Contract-v1 file; neither the
+helper nor Luna child may invent a substitute contract, and the normal blocker
+must identify the canonical-contract cause and route back to `/project-init`.
+
+For S2 `direct-fix-loop`, the exact sequence remains:
+
+`DeepSeek /verify (behavioral-test NOT_DONE) → fresh h08b-luna-probe /waive →
+DeepSeek /fix → DeepSeek /verify → DeepSeek pre-review → Sol senior review when ready`.
+
+Do not provide the expected refusal reason/status to the Luna child. Require it
+to obtain the exact verification-report and policy SHA-256 values through the
+permitted read-only `file_digest.py` helper. Parse its actual terminal status
+and the normal refusal artifact it creates, then validate with
+`smoke_h08b.py validate-refusal --run-id <run-id> --status <actual>`.
+The run-scoped scorer is the component that requires actual `WAIVER_BLOCKED`
+plus `POLICY_INELIGIBLE`, exact report/policy binding, and zero H07 wait.
+No extra/fallback verification is permitted.
+
+For every H08b scorer action, register its returned immutable `score_path`
+with `smoke_segments.py register-evidence` for the matching required subprobe.
+For discovery also register the seeded immutable `hidden_expectation_path`;
+both discovery scores must bind its unchanged hash. For direct PRD also register
+the returned immutable `prd_evidence_path`.
+S1/S2 close validates the required H08b score files as schema-valid `PASS`
+before the segment can close; a file-backed `FAIL` score is not acceptable.
+
 The predefined smoke fixture product brief is required to be sufficient for
 planning. Do not turn a framework smoke run into an interactive product
 discovery session.

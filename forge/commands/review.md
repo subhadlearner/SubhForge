@@ -56,6 +56,7 @@ Identify:
 - relevant architecture and ADRs
 - the latest **applicable** persisted verification report under `docs/verification/` for this specification/change and branch
 - any waiver under `docs/verification/waivers/` that explicitly references that exact verification report and implementation-state fingerprint
+- never treat records under the sibling `docs/verification/waiver-refusals/` directory as candidate or active waivers
 - current branch
 - current HEAD commit SHA as provenance
 - the deterministic review-preflight result for the verification report's base HEAD
