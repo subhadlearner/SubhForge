@@ -31,6 +31,22 @@ class FileDigestTests(unittest.TestCase):
                 result["sha256"],
             )
 
+    def test_digest_rejects_hidden_smoke_and_unrelated_repo_files(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp) / "repo"
+            repo.mkdir()
+            hidden = repo / "docs/verification/smoke/key.json"
+            hidden.parent.mkdir(parents=True)
+            hidden.write_text('{"secret":"value"}\n', encoding="utf-8")
+            source = repo / "src/app.py"
+            source.parent.mkdir(parents=True)
+            source.write_text("print('x')\n", encoding="utf-8")
+
+            with self.assertRaises(file_digest.FileDigestError):
+                file_digest.digest(repo, Path("docs/verification/smoke/key.json"))
+            with self.assertRaises(file_digest.FileDigestError):
+                file_digest.digest(repo, Path("src/app.py"))
+
     def test_digest_rejects_path_escape_and_missing_file(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
