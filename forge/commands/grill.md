@@ -105,6 +105,26 @@ Do not pretend high confidence when important decisions are still implicit.
 
 Map the product/design decisions and their dependencies.
 
+Maintain a stable decision register for every material decision. Assign each
+decision a durable ID such as `DEC-001` when it first appears and preserve that
+ID across blocked/resumed runs. Do not renumber, rename, drop, or silently reopen
+a settled decision merely because new evidence arrives.
+
+Each decision record must carry:
+
+- stable decision ID
+- status: `SETTLED`, `OPEN`, or `BLOCKED_ON_EVIDENCE`
+- the approved decision/value when settled
+- prerequisite evidence references when applicable
+- concise rationale/context needed to resume safely
+
+Persist the register as a Markdown table headed exactly:
+
+`| Decision ID | Status | Decision / Value | Prerequisite Evidence |`
+
+Use `-` when a field is not applicable. This is a normal discovery artifact
+contract, not a smoke-only format.
+
 Examples:
 
 - target users and operators
@@ -176,6 +196,8 @@ Include:
 - scope
 - non-goals
 - confirmed decisions
+- a decision register containing the stable ID, structured status, settled
+  decision/value where applicable, and prerequisite evidence references
 - binding constraints
 - explicit assumptions
 - unresolved non-blocking questions
@@ -197,7 +219,12 @@ Finish with exactly:
 
 If a decision cannot be resolved because required evidence/access is missing:
 
-report the blocker, owner, minimum required action, and whether to rerun `/grill`.
+- preserve every already-settled decision ID and approved value unchanged
+- mark only the evidence-dependent unresolved decision(s) `BLOCKED_ON_EVIDENCE`
+- report the missing evidence/access, owner, minimum required action, and whether
+  to rerun `/grill`
+- persist/update the normal discovery artifact when one already exists; never
+  replace it with a smoke-only format or hidden scoring field
 
 Finish with exactly:
 

@@ -46,6 +46,12 @@ Do not implement application code.
 
 ## Stage 1 — Load Product Context
 
+When the caller supplies exact authoritative artifact paths, validate and use
+those paths directly. Do not perform broad repository discovery merely to
+rediscover known Discovery/PRD context. If a required supplied path is missing,
+stale, ambiguous, or insufficient, perform bounded discovery starting in the
+expected artifact directory before widening scope.
+
 Read only the information needed to understand:
 
 - any relevant user-confirmed discovery brief under `docs/discovery/`

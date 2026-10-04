@@ -25,7 +25,7 @@
         "malformed-evidence"
       ],
       "notes": "Default FAST_SMOKE fixture. Python 3.8+ is mandatory and the standard library is sufficient. Do not select Go, Java, Scala, Rust, Node.js, .NET, or another runtime. Keep architecture intentionally local and infrastructure-free.",
-      "source_repository": "subhadlearner/production-ai-project",
+      "source_template": "template",
       "runtime": {
         "language": "Python",
         "minimum_version": "3.8",
@@ -59,11 +59,22 @@
         "pre-review-blocker"
       ],
       "notes": "Default FULL_SMOKE fixture. Python 3.8+ is mandatory so the smoke test uses the already-required SubhForge runtime. Architecture may choose a Python implementation approach but must not select another language/runtime.",
-      "source_repository": "subhadlearner/production-ai-project",
+      "source_template": "template",
       "runtime": {
         "language": "Python",
         "minimum_version": "3.8",
         "dependency_policy": "standard-library-preferred"
+      },
+      "waiver_policy": {
+        "policy_id": "SMOKE-FULL-WAIVER-POLICY-V1",
+        "non_waivable_failure_types": [
+          "BEHAVIORAL_TEST"
+        ],
+        "waivable_failure_types": [
+          "DOCUMENTATION_QUALITY",
+          "LINT_QUALITY"
+        ],
+        "purpose": "Fixed H08b policy proving that behavioral-test failures are rejected before human authorization while a separate safe quality failure remains waivable."
       }
     },
     {
@@ -89,7 +100,7 @@
         "malformed-evidence"
       ],
       "notes": "Optional persistence-oriented FULL_SMOKE fixture. Python 3.8+ and local SQLite are mandatory to keep the environment deterministic and cheap.",
-      "source_repository": "subhadlearner/production-ai-project",
+      "source_template": "template",
       "runtime": {
         "language": "Python",
         "minimum_version": "3.8",

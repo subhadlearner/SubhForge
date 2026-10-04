@@ -23,11 +23,18 @@ Do not modify application code or tests merely to obtain a passing result.
 - Every non-trivial verification run creates a new immutable/history-preserving report under `docs/verification/`.
 - Never overwrite an earlier verification report.
 - Human risk acceptance is handled separately by `/waive`.
-- A reviewable verification result must satisfy `kilo/contracts/implementation-state-evidence-v1.md`. The canonical implementation-state manifest is authoritative; the fingerprint is its compact checksum/identifier. The implementation may be uncommitted.
+- A reviewable verification result must satisfy the installed global `<global-config>/contracts/implementation-state-evidence-v1.md`. The canonical implementation-state manifest is authoritative; the fingerprint is its compact checksum/identifier. The implementation may be uncommitted.
 
 ## Stage 1 — Determine Verification Scope
 
 Read only the minimum project context required to determine how the requested specification must be verified.
+
+When exact specification, project configuration, implementation, test, or
+authority paths are supplied by the caller, validate and use them directly.
+Do not perform broad repository discovery merely to rediscover those inputs.
+Bounded discovery remains available when required verification context is
+missing, stale, ambiguous, or an executable check depends on unknown project
+configuration.
 
 Use, in priority order:
 
@@ -39,7 +46,7 @@ Use, in priority order:
 
 Determine all applicable required checks.
 
-Read and apply `kilo/contracts/implementation-state-evidence-v1.md` as the normative implementation-state freshness contract.
+Read and apply `<global-config>/contracts/implementation-state-evidence-v1.md` as the normative implementation-state freshness contract.
 
 Capture the repository state before executing checks.
 
@@ -241,6 +248,24 @@ For each acceptance criterion report:
 - criterion ID
 - evidence
 - result: `PASS` or `FAIL`
+- for `FAIL`, one persisted `Failure Type` selected from the bounded taxonomy below
+
+### Failure Type taxonomy
+
+Every failed deterministic check or failed acceptance criterion that can block
+delivery must persist exactly one failure type in the verification report:
+
+- `BEHAVIORAL_TEST` — unit/integration/end-to-end/acceptance behavior is wrong
+- `DOCUMENTATION_QUALITY` — required documentation evidence/content is deficient
+- `LINT_QUALITY` — required lint/static quality gate failed without a security/data classification
+- `ENVIRONMENT_FAILURE` — the required check cannot execute because of environment/tooling availability
+- `SECURITY` — security verification produced a blocking failure
+- `DATA_INTEGRITY` — data-integrity verification produced a blocking failure
+- `COMPLIANCE` — compliance verification produced a blocking failure
+- `OTHER_QUALITY` — a blocking quality failure not covered above
+
+Failure type is factual verification metadata, not waiver eligibility. `/verify`
+must not decide whether a type is waivable; it only records what failed.
 
 If a required acceptance criterion has no deterministic evidence, mark it `FAIL`.
 
@@ -379,6 +404,12 @@ List only blockers preventing completion.
 If none:
 
 `None.`
+
+### Failure Summary
+
+For every blocker when the result is `NOT_DONE`, include the exact failed
+check/criterion ID and its persisted `Failure Type`. Do not leave a blocking
+failure untyped and do not infer waiver policy here.
 
 ### Verification Result
 

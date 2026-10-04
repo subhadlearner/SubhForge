@@ -76,14 +76,15 @@
     {
       "id": "verification-mutation",
       "purpose": "Prove verification cannot CLEAR a repository state that changes during checks.",
-      "injection": "Configure or use a disposable verification-side behavior that changes one identity-bearing non-evidence path during verification while the required check itself can otherwise pass.",
+      "injection": "From a matching clean checkpoint, arm the deterministic smoke verification-mutation hook. /verify captures its normal pre-check manifest and completes the required checks/acceptance evidence, then fires the registered hook immediately before its post-check manifest. The hook creates only the harness-owned non-evidence identity marker and proves Contract-v1 identity changed.",
       "expected_route": [
         "/verify checks may be DONE",
         "Freshness: MISMATCH",
         "Delivery Gate: BLOCKED",
-        "stabilize then rerun /verify"
+        "reviewer calls: 0",
+        "restore exact checkpoint; fresh /verify remains required before later review use"
       ],
-      "safety": "Mutation must be local, deterministic, reversible, and restricted to the disposable fixture."
+      "safety": "Use only smoke_mechanics arm/fire/restore inside the disposable smoke-run repository. Do not edit application source/tests for this probe and do not fire the mutation before verification checks."
     },
     {
       "id": "malformed-evidence",

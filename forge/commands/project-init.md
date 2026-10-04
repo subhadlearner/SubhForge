@@ -155,6 +155,22 @@ Record relevant security requirements, including where applicable:
 - explicitly required security gates
 - project waiver policy and any non-waivable categories
 
+When an approved project/fixture waiver policy already exists under `docs/workflow/`,
+copy its failure-type/category rules faithfully into the project `AGENTS.md`. Do not
+broaden waivability, rename failure types, or replace the fixed mapping with a model
+judgment. The source policy remains authoritative evidence for later `/waive` checks.
+
+The project `AGENTS.md` must make that policy mechanically traceable with:
+
+- `Waiver Policy Source: <repository-relative-policy-path>`
+- `Waiver Policy SHA-256: <sha256-of-exact-policy-bytes>`
+- `Non-waivable Failure Types: <exact source-policy values>`
+- `Waivable Failure Types: <exact source-policy values>`
+
+Do not calculate or invent the digest in model reasoning. When a waiver policy is
+present, Stage 5's deterministic helper writes these four trace lines from the exact
+policy bytes and preserves the exact failure-type tokens from the source policy.
+
 When security verification is materially relevant, include the global `security-verification` skill in the Skill Coverage Matrix as `ALREADY_AVAILABLE`.
 
 ### Cloud and Cost Constraints
@@ -193,6 +209,29 @@ Distinguish clearly between:
 
 ## Stage 5 — Ensure Workflow Artifact Directories
 
+Use the deterministic installed helper for mechanical repository setup:
+
+```text
+python <global-config>/scripts/project_init_mechanics.py --repo <project-root> --contract <global-config>/contracts/implementation-state-evidence-v1.md [--waiver-policy <repository-relative-policy-path>]
+```
+
+The helper owns only deterministic mechanics:
+
+- standard workflow directory creation
+- synchronization of the implementation-state evidence contract
+- idempotent verification of the synchronized contract hash
+- when `--waiver-policy` is supplied, exact SHA-256/type extraction and
+  idempotent replacement of only the four waiver-policy trace lines in `AGENTS.md`
+
+Do not manually recreate those mechanics with shell loops, repeated directory
+probes, or contract-copy commands when the helper is available.
+
+The workflow still owns all project-specific reasoning and authoring, including
+technology extraction, the substantive `AGENTS.md` content, README content,
+project-specific rules, skills, commands, and any clarification/blocking decisions.
+The four waiver-policy trace lines are the only `AGENTS.md` content owned by the
+mechanical helper.
+
 Ensure the repository contains the standard workflow artifact directories:
 
 - `docs/discovery/`
@@ -203,6 +242,7 @@ Ensure the repository contains the standard workflow artifact directories:
 - `docs/diagnostics/`
 - `docs/verification/`
 - `docs/verification/waivers/`
+- `docs/verification/waiver-refusals/`
 - `docs/verification/smoke/`
 - `docs/reviews/`
 - `docs/workflow/`
@@ -219,9 +259,16 @@ installed global `contracts/implementation-state-evidence-v1.md`
 
 Copy the contract verbatim. Do not summarize, reinterpret, or maintain an independently rewritten variant.
 
-If the global canonical contract is unavailable or the project copy cannot be synchronized exactly, return `PROJECT_INIT_BLOCKED` rather than leaving a dangling Stable-v1 reference.
+If the global canonical contract is unavailable or the project copy cannot be synchronized exactly, do not invent, summarize, copy from another source, or leave a substitute project contract. Report the blocker using these normal structured fields before the terminal status:
 
-Do not delete existing artifacts.
+`OWNER: REPOSITORY`
+`BLOCKING_ISSUE: <concise canonical Contract-v1 unavailable/synchronization failure>`
+`REQUIRED_ACTION: <minimum action needed to restore the canonical contract input>`
+`NEXT_COMMAND: /project-init`
+
+Then return `PROJECT_INIT_BLOCKED` rather than leaving a dangling Stable-v1 reference.
+
+Do not delete existing artifacts except when the deterministic smoke harness has explicitly prepared an isolated negative probe outside this normal command.
 
 These directories and the contract hold workflow evidence/design rules; they do not authorize implementation decisions.
 
@@ -391,7 +438,7 @@ Before declaring project initialization complete, verify:
 - `AGENTS.md` contains valid build/test commands where available
 - `AGENTS.md` contains executable approved security commands when architecture requires them
 - required security verification capabilities are not silently omitted
-- standard workflow artifact directories exist, including `docs/verification/waivers/`, `docs/verification/smoke/`, `docs/reviews/`, and `docs/workflow/`
+- standard workflow artifact directories exist, including `docs/verification/waivers/`, `docs/verification/waiver-refusals/`, `docs/verification/smoke/`, `docs/reviews/`, and `docs/workflow/`
 - `docs/workflow/IMPLEMENTATION-STATE-EVIDENCE-V1.md` exists and is synchronized verbatim with the global canonical contract
 - `README.md` accurately describes the project
 - README does not claim unimplemented functionality
