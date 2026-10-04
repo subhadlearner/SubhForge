@@ -6,6 +6,7 @@ import unittest
 import os
 from pathlib import Path
 
+import smoke_workspace
 from smoke_mechanics import (
     VERIFICATION_MUTATION_PATH,
     MechanicsError,
@@ -35,6 +36,9 @@ class SmokeMechanicsTests(unittest.TestCase):
         (self.repo / "docs/verification/smoke").mkdir(parents=True)
         self.base = self.git("rev-parse", "HEAD").strip()
         self.run_id = "SMOKE-FULL-test-20260927T000000Z-12345678"
+        smoke_workspace._stamp_repository_identity(
+            self.repo, self.run_id, self.base
+        )
 
     def git(self, *args):
         return subprocess.check_output(["git", *args], cwd=self.repo, text=True)

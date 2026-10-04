@@ -120,9 +120,9 @@ def _validate_run_id(run_id: str) -> None:
         raise RerouteProbeError("Invalid run ID")
 
 
-def _repo(repo: Path) -> Path:
+def _repo(repo: Path, run_id: str | None = None) -> Path:
     try:
-        return smoke_resume.probe_repo_root(repo)
+        return smoke_resume.probe_repo_root(repo, run_id)
     except (smoke_resume.ResumeProbeError, implementation_state.ImplementationStateError) as exc:
         raise RerouteProbeError(str(exc)) from exc
 
@@ -213,9 +213,9 @@ def _capture(repo: Path) -> dict[str, object]:
         raise RerouteProbeError(str(exc)) from exc
 
 
-def _restore(repo: Path, snapshot: dict[str, object]) -> None:
+def _restore(repo: Path, run_id: str, snapshot: dict[str, object]) -> None:
     try:
-        smoke_resume.restore_probe_snapshot_at_root(repo, snapshot)
+        smoke_resume.restore_probe_snapshot_at_root(repo, run_id, snapshot)
     except smoke_resume.ResumeProbeError as exc:
         raise RerouteProbeError(str(exc)) from exc
 
@@ -535,7 +535,7 @@ def prepare(
     implementation_paths: list[str],
     verification_path: str,
 ) -> dict[str, object]:
-    repo = _repo(repo)
+    repo = _repo(repo, run_id)
     if probe_id not in PROBE_PLAN:
         raise RerouteProbeError("Unknown reroute probe ID")
     ledger_path = _ledger_path(repo, run_id)
@@ -623,7 +623,7 @@ def prepare(
                 )
             )
     except Exception:
-        _restore(repo, snapshot)
+        _restore(repo, run_id, snapshot)
         snap_path.unlink(missing_ok=True)
         raise
 
@@ -700,7 +700,7 @@ def score(
     actual_next_command: str,
     reason: str,
 ) -> dict[str, object]:
-    repo = _repo(repo)
+    repo = _repo(repo, run_id)
     if probe_id not in PROBE_PLAN:
         raise RerouteProbeError("Unknown reroute probe ID")
     if actual_status not in ALLOWED_STATUS:
@@ -759,7 +759,7 @@ def record_handoff(
     accepted: bool,
     evidence: str,
 ) -> dict[str, object]:
-    repo = _repo(repo)
+    repo = _repo(repo, run_id)
     if probe_id != HANDOFF_PROBE:
         raise RerouteProbeError("Only the representative reroute probe accepts handoff evidence")
     if not evidence.strip():
@@ -784,7 +784,7 @@ def record_handoff(
 
 
 def restore(repo: Path, run_id: str, probe_id: str) -> dict[str, object]:
-    repo = _repo(repo)
+    repo = _repo(repo, run_id)
     path = _ledger_path(repo, run_id)
     ledger = _read_ledger(path)
     record = _active_probe(ledger, probe_id)
@@ -800,7 +800,7 @@ def restore(repo: Path, run_id: str, probe_id: str) -> dict[str, object]:
     if snapshot["snapshot_sha256"] != expected_digest:
         raise RerouteProbeError("Reroute snapshot digest does not match ledger")
 
-    _restore(repo, snapshot)
+    _restore(repo, run_id, snapshot)
     checkpoint_result = smoke_mechanics.check_checkpoint(
         repo, run_id, str(checkpoint_label)
     )["result"]
@@ -823,7 +823,7 @@ def restore(repo: Path, run_id: str, probe_id: str) -> dict[str, object]:
 
 
 def status(repo: Path, run_id: str) -> dict[str, object]:
-    repo = _repo(repo)
+    repo = _repo(repo, run_id)
     ledger = _read_ledger(_ledger_path(repo, run_id))
     probes = ledger["probes"]
     assert isinstance(probes, list)

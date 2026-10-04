@@ -53,6 +53,20 @@ class SmokeWorkspaceTests(unittest.TestCase):
         )
 
         self.assertEqual("smoke-run", self.git(run_dir, "branch", "--show-current"))
+        self.assertEqual(
+            result["run_id"],
+            self.git(run_dir, "config", "--local", "--get", smoke_workspace.SMOKE_RUN_ID_CONFIG),
+        )
+        self.assertEqual(
+            result["baseline_head"],
+            self.git(
+                run_dir,
+                "config",
+                "--local",
+                "--get",
+                smoke_workspace.SMOKE_BASELINE_HEAD_CONFIG,
+            ),
+        )
         self.assertEqual("committed template\n",
                          (run_dir / "README.md").read_text(encoding="utf-8"))
         self.assertEqual(self.commit, result["source_commit"])
@@ -65,6 +79,25 @@ class SmokeWorkspaceTests(unittest.TestCase):
         ]
         self.assertEqual([], leftovers)
 
+
+    def test_source_operations_reject_plain_child_of_enclosing_git_repository(self):
+        child = self.source / "plain-child"
+        child.mkdir()
+
+        with self.assertRaisesRegex(
+            smoke_workspace.SmokeWorkspaceError,
+            "must itself be the Git top-level",
+        ):
+            smoke_workspace.source_guard(child)
+        with self.assertRaisesRegex(
+            smoke_workspace.SmokeWorkspaceError,
+            "must itself be the Git top-level",
+        ):
+            smoke_workspace.create_workspace(
+                child, self.commit, "FAST", "fast-micro-library"
+            )
+
+        self.assertTrue(child.is_dir())
 
     def test_source_guard_allows_preexisting_dirty_source_when_unchanged(self):
         dirty = self.source / "template" / "README.md"
@@ -187,6 +220,193 @@ class SmokeWorkspaceTests(unittest.TestCase):
             smoke_workspace.destroy_workspace(self.source, run_id)
         self.assertTrue(outside.is_dir())
         self.assertEqual("smoke-run", self.git(outside, "branch", "--show-current"))
+
+    def test_locate_and_destroy_reject_parent_git_discovery(self):
+        run_root = self.source.parent / "SubhForge-smoke-runs"
+        run_root.mkdir()
+        self.git(run_root, "init")
+        self.git(run_root, "config", "user.name", "Test")
+        self.git(run_root, "config", "user.email", "test@example.invalid")
+        (run_root / "README.md").write_text("enclosing repository\n", encoding="utf-8")
+        self.git(run_root, "add", "-A")
+        self.git(run_root, "commit", "-m", "enclosing baseline")
+        self.git(run_root, "branch", "-M", "smoke-run")
+
+        run_id = "SMOKE-FAST-child-20261004T102400Z-12345678"
+        child = run_root / run_id
+        child.mkdir()
+
+        for operation in (
+            smoke_workspace.locate_workspace,
+            smoke_workspace.destroy_workspace,
+        ):
+            with self.subTest(operation=operation.__name__):
+                with self.assertRaisesRegex(
+                    smoke_workspace.SmokeWorkspaceError,
+                    "must itself be the Git top-level",
+                ):
+                    operation(self.source, run_id)
+        self.assertTrue(child.is_dir())
+
+    def test_locate_and_destroy_reject_wrong_repository_identity(self):
+        run_root = self.source.parent / "SubhForge-smoke-runs"
+        run_root.mkdir()
+        run_id = "SMOKE-FAST-wrong-20261004T102400Z-12345678"
+        target = run_root / run_id
+        target.mkdir()
+        self.git(target, "init")
+        self.git(target, "config", "user.name", "Test")
+        self.git(target, "config", "user.email", "test@example.invalid")
+        (target / "README.md").write_text("wrong repository\n", encoding="utf-8")
+        self.git(target, "add", "-A")
+        self.git(target, "commit", "-m", "wrong baseline")
+        self.git(target, "branch", "-M", "smoke-run")
+
+        for operation in (
+            smoke_workspace.locate_workspace,
+            smoke_workspace.destroy_workspace,
+        ):
+            with self.subTest(operation=operation.__name__):
+                with self.assertRaisesRegex(
+                    smoke_workspace.SmokeWorkspaceError,
+                    "ownership metadata is missing",
+                ):
+                    operation(self.source, run_id)
+        self.assertTrue(target.is_dir())
+
+    def test_repository_identity_rejects_wrong_branch_and_wrong_run_stamp(self):
+        run_root = self.source.parent / "SubhForge-smoke-runs"
+        run_root.mkdir()
+        run_id = "SMOKE-FAST-owner-20261004T102400Z-12345678"
+        other_run_id = "SMOKE-FAST-other-20261004T102400Z-87654321"
+        target = run_root / run_id
+        target.mkdir()
+        self.git(target, "init")
+        self.git(target, "config", "user.name", "Test")
+        self.git(target, "config", "user.email", "test@example.invalid")
+        (target / "README.md").write_text("owned repository\n", encoding="utf-8")
+        self.git(target, "add", "-A")
+        self.git(target, "commit", "-m", "baseline")
+        baseline = self.git(target, "rev-parse", "HEAD")
+
+        with self.assertRaisesRegex(
+            smoke_workspace.SmokeWorkspaceError,
+            "must be on smoke-run",
+        ):
+            smoke_workspace.validate_repository_identity(target, run_id)
+
+        self.git(target, "branch", "-M", "smoke-run")
+        self.git(
+            target, "config", "--local",
+            smoke_workspace.SMOKE_RUN_ID_CONFIG, other_run_id
+        )
+        self.git(
+            target, "config", "--local",
+            smoke_workspace.SMOKE_BASELINE_HEAD_CONFIG, baseline
+        )
+        with self.assertRaisesRegex(
+            smoke_workspace.SmokeWorkspaceError,
+            "belongs to a different run",
+        ):
+            smoke_workspace.validate_repository_identity(target, run_id)
+
+        self.git(
+            target, "config", "--local",
+            smoke_workspace.SMOKE_RUN_ID_CONFIG, run_id
+        )
+        with self.assertRaisesRegex(
+            smoke_workspace.SmokeWorkspaceError,
+            "baseline identity does not match",
+        ):
+            smoke_workspace.validate_repository_identity(
+                target, run_id, "0" * 40
+            )
+
+    def test_repository_identity_rejects_history_rewritten_away_from_stamped_baseline(self):
+        run_id = "SMOKE-FAST-owner-20261004T102400Z-12345678"
+        target = self.root / "owned-rewritten"
+        target.mkdir()
+        self.git(target, "init")
+        self.git(target, "config", "user.name", "Test")
+        self.git(target, "config", "user.email", "test@example.invalid")
+        (target / "README.md").write_text("baseline\n", encoding="utf-8")
+        self.git(target, "add", "-A")
+        self.git(target, "commit", "-m", "baseline")
+        self.git(target, "branch", "-M", "smoke-run")
+        baseline = self.git(target, "rev-parse", "HEAD")
+        smoke_workspace._stamp_repository_identity(target, run_id, baseline)
+
+        self.git(target, "checkout", "--orphan", "rewritten")
+        self.git(target, "rm", "-rf", ".")
+        (target / "README.md").write_text("unrelated history\n", encoding="utf-8")
+        self.git(target, "add", "-A")
+        self.git(target, "commit", "-m", "unrelated")
+        self.git(target, "branch", "-M", "smoke-run")
+
+        with self.assertRaisesRegex(
+            smoke_workspace.SmokeWorkspaceError,
+            "merge-base --is-ancestor",
+        ):
+            smoke_workspace.validate_repository_identity(target, run_id)
+
+    def test_repository_identity_rejects_fake_git_directory_inside_parent_repository(self):
+        parent = self.root / "enclosing"
+        parent.mkdir()
+        self.git(parent, "init")
+        self.git(parent, "config", "user.name", "Test")
+        self.git(parent, "config", "user.email", "test@example.invalid")
+        (parent / "README.md").write_text("parent repository\n", encoding="utf-8")
+        self.git(parent, "add", "-A")
+        self.git(parent, "commit", "-m", "parent baseline")
+        baseline = self.git(parent, "rev-parse", "HEAD")
+
+        run_id = "SMOKE-FAST-fakegit-20261004T102400Z-12345678"
+        target = parent / "plain-child"
+        git_dir = target / ".git"
+        git_dir.mkdir(parents=True)
+        (git_dir / "HEAD").write_text("ref: refs/heads/smoke-run\n", encoding="utf-8")
+        (git_dir / "config").write_text(
+            "[subhforge]\n"
+            "    smokeRunId = {}\n"
+            "    smokeBaselineHead = {}\n".format(run_id, baseline),
+            encoding="utf-8",
+        )
+
+        with self.assertRaisesRegex(
+            smoke_workspace.SmokeWorkspaceError,
+            "merge-base --is-ancestor",
+        ):
+            smoke_workspace.validate_repository_identity(target, run_id)
+
+    def test_repository_identity_tolerates_unrelated_legal_git_config_shapes(self):
+        run_id = "SMOKE-FAST-config-20261004T102400Z-12345678"
+        target = self.root / "owned-config"
+        target.mkdir()
+        self.git(target, "init")
+        self.git(target, "config", "user.name", "Test")
+        self.git(target, "config", "user.email", "test@example.invalid")
+        (target / "README.md").write_text("owned repository\n", encoding="utf-8")
+        self.git(target, "add", "-A")
+        self.git(target, "commit", "-m", "baseline")
+        self.git(target, "branch", "-M", "smoke-run")
+        baseline = self.git(target, "rev-parse", "HEAD")
+        smoke_workspace._stamp_repository_identity(target, run_id, baseline)
+
+        config = target / ".git" / "config"
+        with config.open("a", encoding="utf-8") as handle:
+            handle.write(
+                "\n[remote \"origin\"]\n"
+                "    fetch = +refs/heads/*:refs/remotes/origin/*\n"
+                "    fetch = +refs/tags/*:refs/tags/*\n"
+                "[custom]\n"
+                "    valueless\n"
+                "[remote \"origin\"]\n"
+                "    fetch = +refs/notes/*:refs/notes/*\n"
+            )
+
+        identity = smoke_workspace.validate_repository_identity(target, run_id)
+        self.assertEqual(run_id, identity["run_id"])
+        self.assertEqual(baseline, identity["baseline_head"])
 
     def test_create_rejects_generated_run_id_that_is_not_a_confined_identifier(self):
         escaped = self.root / "escaped-smoke-run"

@@ -11,6 +11,7 @@ from pathlib import Path
 import smoke_mechanics
 import smoke_reroute
 import smoke_resume
+import smoke_workspace
 
 
 class SmokeRerouteTests(unittest.TestCase):
@@ -80,6 +81,11 @@ class SmokeRerouteTests(unittest.TestCase):
         write("docs/diagnostics/OLD.md", "# Old diagnosis\n")
 
         cls._run_id = "SMOKE-FULL-test-20260930T000000Z-12345678"
+        smoke_workspace._stamp_repository_identity(
+            seed,
+            cls._run_id,
+            git("rev-parse", "HEAD").strip(),
+        )
         smoke_mechanics.checkpoint(seed, cls._run_id, "clean")
         cls._clean_snapshot = smoke_resume.capture_probe_snapshot(seed)
 

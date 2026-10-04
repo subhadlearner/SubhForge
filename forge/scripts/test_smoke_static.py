@@ -3,6 +3,7 @@
 import sys
 import tempfile
 import unittest
+from unittest import mock
 import shutil
 import json
 import datetime as dt
@@ -16,6 +17,22 @@ import smoke_state
 
 
 class SmokeStaticTests(unittest.TestCase):
+    def setUp(self):
+        # These tests exercise static contract/routing behavior in a synthetic
+        # temporary tree. Repository-identity behavior is covered separately by
+        # the H10 workspace/helper identity regression tests.
+        identity = mock.patch(
+            "smoke_workspace.validate_repository_identity",
+            side_effect=lambda repo, run_id=None, baseline_head=None: {
+                "run_directory": str(Path(repo).resolve()),
+                "run_id": run_id or "SMOKE-TEST",
+                "baseline_head": baseline_head or "base",
+                "run_branch": "smoke-run",
+            },
+        )
+        identity.start()
+        self.addCleanup(identity.stop)
+
     def _gate_fixture(self, root):
         source = Path(__file__).resolve().parents[1]
         config = root / "config"

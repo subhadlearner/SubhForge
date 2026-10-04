@@ -44,8 +44,7 @@ def source_guard(source: Path) -> Dict[str, str]:
     source = source.resolve()
     if not source.is_dir():
         raise SmokeWorkspaceError("SubhForge source checkout does not exist: {}".format(source))
-    if _run_git(source, "rev-parse", "--is-inside-work-tree").lower() != "true":
-        raise SmokeWorkspaceError("SubhForge source path is not a Git work tree: {}".format(source))
+    _require_exact_git_root(source, "SubhForge source checkout")
 
     git = shutil.which("git")
     assert git is not None
@@ -113,6 +112,162 @@ RUN_ID_PATTERN = re.compile(
     r"^SMOKE-(FAST|FULL)-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*-"
     r"[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$"
 )
+SMOKE_RUN_ID_CONFIG = "subhforge.smokeRunId"
+SMOKE_BASELINE_HEAD_CONFIG = "subhforge.smokeBaselineHead"
+
+
+def _require_exact_git_root(repo: Path, label: str) -> Path:
+    repo = repo.resolve()
+    if not repo.is_dir():
+        raise SmokeWorkspaceError("{} does not exist: {}".format(label, repo))
+    root = Path(_run_git(repo, "rev-parse", "--show-toplevel")).resolve()
+    if root != repo:
+        raise SmokeWorkspaceError("{} must itself be the Git top-level: {}".format(label, repo))
+    return repo
+
+
+def _read_subhforge_identity(config_path: Path) -> tuple[Optional[str], Optional[str]]:
+    """Read only helper-owned identity keys without rejecting unrelated valid Git config."""
+
+    try:
+        lines = config_path.read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        raise SmokeWorkspaceError(
+            "Disposable smoke repository local Git config is unreadable"
+        ) from exc
+
+    section = ""
+    values: dict[str, str] = {}
+    identity_keys = {
+        "smokerunid": "run_id",
+        "smokebaselinehead": "baseline_head",
+    }
+    for raw in lines:
+        line = raw.strip()
+        if not line or line.startswith(("#", ";")):
+            continue
+        if line.startswith("["):
+            if not line.endswith("]"):
+                raise SmokeWorkspaceError(
+                    "Disposable smoke repository local Git config has a malformed section"
+                )
+            body = line[1:-1].strip()
+            section = body.lower()
+            continue
+        if section != "subhforge":
+            continue
+        key_text, separator, value_text = line.partition("=")
+        if not separator:
+            continue
+        canonical = identity_keys.get(key_text.strip().lower())
+        if canonical is None:
+            continue
+        value = value_text.strip()
+        if len(value) >= 2 and value[0] == value[-1] == '"':
+            value = value[1:-1]
+        if canonical in values:
+            raise SmokeWorkspaceError(
+                "Disposable smoke repository ownership metadata is ambiguous"
+            )
+        values[canonical] = value
+
+    return values.get("run_id"), values.get("baseline_head")
+
+
+def _standalone_git_identity(
+    repo: Path,
+) -> tuple[str, Optional[str], Optional[str]]:
+    """Read identity only from repo's own Git admin directory.
+
+    Disposable smoke repositories are standalone clones created by this helper.
+    Requiring an actual .git directory at the resolved target avoids Git's
+    parent-directory discovery entirely and fails closed for linked worktrees.
+    """
+    git_dir = repo / ".git"
+    if not git_dir.is_dir():
+        raise SmokeWorkspaceError(
+            "Disposable smoke repository must itself be the Git top-level: {}".format(repo)
+        )
+
+    try:
+        head = (git_dir / "HEAD").read_text(encoding="utf-8").strip()
+    except OSError as exc:
+        raise SmokeWorkspaceError("Disposable smoke repository HEAD is unreadable") from exc
+    prefix = "ref: refs/heads/"
+    branch = head[len(prefix):] if head.startswith(prefix) else "DETACHED"
+
+    recorded_run_id, recorded_baseline = _read_subhforge_identity(git_dir / "config")
+    return branch, recorded_run_id, recorded_baseline
+
+
+def _stamp_repository_identity(repo: Path, run_id: str, baseline_head: str) -> None:
+    repo = _require_exact_git_root(repo, "Disposable smoke repository")
+    if RUN_ID_PATTERN.fullmatch(run_id) is None:
+        raise SmokeWorkspaceError("Invalid run ID")
+    if _run_git(repo, "branch", "--show-current") != "smoke-run":
+        raise SmokeWorkspaceError("Disposable smoke repository must be on smoke-run")
+    _run_git(repo, "cat-file", "-e", "{}^{{commit}}".format(baseline_head))
+    if _run_git(repo, "rev-parse", "HEAD") != baseline_head:
+        raise SmokeWorkspaceError(
+            "Disposable smoke repository HEAD must match baseline before ownership is stamped"
+        )
+    _run_git(repo, "config", "--local", SMOKE_RUN_ID_CONFIG, run_id)
+    _run_git(repo, "config", "--local", SMOKE_BASELINE_HEAD_CONFIG, baseline_head)
+
+
+def validate_repository_identity(
+    repo: Path,
+    run_id: Optional[str] = None,
+    baseline_head: Optional[str] = None,
+) -> Dict[str, str]:
+    """Prove that repo itself is a helper-owned disposable smoke repository.
+
+    Creation stamps ownership only after proving HEAD == baseline_head. Runtime
+    validation reads branch/run/baseline identity from the target's own Git
+    admin directory, then uses one Git process pinned to that exact admin
+    directory to prove the recorded baseline remains an ancestor of HEAD.
+    """
+    repo = repo.resolve()
+    if not repo.is_dir():
+        raise SmokeWorkspaceError(
+            "Disposable smoke repository does not exist: {}".format(repo)
+        )
+    branch, recorded_run_id, recorded_baseline = _standalone_git_identity(repo)
+    if branch != "smoke-run":
+        raise SmokeWorkspaceError(
+            "Disposable smoke repository must be on smoke-run, found: {}".format(branch)
+        )
+
+    if (
+        recorded_run_id is None
+        or RUN_ID_PATTERN.fullmatch(recorded_run_id) is None
+        or recorded_baseline is None
+    ):
+        raise SmokeWorkspaceError("Disposable smoke repository ownership metadata is missing")
+    if run_id is not None and recorded_run_id != run_id:
+        raise SmokeWorkspaceError(
+            "Disposable smoke repository belongs to a different run: {}".format(
+                recorded_run_id
+            )
+        )
+    if baseline_head is not None and recorded_baseline != baseline_head:
+        raise SmokeWorkspaceError("Disposable smoke repository baseline identity does not match")
+    git_dir = repo / ".git"
+    _run_git(
+        repo,
+        "--git-dir={}".format(git_dir),
+        "--work-tree={}".format(repo),
+        "merge-base",
+        "--is-ancestor",
+        recorded_baseline,
+        "HEAD",
+    )
+    return {
+        "run_directory": str(repo),
+        "run_id": recorded_run_id,
+        "baseline_head": recorded_baseline,
+        "run_branch": branch,
+    }
 
 
 def _workspace_target(source: Path, run_id: str) -> tuple[Path, Path]:
@@ -131,8 +286,7 @@ def create_workspace(source: Path, source_commit: str, profile: str, fixture: st
     source = source.resolve()
     if not source.is_dir():
         raise SmokeWorkspaceError("SubhForge source checkout does not exist: {}".format(source))
-    if _run_git(source, "rev-parse", "--is-inside-work-tree").lower() != "true":
-        raise SmokeWorkspaceError("SubhForge source path is not a Git work tree: {}".format(source))
+    _require_exact_git_root(source, "SubhForge source checkout")
 
     resolved_commit = _run_git(source, "rev-parse", "{}^{{commit}}".format(source_commit))
     if resolved_commit != source_commit:
@@ -207,6 +361,8 @@ def create_workspace(source: Path, source_commit: str, profile: str, fixture: st
             raise SmokeWorkspaceError(
                 "Disposable clone HEAD {} does not match generated baseline HEAD {}.".format(
                     cloned_head, baseline_head))
+        _stamp_repository_identity(target, run_id, baseline_head)
+        validate_repository_identity(target, run_id, baseline_head)
     except Exception:
         if target.exists():
             shutil.rmtree(str(target), onerror=_remove_readonly)
@@ -231,12 +387,13 @@ def create_workspace(source: Path, source_commit: str, profile: str, fixture: st
 
 
 def locate_workspace(source: Path, run_id: str) -> Dict[str, str]:
-    source = source.resolve()
+    source = _require_exact_git_root(source.resolve(), "SubhForge source checkout")
     _, target = _workspace_target(source, run_id)
     if not target.is_dir():
         raise SmokeWorkspaceError("Smoke run directory not found: {}".format(target))
+    identity = validate_repository_identity(target, run_id)
     head = _run_git(target, "rev-parse", "HEAD")
-    branch = _run_git(target, "branch", "--show-current") or "DETACHED"
+    branch = identity["run_branch"]
     return {
         "run_id": run_id,
         "source_checkout_path": str(source),
@@ -252,7 +409,7 @@ def _remove_readonly(func, path, exc):
 
 
 def destroy_workspace(source: Path, run_id: str) -> Dict[str, str]:
-    source = source.resolve()
+    source = _require_exact_git_root(source.resolve(), "SubhForge source checkout")
     _, target = _workspace_target(source, run_id)
     if not target.exists():
         return {
@@ -263,12 +420,8 @@ def destroy_workspace(source: Path, run_id: str) -> Dict[str, str]:
             "reason": "NOT_FOUND",
         }
 
-    # Safety check: only delete a workspace created by this helper.
-    branch = _run_git(target, "branch", "--show-current") or "DETACHED"
-    if branch != "smoke-run":
-        raise SmokeWorkspaceError(
-            "Refusing to delete workspace whose current branch is not smoke-run: {}".format(branch)
-        )
+    # Safety check: only delete a repository stamped by this helper for run_id.
+    validate_repository_identity(target, run_id)
 
     shutil.rmtree(str(target), onerror=_remove_readonly)
     return {

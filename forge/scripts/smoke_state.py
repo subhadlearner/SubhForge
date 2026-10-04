@@ -9,6 +9,9 @@ import json
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import smoke_workspace
+
 
 class SmokeStateError(RuntimeError):
     pass
@@ -337,6 +340,22 @@ def _profile_scenarios(profile: str) -> tuple[set[str], set[str], set[str]]:
     return required, optional, required | optional
 
 
+def _require_mutation_target(
+    repo: Path,
+    run_id: str,
+    baseline_head: str | None = None,
+) -> Path:
+    try:
+        identity = smoke_workspace.validate_repository_identity(
+            repo, run_id, baseline_head
+        )
+    except smoke_workspace.SmokeWorkspaceError as exc:
+        raise SmokeStateError(
+            "Smoke state mutation requires the owned disposable repository: {}".format(exc)
+        ) from exc
+    return Path(identity["run_directory"])
+
+
 def state_path(repo: Path, run_id: str) -> Path:
     _validate_run_id(run_id)
     folder = repo.resolve() / "docs" / "verification" / "smoke"
@@ -660,6 +679,7 @@ def load(repo: Path, run_id: str) -> dict[str, object]:
 
 def init(repo: Path, run_id: str, profile: str, fixture: str,
          source_commit: str, baseline_head: str) -> dict[str, object]:
+    repo = _require_mutation_target(repo, run_id, baseline_head)
     path = state_path(repo, run_id)
     if path.exists():
         raise SmokeStateError("Smoke state already exists")
@@ -733,6 +753,7 @@ def _merge_context_index(
 
 
 def set_values(repo: Path, run_id: str, updates: dict[str, object]) -> dict[str, object]:
+    repo = _require_mutation_target(repo, run_id)
     if not isinstance(updates, dict):
         raise SmokeStateError("Smoke state updates must be an object")
 

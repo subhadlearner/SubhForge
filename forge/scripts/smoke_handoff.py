@@ -26,6 +26,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import smoke_state
+import smoke_workspace
 
 ENV_RUN_ID = "SUBHFORGE_SMOKE_RUN_ID"
 ENV_RUN_DIRECTORY = "SUBHFORGE_SMOKE_RUN_DIRECTORY"
@@ -72,16 +73,11 @@ def validate_workspace(repo: Path, run_id: str) -> dict[str, str]:
     if repo.name != run_id:
         raise SmokeHandoffError("Smoke run directory name does not match run ID")
 
-    root = Path(_run_git(repo, "rev-parse", "--show-toplevel")).resolve()
-    if root != repo:
-        raise SmokeHandoffError("Smoke handoff target must be the repository root")
-    branch = _run_git(repo, "branch", "--show-current")
-    if branch != "smoke-run":
-        raise SmokeHandoffError(
-            "Smoke handoff target must be on smoke-run, found: {}".format(
-                branch or "DETACHED"
-            )
-        )
+    try:
+        identity = smoke_workspace.validate_repository_identity(repo, run_id)
+    except smoke_workspace.SmokeWorkspaceError as exc:
+        raise SmokeHandoffError("Invalid disposable smoke repository: {}".format(exc)) from exc
+    branch = identity["run_branch"]
 
     try:
         state = smoke_state.load(repo, run_id)

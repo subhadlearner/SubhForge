@@ -347,6 +347,14 @@ SMOKE-FULL-full-minimal-api-20260927T080854Z-c033fcf5
 
 `smoke_workspace.py create` allocates the run ID and isolated workspace. The orchestrator uses its returned ID; it does not scan or sequence prior runs.
 
+H10 repository-identity stamps are local Git metadata on newly created disposable
+workspaces. A workspace created before H10 has no stamp, so current
+`locate`/`destroy` intentionally fail closed instead of guessing ownership.
+If such a legacy workspace must be removed, first verify manually that it is an
+obsolete disposable child under the expected `<source>-smoke-runs` directory
+and preserve any evidence still needed for diagnosis; legacy workspaces are not
+auto-migrated.
+
 Every smoke response must repeat the active Run ID near the top.
 
 The run record, not chat history, is the continuation authority.
@@ -1400,7 +1408,7 @@ referenced evidence/access, **not** by an unanswered product decision.
 3. score the blocked artifact with
    `smoke_h08b.py score-discovery --phase blocked --status <actual>`; never
    substitute the expected status for the child's returned value
-4. restore exactly the referenced evidence with `smoke_h08b.py restore-evidence`
+4. restore exactly the referenced evidence with `smoke_h08b.py --run-id <run-id> restore-evidence`
 5. rerun a second real `/grill` child in continuation mode, again ledgered as
    `scenario=grill`, `stage=grill`, without renumbering/reopening settled decisions
 6. parse that child's actual status and score with

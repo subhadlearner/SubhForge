@@ -2,6 +2,7 @@
 
 import datetime as dt
 import json
+import subprocess
 import shutil
 import sys
 import tempfile
@@ -23,6 +24,17 @@ class SmokeSegmentsTests(unittest.TestCase):
         self.repo = self.root / "repo"
         (self.repo / "docs/verification/smoke").mkdir(parents=True)
         self.run_id = "SMOKE-FULL-h08-20261002T000000Z-12345678"
+        identity = mock.patch(
+            "smoke_workspace.validate_repository_identity",
+            side_effect=lambda repo, run_id=None, baseline_head=None: {
+                "run_directory": str(Path(repo).resolve()),
+                "run_id": run_id or self.run_id,
+                "baseline_head": baseline_head or "test-baseline",
+                "run_branch": "smoke-run",
+            },
+        )
+        identity.start()
+        self.addCleanup(identity.stop)
         self.started = dt.datetime(2026, 10, 2, 0, 0, tzinfo=dt.timezone.utc)
 
     def _config_copy(self):
@@ -1025,6 +1037,35 @@ class SmokeSegmentsTests(unittest.TestCase):
         self.assertEqual(30, snapshot["limit_minutes"])
         self.assertEqual("PROVISIONAL", snapshot["limit_status"])
         self.assertNotIn("segments", snapshot)
+
+
+
+class SmokeSegmentsRepositoryIdentityTests(unittest.TestCase):
+    def git(self, repo, *args):
+        return subprocess.check_output(["git", *args], cwd=str(repo), text=True).strip()
+
+    def test_budget_exceeded_mutation_rejects_wrong_branch_and_unowned_repository(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp) / "wrong-repo"
+            repo.mkdir()
+            self.git(repo, "init")
+            self.git(repo, "config", "user.name", "Smoke")
+            self.git(repo, "config", "user.email", "smoke@example.test")
+            (repo / "README.md").write_text("wrong repository\n", encoding="utf-8")
+            self.git(repo, "add", "-A")
+            self.git(repo, "commit", "-qm", "baseline")
+            run_id = "SMOKE-FULL-h10-20261004T000000Z-12345678"
+
+            with self.assertRaisesRegex(
+                smoke_segments.SegmentError, "must be on smoke-run"
+            ):
+                smoke_segments.mark_budget_exceeded(repo, run_id)
+
+            self.git(repo, "branch", "-M", "smoke-run")
+            with self.assertRaisesRegex(
+                smoke_segments.SegmentError, "ownership metadata is missing"
+            ):
+                smoke_segments.mark_budget_exceeded(repo, run_id)
 
 
 if __name__ == "__main__":

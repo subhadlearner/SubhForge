@@ -355,6 +355,12 @@ def _state_context(repo: Path, run_id: str) -> tuple[dict, dict]:
 
 
 def _persist_context(repo: Path, run_id: str, state: dict, context: dict) -> dict:
+    try:
+        smoke_workspace.validate_repository_identity(repo, run_id)
+    except smoke_workspace.SmokeWorkspaceError as exc:
+        raise SegmentError(
+            "Smoke segment mutation requires the owned disposable repository: {}".format(exc)
+        ) from exc
     candidate = dict(state)
     candidate["context_index"] = context
     smoke_state._validate_full_state(candidate, expected_run_id=run_id)
@@ -568,6 +574,13 @@ def register_scenario_evidence(
     config_root: Optional[Path] = None,
 ) -> dict:
     """Persist one immutable scored subprobe record for the ACTIVE segment."""
+    try:
+        identity = smoke_workspace.validate_repository_identity(repo, run_id)
+    except smoke_workspace.SmokeWorkspaceError as exc:
+        raise SegmentError(
+            "Scenario evidence requires the owned disposable repository: {}".format(exc)
+        ) from exc
+    repo = Path(identity["run_directory"])
     pinned = assert_config_intact(repo, run_id, config_root)
     state, context = _state_context(repo, run_id)
     if state.get("profile") != "FULL":
@@ -966,6 +979,13 @@ def segment_timing(
 def mark_budget_exceeded(
     repo: Path, run_id: str, now: Optional[dt.datetime] = None
 ) -> dict:
+    try:
+        identity = smoke_workspace.validate_repository_identity(repo, run_id)
+    except smoke_workspace.SmokeWorkspaceError as exc:
+        raise SegmentError(
+            "Smoke segment mutation requires the owned disposable repository: {}".format(exc)
+        ) from exc
+    repo = Path(identity["run_directory"])
     timing = segment_timing(repo, run_id, now)
     state, context = _state_context(repo, run_id)
     runtime = _runtime(context)
