@@ -414,6 +414,13 @@ H08's invocation/runtime plan fit. In particular:
 - H13 is the small real Kilo integration probe with targeted routing/handoff timing calibration and a recorded configuration revision before H14; it is not another FULL run.
 - H14 is the next release-qualifying FULL.
 
+### H09 review deferrals
+
+Two review findings are intentionally preserved for their owning later items; they are not H09 implementation scope:
+
+- **H10 target identity:** workspace/path confinement does not prove repository identity. `locate`/`destroy` and other mutating helpers must not trust Git parent-directory discovery. H10 must prove the resolved target itself is the Git top-level and validate the required `smoke-run` branch/repository identity before trusting or mutating it; a plain child directory inside an enclosing repository must fail closed.
+- **H12 run-ID contract consistency:** run-ID validation is currently duplicated across multiple smoke helpers and the workspace boundary now uses the stricter canonical grammar. H12 must reconcile/centralize the canonical run-ID contract so state, budget, handoff, resume, reroute, H08b, and workspace validation cannot drift.
+
 The v0.1.1 existing-authority bypass remains deferred and must not be pulled
 into Stable-v0.1 hardening merely to make smoke easier.
 

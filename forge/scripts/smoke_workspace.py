@@ -8,6 +8,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -108,6 +109,23 @@ def _new_run_id(profile: str, fixture: str) -> str:
     return "SMOKE-{}-{}-{}-{}".format(profile.upper(), fixture, stamp, suffix)
 
 
+RUN_ID_PATTERN = re.compile(
+    r"^SMOKE-(FAST|FULL)-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*-"
+    r"[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$"
+)
+
+
+def _workspace_target(source: Path, run_id: str) -> tuple[Path, Path]:
+    if not isinstance(run_id, str) or RUN_ID_PATTERN.fullmatch(run_id) is None:
+        raise SmokeWorkspaceError("Invalid run ID")
+
+    root = _run_root(source).resolve()
+    target = (root / run_id).resolve()
+    if target.parent != root:
+        raise SmokeWorkspaceError("Smoke run path escapes smoke run root.")
+    return root, target
+
+
 def create_workspace(source: Path, source_commit: str, profile: str, fixture: str) -> Dict[str, str]:
     """Provision a disposable project from SubhForge/template at an exact release commit."""
     source = source.resolve()
@@ -120,12 +138,12 @@ def create_workspace(source: Path, source_commit: str, profile: str, fixture: st
     if resolved_commit != source_commit:
         source_commit = resolved_commit
 
-    root = _run_root(source)
+    root = _run_root(source).resolve()
     root.mkdir(parents=True, exist_ok=True)
 
     for _ in range(10):
         run_id = _new_run_id(profile, fixture)
-        target = root / run_id
+        _, target = _workspace_target(source, run_id)
         if not target.exists():
             break
     else:
@@ -214,7 +232,7 @@ def create_workspace(source: Path, source_commit: str, profile: str, fixture: st
 
 def locate_workspace(source: Path, run_id: str) -> Dict[str, str]:
     source = source.resolve()
-    target = _run_root(source) / run_id
+    _, target = _workspace_target(source, run_id)
     if not target.is_dir():
         raise SmokeWorkspaceError("Smoke run directory not found: {}".format(target))
     head = _run_git(target, "rev-parse", "HEAD")
@@ -235,11 +253,7 @@ def _remove_readonly(func, path, exc):
 
 def destroy_workspace(source: Path, run_id: str) -> Dict[str, str]:
     source = source.resolve()
-    root = _run_root(source).resolve()
-    target = (root / run_id).resolve()
-
-    if target.parent != root:
-        raise SmokeWorkspaceError("Refusing to delete path outside smoke run root.")
+    _, target = _workspace_target(source, run_id)
     if not target.exists():
         return {
             "run_id": run_id,
