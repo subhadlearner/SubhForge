@@ -18,11 +18,12 @@ SubhForge/
 
 ## Branch model
 
-- `main` is the integration branch for the Stable v0.1 candidate.
-- `feature/v0.2.0` is the active v0.2 development branch.
-- Stable releases are tagged only after their smoke/dogfood gates pass.
+- `main` remains the integration branch inherited from the v0.1 consolidation.
+- `harden/v0.1-full-smoke` is the frozen v0.1 research/prototype baseline at H10.
+- `feature/v0.2.0` and `design/v0.2-implementation-tooling` are existing v0.2 lineages awaiting separate reconciliation; neither is declared canonical here.
+- Stable releases are tagged only after their smoke/dogfood gates pass. The frozen v0.1 research baseline is not a release-qualified stable release.
 
-The v0.1 baseline is the structural consolidation of `kilo-configuration@stable_v_0.1.0` and `production-ai-project@main`. Existing workflow behavior is preserved before v0.2 behavior is introduced.
+The v0.1 baseline is the structural consolidation of `kilo-configuration@stable_v_0.1.0` and `production-ai-project@main`. Its H01-H10 history is preserved for evidence and lessons learned, but no further v0.1 development, hardening, or release qualification is planned. v0.2 will be built from accepted requirements and independently justified reuse rather than by blindly extending this prototype.
 
 ## Prerequisites
 
