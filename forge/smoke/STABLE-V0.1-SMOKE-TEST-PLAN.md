@@ -1,5 +1,12 @@
 # Stable v0.1 Workflow Smoke-Test Runbook
 
+> [!IMPORTANT]
+> This runbook is preserved as part of the v0.1 research/prototype baseline.
+> v0.1 stopped at H10 on 2026-10-04. H11-H14 and further v0.1 release
+> qualification were cancelled and superseded by the v0.2 clean build.
+> The body below records the accepted v0.1 behavior and historical gates; it is
+> not an active hardening work queue and does not establish a stable release.
+
 ## Deterministic harness regression budget
 
 Before release-qualifying smoke, the deterministic harness itself must remain
@@ -3836,14 +3843,16 @@ the helper does not partially write or silently repair the candidate state.
 This validation is mechanical only. It does not decide which lifecycle stage
 should run next and must not replace the orchestrator's routing judgment.
 
-## Open Stable-v0.1 smoke hardening TODOs
+## Stable-v0.1 hardening history and final disposition
 
-The Git-authoritative tracker for audit-discovered FULL hardening work is:
+The Git-authoritative historical tracker for audit-discovered FULL hardening
+work is:
 
 `forge/smoke/STABLE-V0.1-FULL-HARDENING-TRACKER.md`
 
-Use that tracker for H01–H14 status, acceptance gates, sequencing, and closing
-commit SHAs. Do not rely on chat history as the work queue.
+It records H01-H10 as closed and H11-H14 as cancelled/superseded by v0.2.
+Preserve it for acceptance-gate and closing-commit history. Do not treat this
+runbook or chat history as an active v0.1 work queue.
 
 
 
