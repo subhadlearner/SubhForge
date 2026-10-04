@@ -1,10 +1,12 @@
 """Regression tests for internal SubhForge smoke workspace provisioning."""
 
+import os
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -89,6 +91,115 @@ class SmokeWorkspaceTests(unittest.TestCase):
 
         self.assertEqual("MISMATCH", verified["result"])
         self.assertNotEqual(before["fingerprint"], verified["fingerprint"])
+
+    def test_workspace_operations_reject_malformed_or_escaping_run_ids(self):
+        run_root = self.source.parent / "SubhForge-smoke-runs"
+        valid_run = smoke_workspace.create_workspace(
+            self.source, self.commit, "FAST", "fast-micro-library"
+        )
+        self.addCleanup(
+            lambda: Path(valid_run["run_directory"]).exists()
+            and smoke_workspace.destroy_workspace(self.source, valid_run["run_id"])
+        )
+
+        outside = self.root / "outside-smoke-run"
+        outside.mkdir()
+        absolute = str(outside.resolve())
+
+        for run_id in (
+            "../SubhForge",
+            "..",
+            "SMOKE-../SubhForge",
+            "SMOKE-FULL/bad",
+            "SMOKE-FULL\\bad",
+            absolute,
+            "not-a-smoke-run",
+            "SMOKE-",
+            "SMOKE-FAST-fixture-20261004T102400Z",
+            "SMOKE-FAST--20261004T102400Z-12345678",
+            "SMOKE-FAST-fixture-not-a-time-12345678",
+            "SMOKE-FAST-fixture-20261004T102400Z-nothex12",
+            "SMOKE-FAST-fixture-２０２６１００４T１０２４００Z-12345678",
+            "",
+        ):
+            with self.subTest(run_id=run_id):
+                with self.assertRaises(smoke_workspace.SmokeWorkspaceError):
+                    smoke_workspace.locate_workspace(self.source, run_id)
+                with self.assertRaises(smoke_workspace.SmokeWorkspaceError):
+                    smoke_workspace.destroy_workspace(self.source, run_id)
+
+        self.assertTrue(self.source.is_dir())
+        self.assertTrue(outside.is_dir())
+        self.assertTrue(Path(valid_run["run_directory"]).is_dir())
+        self.assertTrue(run_root.is_dir())
+
+    def test_workspace_operations_reject_valid_run_id_link_escape(self):
+        run_root = self.source.parent / "SubhForge-smoke-runs"
+        run_root.mkdir()
+        outside = self.root / "outside-link-target"
+        outside.mkdir()
+        self.git(outside, "init")
+        self.git(outside, "config", "user.name", "Test")
+        self.git(outside, "config", "user.email", "test@example.invalid")
+        (outside / "README.md").write_text("outside repository\n", encoding="utf-8")
+        self.git(outside, "add", "-A")
+        self.git(outside, "commit", "-m", "outside baseline")
+        self.git(outside, "branch", "-M", "smoke-run")
+
+        run_id = "SMOKE-FAST-link-20261004T102400Z-12345678"
+        link = run_root / run_id
+
+        try:
+            link.symlink_to(outside, target_is_directory=True)
+        except OSError as symlink_error:
+            if os.name != "nt":
+                self.skipTest("Directory symlinks are unavailable: {}".format(symlink_error))
+            junction = subprocess.run(
+                ["cmd.exe", "/c", "mklink", "/J", str(link), str(outside)],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            if junction.returncode != 0:
+                self.fail(
+                    "Windows containment regression requires a directory junction: {}".format(
+                        (junction.stderr or junction.stdout).strip()
+                    )
+                )
+
+        def remove_link():
+            if link.is_symlink():
+                link.unlink()
+            elif link.exists():
+                os.rmdir(str(link))
+
+        self.addCleanup(remove_link)
+
+        with self.assertRaisesRegex(
+            smoke_workspace.SmokeWorkspaceError,
+            "escapes smoke run root",
+        ):
+            smoke_workspace.locate_workspace(self.source, run_id)
+        with self.assertRaisesRegex(
+            smoke_workspace.SmokeWorkspaceError,
+            "escapes smoke run root",
+        ):
+            smoke_workspace.destroy_workspace(self.source, run_id)
+        self.assertTrue(outside.is_dir())
+        self.assertEqual("smoke-run", self.git(outside, "branch", "--show-current"))
+
+    def test_create_rejects_generated_run_id_that_is_not_a_confined_identifier(self):
+        escaped = self.root / "escaped-smoke-run"
+        with mock.patch.object(
+            smoke_workspace,
+            "_new_run_id",
+            return_value="../escaped-smoke-run",
+        ):
+            with self.assertRaises(smoke_workspace.SmokeWorkspaceError):
+                smoke_workspace.create_workspace(
+                    self.source, self.commit, "FAST", "fast-micro-library"
+                )
+        self.assertFalse(escaped.exists())
 
     def test_locate_and_destroy_use_internal_run_root(self):
         result = smoke_workspace.create_workspace(
