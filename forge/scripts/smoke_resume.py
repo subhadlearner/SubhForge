@@ -19,6 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import implementation_state
 import smoke_mechanics
+import smoke_workspace
 
 
 class ResumeProbeError(RuntimeError):
@@ -79,15 +80,12 @@ def _validate_run_id(run_id: str) -> None:
         raise ResumeProbeError("Invalid run ID")
 
 
-def _repo_root(repo: Path) -> Path:
+def _repo_root(repo: Path, run_id: str | None = None) -> Path:
     try:
-        root = implementation_state.repo_root(repo)
-    except implementation_state.ImplementationStateError as exc:
+        identity = smoke_workspace.validate_repository_identity(repo, run_id)
+    except smoke_workspace.SmokeWorkspaceError as exc:
         raise ResumeProbeError(str(exc)) from exc
-    branch = _git(root, "branch", "--show-current").strip().decode("utf-8", "replace")
-    if branch != "smoke-run":
-        raise ResumeProbeError("Resume probes are restricted to the smoke-run branch")
-    return root
+    return Path(identity["run_directory"])
 
 
 def _ledger_path(repo: Path, run_id: str) -> Path:
@@ -334,16 +332,18 @@ def _restore_snapshot(repo: Path, snapshot: dict[str, object]) -> None:
 # Public probe-state substrate reused by later smoke hardening helpers. These
 # wrappers intentionally expose mechanics only; they do not expose H05 routing
 # expectations or choose any workflow stage.
-def probe_repo_root(repo: Path) -> Path:
-    return _repo_root(repo)
+def probe_repo_root(repo: Path, run_id: str | None = None) -> Path:
+    return _repo_root(repo, run_id)
 
 
 def capture_probe_snapshot(repo: Path) -> dict[str, object]:
     return _capture_snapshot(_repo_root(repo))
 
 
-def restore_probe_snapshot(repo: Path, snapshot: dict[str, object]) -> None:
-    _restore_snapshot(_repo_root(repo), snapshot)
+def restore_probe_snapshot(
+    repo: Path, run_id: str, snapshot: dict[str, object]
+) -> None:
+    _restore_snapshot(_repo_root(repo, run_id), snapshot)
 
 
 def probe_workspace_names(repo: Path) -> list[str]:
@@ -354,15 +354,17 @@ def probe_path(repo: Path, name: str) -> Path:
     return _path(_repo_root(repo), name)
 
 
-# Fast-path variants for helpers that have already called probe_repo_root() in
-# the same top-level action. They preserve the exact snapshot semantics while
-# avoiding redundant rev-parse/branch subprocesses on Windows.
+# Read-only fast-path variants may reuse a root already validated by the
+# top-level action. The mutating restore variant still requires the run ID and
+# revalidates ownership before writing.
 def capture_probe_snapshot_at_root(repo: Path) -> dict[str, object]:
     return _capture_snapshot(repo)
 
 
-def restore_probe_snapshot_at_root(repo: Path, snapshot: dict[str, object]) -> None:
-    _restore_snapshot(repo, snapshot)
+def restore_probe_snapshot_at_root(
+    repo: Path, run_id: str, snapshot: dict[str, object]
+) -> None:
+    _restore_snapshot(_repo_root(repo, run_id), snapshot)
 
 
 def probe_workspace_names_at_root(repo: Path) -> list[str]:
@@ -733,7 +735,7 @@ def prepare(
     implementation_paths: list[str],
     verification_path: str,
 ) -> dict[str, object]:
-    repo = _repo_root(repo)
+    repo = _repo_root(repo, run_id)
     if probe_id not in PROBE_EXPECTED:
         raise ResumeProbeError("Unknown resume probe ID")
 
@@ -911,7 +913,7 @@ def score(
     actual_stage: str,
     reason: str,
 ) -> dict[str, object]:
-    repo = _repo_root(repo)
+    repo = _repo_root(repo, run_id)
     if probe_id not in PROBE_EXPECTED:
         raise ResumeProbeError("Unknown resume probe ID")
     if actual_stage not in ALLOWED_STAGES:
@@ -957,7 +959,7 @@ def record_handoff(
     accepted: bool,
     evidence: str,
 ) -> dict[str, object]:
-    repo = _repo_root(repo)
+    repo = _repo_root(repo, run_id)
     if probe_id != HANDOFF_PROBE:
         raise ResumeProbeError("Only one resume probe accepts a handoff result")
     if not evidence.strip():
@@ -982,7 +984,7 @@ def record_handoff(
 
 
 def restore(repo: Path, run_id: str, probe_id: str) -> dict[str, object]:
-    repo = _repo_root(repo)
+    repo = _repo_root(repo, run_id)
     path = _ledger_path(repo, run_id)
     ledger = _read_ledger(path)
     record = _active_probe(ledger, probe_id)
@@ -1028,7 +1030,7 @@ def restore(repo: Path, run_id: str, probe_id: str) -> dict[str, object]:
 
 
 def status(repo: Path, run_id: str) -> dict[str, object]:
-    repo = _repo_root(repo)
+    repo = _repo_root(repo, run_id)
     ledger = _read_ledger(_ledger_path(repo, run_id))
     probes = ledger["probes"]
     assert isinstance(probes, list)

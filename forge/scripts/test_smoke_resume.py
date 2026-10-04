@@ -10,6 +10,7 @@ from pathlib import Path
 
 import smoke_mechanics
 import smoke_resume
+import smoke_workspace
 
 
 class SmokeResumeTests(unittest.TestCase):
@@ -81,6 +82,9 @@ class SmokeResumeTests(unittest.TestCase):
         write("docs/diagnostics/OLD.md", "# Historical diagnostic\n")
 
         cls._run_id = "SMOKE-FULL-test-20260929T000000Z-12345678"
+        smoke_workspace._stamp_repository_identity(
+            seed, cls._run_id, cls._baseline
+        )
         smoke_mechanics.checkpoint(seed, cls._run_id, "opaque-base")
         cls._clean_snapshot = smoke_resume.capture_probe_snapshot(seed)
 

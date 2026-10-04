@@ -19,6 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import project_init_mechanics
 import smoke_resume
+import smoke_workspace
 
 
 class H08bError(RuntimeError):
@@ -50,11 +51,12 @@ def _validate_run_id(run_id: str) -> None:
         raise H08bError("Invalid run ID")
 
 
-def _repo(repo: Path) -> Path:
-    root = repo.resolve()
-    if not root.is_dir():
-        raise H08bError("Smoke repository does not exist")
-    return root
+def _repo(repo: Path, run_id: str | None = None) -> Path:
+    try:
+        identity = smoke_workspace.validate_repository_identity(repo, run_id)
+    except smoke_workspace.SmokeWorkspaceError as exc:
+        raise H08bError("Invalid disposable smoke repository: {}".format(exc)) from exc
+    return Path(identity["run_directory"])
 
 
 def _safe_rel(value: str) -> str:
@@ -226,7 +228,7 @@ def _project_init_negative_snapshot_path(repo: Path, run_id: str) -> Path:
 
 
 def seed_discovery(repo: Path, run_id: str) -> dict[str, object]:
-    repo = _repo(repo)
+    repo = _repo(repo, run_id)
     hidden = _hidden_path(repo, run_id)
     discovery = _path(repo, DISCOVERY_PATH)
     required = _path(repo, REQUIRED_EVIDENCE_PATH)
@@ -278,8 +280,8 @@ def seed_discovery(repo: Path, run_id: str) -> dict[str, object]:
     }
 
 
-def restore_required_evidence(repo: Path) -> dict[str, object]:
-    repo = _repo(repo)
+def restore_required_evidence(repo: Path, run_id: str) -> dict[str, object]:
+    repo = _repo(repo, run_id)
     target = _path(repo, REQUIRED_EVIDENCE_PATH)
     if target.exists():
         raise H08bError("Required evidence is already present")
@@ -348,7 +350,7 @@ def score_discovery(
 ) -> dict[str, object]:
     if phase not in {"blocked", "resumed"}:
         raise H08bError("Discovery score phase must be blocked or resumed")
-    repo = _repo(repo)
+    repo = _repo(repo, run_id)
     required_calls = 1 if phase == "blocked" else 2
     _require_completed_invocations(
         repo,
@@ -434,7 +436,7 @@ def _direct_prd_snapshot_path(repo: Path, run_id: str) -> Path:
 
 
 def begin_direct_prd_probe(repo: Path, run_id: str) -> dict[str, object]:
-    repo = _repo(repo)
+    repo = _repo(repo, run_id)
     _require_pass_score(repo, run_id, "discovery-resumed")
     discovery = _path(repo, DISCOVERY_PATH)
     if not discovery.is_file():
@@ -483,7 +485,7 @@ def begin_direct_prd_probe(repo: Path, run_id: str) -> dict[str, object]:
 
 
 def score_direct_prd(repo: Path, run_id: str, status: str) -> dict[str, object]:
-    repo = _repo(repo)
+    repo = _repo(repo, run_id)
     _require_completed_invocations(
         repo,
         run_id,
@@ -546,7 +548,7 @@ def score_direct_prd(repo: Path, run_id: str, status: str) -> dict[str, object]:
 
 
 def restore_direct_prd_probe(repo: Path, run_id: str) -> dict[str, object]:
-    repo = _repo(repo)
+    repo = _repo(repo, run_id)
     hidden = _direct_prd_snapshot_path(repo, run_id)
     try:
         payload = json.loads(hidden.read_text(encoding="utf-8"))
@@ -598,7 +600,7 @@ def _product_decision_hidden_path(repo: Path, run_id: str) -> Path:
 
 
 def seed_product_decision(repo: Path, run_id: str) -> dict[str, object]:
-    repo = _repo(repo)
+    repo = _repo(repo, run_id)
     _require_pass_score(repo, run_id, "discovery-resumed")
     _require_pass_score(repo, run_id, "direct-prd")
     discovery = _path(repo, DISCOVERY_PATH)
@@ -629,7 +631,7 @@ def seed_product_decision(repo: Path, run_id: str) -> dict[str, object]:
 
 
 def reveal_product_decision(repo: Path, run_id: str) -> dict[str, object]:
-    repo = _repo(repo)
+    repo = _repo(repo, run_id)
     hidden = _product_decision_hidden_path(repo, run_id)
     try:
         payload = json.loads(hidden.read_text(encoding="utf-8"))
@@ -664,7 +666,7 @@ def score_prd_phase(
 ) -> dict[str, object]:
     if phase not in {"blocked", "resumed"}:
         raise H08bError("PRD score phase must be blocked or resumed")
-    repo = _repo(repo)
+    repo = _repo(repo, run_id)
     required_calls = 1 if phase == "blocked" else 2
     _require_completed_invocations(
         repo,
@@ -757,7 +759,7 @@ def validate_refusal(
     run_id: str | None = None,
     status: str | None = None,
 ) -> dict[str, object]:
-    repo = _repo(repo)
+    repo = _repo(repo, run_id)
     refusal_path = _safe_rel(refusal_path)
     if not refusal_path.startswith(REFUSAL_PREFIX):
         raise H08bError("Waiver refusal must be under {}".format(REFUSAL_PREFIX))
@@ -953,7 +955,7 @@ def score_project_init_policy_propagation(
     run_id: str,
     status: str,
 ) -> dict[str, object]:
-    repo = _repo(repo)
+    repo = _repo(repo, run_id)
     _require_completed_invocations(
         repo,
         run_id,
@@ -1020,7 +1022,7 @@ def begin_project_init_negative(
     repo: Path,
     run_id: str,
 ) -> dict[str, object]:
-    repo = _repo(repo)
+    repo = _repo(repo, run_id)
     _require_pass_score(repo, run_id, "project-init-policy-propagation")
     contract = _path(repo, CANONICAL_CONTRACT_PATH)
     if not contract.is_file():
@@ -1051,7 +1053,7 @@ def restore_project_init_negative(
     repo: Path,
     run_id: str,
 ) -> dict[str, object]:
-    repo = _repo(repo)
+    repo = _repo(repo, run_id)
     root = smoke_resume.probe_repo_root(repo)
     snapshot_path = _project_init_negative_snapshot_path(repo, run_id)
     try:
@@ -1061,7 +1063,7 @@ def restore_project_init_negative(
     expected = snapshot.get("snapshot_sha256")
     if not isinstance(expected, str):
         raise H08bError("Project-init negative snapshot digest is missing")
-    smoke_resume.restore_probe_snapshot_at_root(root, snapshot)
+    smoke_resume.restore_probe_snapshot_at_root(root, run_id, snapshot)
     current = smoke_resume.capture_probe_snapshot_at_root(root)
     if current.get("snapshot_sha256") != expected:
         raise H08bError("Project-init negative restoration is not byte-identical")
@@ -1076,7 +1078,7 @@ def score_project_init_helper_rejection(
     repo: Path,
     run_id: str,
 ) -> dict[str, object]:
-    repo = _repo(repo)
+    repo = _repo(repo, run_id)
     if not _project_init_negative_snapshot_path(repo, run_id).is_file():
         raise H08bError("Project-init negative was not prepared")
     canonical = _path(repo, CANONICAL_CONTRACT_PATH)
@@ -1112,7 +1114,7 @@ def score_project_init_luna(
     required_action: str,
     next_command: str,
 ) -> dict[str, object]:
-    repo = _repo(repo)
+    repo = _repo(repo, run_id)
     if not _project_init_negative_snapshot_path(repo, run_id).is_file():
         raise H08bError("Project-init negative was not prepared")
     _require_completed_invocations(
@@ -1170,9 +1172,9 @@ def _policy_expectation_path(repo: Path, run_id: str) -> Path:
 def write_fixture_policy(
     repo: Path,
     policy: dict,
-    run_id: str | None = None,
+    run_id: str,
 ) -> dict[str, object]:
-    repo = _repo(repo)
+    repo = _repo(repo, run_id)
     if not isinstance(policy, dict):
         raise H08bError("Fixture waiver policy is invalid")
     if policy.get("policy_id") != "SMOKE-FULL-WAIVER-POLICY-V1":
@@ -1195,31 +1197,30 @@ def write_fixture_policy(
     ):
         raise H08bError("Fixture waiver policy failure-type mapping is invalid")
     target = _path(repo, POLICY_PATH)
-    hidden = _policy_expectation_path(repo, run_id) if run_id is not None else None
+    hidden = _policy_expectation_path(repo, run_id)
     if target.exists():
         raise H08bError("Fixture waiver policy already exists")
-    if hidden is not None and hidden.exists():
+    if hidden.exists():
         raise H08bError("Fixture waiver-policy expectation already exists")
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(policy, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     digest = _sha_bytes(target.read_bytes())
     result = {"path": POLICY_PATH, "sha256": digest}
-    if hidden is not None:
-        hidden.parent.mkdir(parents=True, exist_ok=True)
-        hidden.write_text(
-            json.dumps(
-                {
-                    "schema_version": SCHEMA_VERSION,
-                    "policy_path": POLICY_PATH,
-                    "policy_sha256": digest,
-                },
-                indent=2,
-                sort_keys=True,
-            )
-            + "\n",
-            encoding="utf-8",
+    hidden.parent.mkdir(parents=True, exist_ok=True)
+    hidden.write_text(
+        json.dumps(
+            {
+                "schema_version": SCHEMA_VERSION,
+                "policy_path": POLICY_PATH,
+                "policy_sha256": digest,
+            },
+            indent=2,
+            sort_keys=True,
         )
-        result["hidden_expectation_path"] = hidden.relative_to(repo).as_posix()
+        + "\n",
+        encoding="utf-8",
+    )
+    result["hidden_expectation_path"] = hidden.relative_to(repo).as_posix()
     return result
 
 
@@ -1263,7 +1264,9 @@ def main() -> int:
                 raise H08bError("--run-id is required")
             result = seed_discovery(args.repo, args.run_id)
         elif args.action == "restore-evidence":
-            result = restore_required_evidence(args.repo)
+            if not args.run_id:
+                raise H08bError("--run-id is required")
+            result = restore_required_evidence(args.repo, args.run_id)
         elif args.action == "score-discovery":
             if not args.run_id:
                 raise H08bError("--run-id is required")

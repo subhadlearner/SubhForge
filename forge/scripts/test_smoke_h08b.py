@@ -6,12 +6,14 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import file_digest
 import project_init_mechanics
 import smoke_h08b
+import smoke_workspace
 
 
 class SmokeH08bTests(unittest.TestCase):
@@ -22,6 +24,17 @@ class SmokeH08bTests(unittest.TestCase):
         smoke_dir = self.repo / "docs/verification/smoke"
         smoke_dir.mkdir(parents=True)
         self.run_id = "SMOKE-FULL-h08b-20261002T000000Z-12345678"
+        identity = mock.patch(
+            "smoke_workspace.validate_repository_identity",
+            side_effect=lambda repo, run_id=None, baseline_head=None: {
+                "run_directory": str(Path(repo).resolve()),
+                "run_id": run_id or self.run_id,
+                "baseline_head": baseline_head or "test-baseline",
+                "run_branch": "smoke-run",
+            },
+        )
+        identity.start()
+        self.addCleanup(identity.stop)
         self.budget = smoke_dir / f"{self.run_id}.budget.json"
         self.budget.write_text(
             json.dumps(
@@ -82,7 +95,7 @@ class SmokeH08bTests(unittest.TestCase):
             self.repo, self.run_id, "blocked", "DISCOVERY_BLOCKED"
         )
         self.assertEqual("PASS", blocked["result"])
-        smoke_h08b.restore_required_evidence(self.repo)
+        smoke_h08b.restore_required_evidence(self.repo, self.run_id)
         discovery = self.repo / smoke_h08b.DISCOVERY_PATH
         discovery.write_text(
             discovery.read_text(encoding="utf-8").replace(
@@ -558,6 +571,7 @@ class SmokeH08bTests(unittest.TestCase):
                 "waivable_failure_types": ["DOCUMENTATION_QUALITY", "LINT_QUALITY"],
                 "purpose": "H08b fixed failure-type waiver policy.",
             },
+            self.run_id,
         )
         self.assertEqual(smoke_h08b.POLICY_PATH, result["path"])
         with self.assertRaises(smoke_h08b.H08bError):
@@ -569,7 +583,66 @@ class SmokeH08bTests(unittest.TestCase):
                     "waivable_failure_types": ["DOCUMENTATION_QUALITY", "LINT_QUALITY"],
                     "purpose": "H08b fixed failure-type waiver policy.",
                 },
+                self.run_id,
             )
+
+
+class SmokeH08bRepositoryIdentityTests(unittest.TestCase):
+    def git(self, repo, *args):
+        return subprocess.check_output(["git", *args], cwd=str(repo), text=True).strip()
+
+    def test_run_bound_mutators_reject_repository_owned_by_another_run(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp) / "owned-repo"
+            repo.mkdir()
+            self.git(repo, "init")
+            self.git(repo, "config", "user.name", "Smoke")
+            self.git(repo, "config", "user.email", "smoke@example.test")
+            (repo / "README.md").write_text("owned repository\n", encoding="utf-8")
+            self.git(repo, "add", "-A")
+            self.git(repo, "commit", "-qm", "baseline")
+            self.git(repo, "branch", "-M", "smoke-run")
+            owner_run = "SMOKE-FULL-owner-20261004T000000Z-12345678"
+            other_run = "SMOKE-FULL-other-20261004T000000Z-87654321"
+            smoke_workspace._stamp_repository_identity(
+                repo, owner_run, self.git(repo, "rev-parse", "HEAD")
+            )
+
+            with self.assertRaisesRegex(smoke_h08b.H08bError, "different run"):
+                smoke_h08b.restore_required_evidence(repo, other_run)
+            self.assertFalse((repo / smoke_h08b.REQUIRED_EVIDENCE_PATH).exists())
+
+            policy = {
+                "policy_id": "SMOKE-FULL-WAIVER-POLICY-V1",
+                "non_waivable_failure_types": ["BEHAVIORAL_TEST"],
+                "waivable_failure_types": ["DOCUMENTATION_QUALITY"],
+                "purpose": "Run binding regression.",
+            }
+            with self.assertRaisesRegex(smoke_h08b.H08bError, "different run"):
+                smoke_h08b.write_fixture_policy(repo, policy, other_run)
+            self.assertFalse((repo / smoke_h08b.POLICY_PATH).exists())
+
+    def test_mutation_rejects_wrong_branch_and_unowned_smoke_repository(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp) / "wrong-repo"
+            repo.mkdir()
+            (repo / "docs/verification/smoke").mkdir(parents=True)
+            self.git(repo, "init")
+            self.git(repo, "config", "user.name", "Smoke")
+            self.git(repo, "config", "user.email", "smoke@example.test")
+            (repo / "README.md").write_text("wrong repository\n", encoding="utf-8")
+            self.git(repo, "add", "-A")
+            self.git(repo, "commit", "-qm", "baseline")
+            run_id = "SMOKE-FULL-h08b-20261004T000000Z-12345678"
+
+            with self.assertRaisesRegex(smoke_h08b.H08bError, "must be on smoke-run"):
+                smoke_h08b.seed_discovery(repo, run_id)
+            self.assertFalse((repo / smoke_h08b.DISCOVERY_PATH).exists())
+
+            self.git(repo, "branch", "-M", "smoke-run")
+            with self.assertRaisesRegex(smoke_h08b.H08bError, "ownership metadata is missing"):
+                smoke_h08b.seed_discovery(repo, run_id)
+            self.assertFalse((repo / smoke_h08b.DISCOVERY_PATH).exists())
 
 
 if __name__ == "__main__":

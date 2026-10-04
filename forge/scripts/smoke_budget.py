@@ -499,6 +499,13 @@ def _current_time(now: Optional[dt.datetime], field: str) -> dt.datetime:
 
 
 def start(repo: Path, run_id: str, now: Optional[dt.datetime] = None) -> dict:
+    try:
+        identity = smoke_workspace.validate_repository_identity(repo, run_id)
+    except smoke_workspace.SmokeWorkspaceError as exc:
+        raise BudgetError(
+            "Smoke budget initialization requires the owned disposable repository: {}".format(exc)
+        ) from exc
+    repo = Path(identity["run_directory"])
     path = _state_path(repo, run_id)
     if path.exists():
         raise BudgetError("Budget state already exists")

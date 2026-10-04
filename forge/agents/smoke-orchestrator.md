@@ -112,7 +112,8 @@ corresponding completed invocation exists in the budget ledger.
    Run `smoke_h08b.py score-discovery --phase blocked --status <actual>`.
    Never substitute the expected token for the returned value. A FAIL blocks H08b.
 4. Restore exactly the referenced evidence with
-   `smoke_h08b.py restore-evidence`.
+   `smoke_h08b.py --run-id <run-id> restore-evidence`; this mutator must be
+   bound to the active disposable smoke run.
 5. Invoke GPT-5.6 Sol `/grill` again in CONTINUE mode. Require the existing
    settled decision IDs/values to remain unchanged and discovery to become ready.
 6. Parse the resumed child's actual terminal status and run

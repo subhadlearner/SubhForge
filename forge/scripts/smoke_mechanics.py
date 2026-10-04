@@ -14,6 +14,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import implementation_state
+import smoke_workspace
 
 RECIPES = {
     "obvious-deterministic-defect",
@@ -53,8 +54,12 @@ def _target(repo: Path, name: str) -> Path:
 def _ledger(repo: Path, run_id: str) -> Path:
     if not run_id.startswith("SMOKE-") or not all(c.isalnum() or c == "-" for c in run_id):
         raise MechanicsError("Invalid run ID")
-    if git(repo, "branch", "--show-current").strip() != b"smoke-run":
-        raise MechanicsError("Mutation is restricted to the smoke-run branch")
+    try:
+        smoke_workspace.validate_repository_identity(repo, run_id)
+    except smoke_workspace.SmokeWorkspaceError as exc:
+        raise MechanicsError(
+            "Mutation requires the owned disposable smoke repository: {}".format(exc)
+        ) from exc
     folder = repo / "docs/verification/smoke"
     if not folder.is_dir():
         raise MechanicsError("Smoke evidence directory is missing")

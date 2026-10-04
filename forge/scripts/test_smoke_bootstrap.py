@@ -4,6 +4,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -12,6 +13,19 @@ import smoke_state
 
 
 class SmokeBootstrapTests(unittest.TestCase):
+    def setUp(self):
+        identity = mock.patch(
+            "smoke_workspace.validate_repository_identity",
+            side_effect=lambda repo, run_id=None, baseline_head=None: {
+                "run_directory": str(Path(repo).resolve()),
+                "run_id": run_id or "SMOKE-TEST",
+                "baseline_head": baseline_head or "test-baseline",
+                "run_branch": "smoke-run",
+            },
+        )
+        identity.start()
+        self.addCleanup(identity.stop)
+
     def _config_fixture(self, root: Path) -> Path:
         source = Path(__file__).resolve().parents[1]
         config = root / "config"

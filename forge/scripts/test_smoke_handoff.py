@@ -17,6 +17,7 @@ import smoke_budget
 import smoke_handoff
 import smoke_segments
 import smoke_state
+import smoke_workspace
 
 
 class SmokeHandoffTests(unittest.TestCase):
@@ -42,6 +43,11 @@ class SmokeHandoffTests(unittest.TestCase):
         (self.repo / "README.md").write_text("fixture\n", encoding="utf-8")
         self.git(self.repo, "add", "-A")
         self.git(self.repo, "commit", "-m", "baseline")
+        smoke_workspace._stamp_repository_identity(
+            self.repo,
+            self.run_id,
+            self.git(self.repo, "rev-parse", "HEAD"),
+        )
 
         (self.repo / "docs/verification/smoke").mkdir(parents=True)
         smoke_state.init(

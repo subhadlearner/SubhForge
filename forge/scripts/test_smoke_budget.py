@@ -24,6 +24,17 @@ class SmokeBudgetTests(unittest.TestCase):
         self.repo = Path(self.temp.name)
         (self.repo / "docs/verification/smoke").mkdir(parents=True)
         self.run_id = "SMOKE-FULL-test-20260927T000000Z-12345678"
+        identity = mock.patch(
+            "smoke_workspace.validate_repository_identity",
+            side_effect=lambda repo, run_id=None, baseline_head=None: {
+                "run_directory": str(Path(repo).resolve()),
+                "run_id": run_id or self.run_id,
+                "baseline_head": baseline_head or "test-baseline",
+                "run_branch": "smoke-run",
+            },
+        )
+        identity.start()
+        self.addCleanup(identity.stop)
         self.started = dt.datetime(2026, 9, 27, 0, 0, tzinfo=dt.timezone.utc)
         self.rooted_calls = []
         self.source_guard_calls = []
