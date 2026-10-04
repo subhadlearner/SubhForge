@@ -397,22 +397,23 @@ Closed decision:
 
 ### Current hardening boundary
 
-H08 is the only current implementation target. H08b starts only after H08 is closed; H09+ must not start before H08b is closed or explicitly deferred under the governing rules.
+H01-H09 are closed. **H10 is the only current implementation target.** Do not
+start H11 or any later item until H10 is closed or explicitly deferred under
+the governing rules.
 
-The complete, agreed design for both items is [H08 Consolidated Design v6](H08-CONSOLIDATED-DESIGN.md). This link is a design authority, not evidence that either item has been implemented.
+In particular:
 
-H07 is closed. Do not reopen its authorization/wait semantics merely to make
-H08's invocation/runtime plan fit. In particular:
-
-- H07 owns the now-closed human waiver waiting/authorization semantics versus
-  the 30-minute active qualification clock.
-- H08 owns segmented FULL qualification infrastructure, invocation specification, pinned budget configuration, timing and integrity enforcement, and the declared H03/H07 coupling.
-- H08b owns early-lifecycle behavioral acceptance probes and narrow coupled corrections across `/grill`, `/verify`, `/project-init`, `/waive`, and `/review`, including helper-owned exact hashing and policy-first waiver rejection. H08b must not begin until H08 closes.
-- H09/H10 own containment/target-identity strengthening.
+- H10 owns disposable-repository target-identity strengthening, including the
+  H09 review finding that Git parent-directory discovery must not allow a
+  plain child directory, wrong branch, source checkout, or wrong repository
+  identity to be trusted as a valid smoke workspace.
 - H11 owns the dry orchestration/contract validator.
-- H12 is the final deterministic/system consistency gate.
-- H13 is the small real Kilo integration probe with targeted routing/handoff timing calibration and a recorded configuration revision before H14; it is not another FULL run.
-- H14 is the next release-qualifying FULL.
+- H12 owns final deterministic/system consistency, including consolidation of
+  the duplicated run-ID validation contract and the unconditional
+  `forge/scripts <=180s` / `tools <=30s` Windows reference-host gate.
+- H13 is the small real Kilo integration probe with targeted routing/handoff
+  timing calibration and the deferred fresh H08b Luna `/waive` proof.
+- H14 is the next release-qualifying FULL smoke.
 
 ### H09 review deferrals
 
@@ -450,8 +451,8 @@ qualification until the blocking items below are addressed.
 | H07 | Required human waiver interaction conflicts with the continuously running 30-minute qualification clock | DESIGN BLOCKER | Human authorization, waiting, resume, and qualification-time semantics are explicitly agreed; command/orchestrator/runbook/budget implementation and tests all describe the same behavior; authorization is never fabricated | DONE — deterministic allow-listed human-authorization waits pause only active qualification time; exact report bytes/scope bind the gate; invalid RESUME is a no-op; final Windows evidence: 36 focused budget tests / 0.473s, full `forge/scripts` 171 tests / 238.704s (2 expected skips), `tools` 7 tests / 16.145s, clean diff/worktree | `bbfc157f4e288342d67732066176118640c7206e` |
 | H08 | Segmented FULL qualification infrastructure and invocation/runtime budget reconciliation | DESIGN BLOCKER | Implement the agreed six checkpoint-bound sequential segments and versioned invocation specification; update authoritative runbook §3.5 so `direct-fix-loop` declares the additional Luna policy-refusal call before H08b executes it; pin the profile configuration by value at bootstrap; enforce helper-owned segment clocks, atomic lifecycle, validated boundary gaps, and ledger/evidence integrity; record H03/H07 coupling; ship worksheet-derived positive PROVISIONAL limits; preserve the full required scenario contract and pass deterministic regression gates. H08b behavioral probes remain separate. See [consolidated H08 design](H08-CONSOLIDATED-DESIGN.md). | DONE — PR #15 squash-merged into `harden/v0.1-full-smoke` after full review and local validation. Final validation: focused H08 22 tests / 0.950s / OK; full forge/scripts 197 tests / 215.393s / OK (2 expected Windows skips), below 262.5744s regression gate and 300s ceiling; tools 7 tests / 17.386s / OK; git diff/status clean. | `9060a5ce40c5b6dd0c01456ac6fe7f4a8e43741d` |
 | H08b | Missing early-lifecycle behavioral evidence plus narrow normal-command coupling across `/grill`, `/verify`, `/project-init`, `/waive`, and `/review` | CRITICAL | Against H08's fixed 50/51 invocation spec: prove real ledger-backed blocked/resumed `/grill` without reopening settled decisions; isolated user-selected direct PRD with no discovery while retaining immutable actual PRD evidence; main PRD blocked/resumed on a withheld approved decision with blocked-PASS dependency and decision-content proof; successful project-init preserves pinned waiver policy/canonical contract and a fresh independent Luna project-init negative rejects unavailable canonical Contract-v1 without a substitute; `/verify` persists factual failure types; a fresh scorer-hidden Luna `/waive` child produces the exact S2 `POLICY_INELIGIBLE` refusal against the existing failed behavioural-test report with no H07 wait; normal alternate refusal reasons remain distinct; refusal history is never active-waiver evidence in `/review` or H05. Every H08b scorer is bound to a completed model invocation, hidden scorer data is child-denied, project-init/waiver digests are produced only by deterministic helpers available to the fresh Luna child, and S1/S2 close requires all matching immutable H08b scores to be schema-valid `PASS` (plus retained direct-PRD bytes). Static/focused/full/cumulative regression gates must pass with no extra model call. See [consolidated H08 design](H08-CONSOLIDATED-DESIGN.md). | DONE — PR #16 merged into `harden/v0.1-full-smoke` after review and explicit authorization. Final deterministic validation: full forge/scripts 229/229 OK (2 expected Windows skips); tools 7/7 OK; git diff --check clean; worktree clean. Post-reboot full-suite timings 263.863s and 297.511s both cleared the temporary 300s hard ceiling; user explicitly accepted the H08b-specific runtime variance instead of further test-stack tuning. No required tests were weakened or omitted. Holistic deterministic-suite performance remains a release concern under H12 (<=180s). The intentionally deferred real fresh h08b-luna-probe helper-integration proof remains assigned to H13.| `a45f77e841bcfa854cac4fa38f50333e1e373dd4` |
-| H09 | Workspace locate/resume path handling is weaker than create/destroy containment | HIGH | Malformed/traversal run IDs are rejected; create/locate/destroy remain confined to the smoke-run root; negative path-containment tests pass | TODO — NEXT | — |
-| H10 | Mutating deterministic helpers need stronger proof that they target only the disposable smoke repository | HIGH | Every mutating helper fails closed when pointed at the source checkout/wrong branch/wrong repository identity where applicable; valid `smoke-run` behavior remains unchanged | TODO | — |
+| H09 | Workspace locate/resume path handling is weaker than create/destroy containment | HIGH | Malformed/traversal run IDs are rejected; create/locate/destroy remain confined to the smoke-run root; negative path-containment tests pass | DONE — PR #17 merged after review and explicit authorization. Canonical run IDs are validated at one workspace boundary; create/locate/destroy resolve to a direct child of the smoke-run root; ASCII timestamp digits are enforced; traversal/absolute/separator/malformed IDs fail closed; the Windows link-escape regression cannot skip and proves the resolved-parent guard via symlink/junction against a real external `smoke-run` Git repository. Final Windows evidence: 232 forge-script tests OK (2 expected skips), tools 7/7 OK, diff/worktree clean. Two full-suite timings, 306.177s and 304.280s, exceeded the temporary 300s ceiling and were explicitly accepted as an H09 variance exception; H12 still owns the unconditional <=180s release gate. | `e21a509b1ddd2764a489527d514c95529590900b` |
+| H10 | Mutating deterministic helpers need stronger proof that they target only the disposable smoke repository | HIGH | Every mutating helper fails closed when pointed at the source checkout/wrong branch/wrong repository identity where applicable; valid `smoke-run` behavior remains unchanged | TODO — NEXT | — |
 | H11 | No design-time workflow contract validator / dry orchestration simulator exists | CRITICAL | A cheap deterministic validator walks FAST/FULL contracts and detects missing helper references, invalid state transitions, model/owner mismatch, missing handoff fields, invalid checkpoint/restoration plans, scenario budget violations, zero-reviewer rule violations, and contradictory orchestration instructions before model execution; additionally bind the remaining eight zero-substantive-call deterministic H08 subprobes to authoritative mechanics/helper ledger evidence instead of accepting orchestrator facts alone; H08b now independently binds its project-init helper rejection to immutable S1 PASS score evidence at segment close | TODO | — |
 | H12 | Final cross-file/system consistency validation is missing | RELEASE GATE | Commands, agents, profiles, fixtures, failure recipes, runbook, helpers, and tests agree; all deterministic/unit/integration gates are green; full `forge/scripts` runtime is <=180s and `tools` runtime is <=30s on the reference Windows host; `git diff --check` is clean; dry FAST/FULL plans are green | BLOCKED by H01–H11 | — |
 | H13 | Small real Kilo integration and targeted runtime calibration before another FULL | RELEASE GATE | Minimal model-bearing probe proves disposable-workspace rooting, child handoff, source isolation, state/timing lifecycle, and interruption-safe cleanup; execute one bounded real fresh `h08b-luna-probe` `/waive` call proving deterministic `file_digest.py` access and scorer-valid exact-digest refusal persistence; capture targeted timing evidence for the previously unmeasured routing/handoff classes and record any required provisional-budget revision before H14, without recreating a FULL run | BLOCKED by H01–H12, including H08b | — |
@@ -503,7 +504,15 @@ hardening effort into this feature merely to make FULL smoke easier.
 
 ## Next action
 
-Start with **H08 only**. Open its PR as Draft for the design/tracker update and subsequent H08 implementation. **Start H08b only after H08 closes.**
+Start with **H10 only** from the current `harden/v0.1-full-smoke` head. Use a
+dedicated H10 branch and Draft PR, preserve the one-item-at-a-time rule, and
+do not start H11 until H10 is closed.
+
+H09 is closed by merged PR #17 at
+`e21a509b1ddd2764a489527d514c95529590900b`. Its path-containment invariant
+is complete; the repository-identity concern discovered during H09 review is
+explicitly carried into H10, and run-ID validator consolidation remains
+assigned to H12.
 
 H01 is closed by merged implementation commit
 `9b5bfe0d034d41252fecd9b5ba5b787a5e73c778` and real Kilo probe
@@ -541,7 +550,6 @@ working tree. Final review confirmed exact report-byte gate binding, canonical
 waiver-state enforcement, invalid-RESUME no-op semantics, explicit decline
 handling, and no open review threads.
 
-Do not make H08b or H09+ implementation changes while H08 is active unless
-strictly necessary for H08 correctness and explicitly recorded as coupling.
-After H08 closes, start H08b as its own branch and PR; keep H09+ blocked until
-H08b closes or is explicitly deferred under the governing rules.
+Do not make H11+ implementation changes while H10 is active unless strictly
+necessary for H10 correctness and explicitly recorded as coupling. After H10
+closes, promote H11 through the same closure/update discipline.
