@@ -11,6 +11,7 @@ Current pre-code sequencing and status are tracked in [V0.2-PRE-CODE-CHECKLIST.m
 | Document | Owns |
 |---|---|
 | [V0.2-PRE-CODE-CHECKLIST.md](V0.2-PRE-CODE-CHECKLIST.md) | Pre-code work sequence, current item, completion evidence, blocking status, and exit gates; it references but does not redefine normative architecture/workflow/qualification rules |
+| [V0.2-TEMPORARY-BUILD-WORKFLOW.md](V0.2-TEMPORARY-BUILD-WORKFLOW.md) | Temporary construction workflow: cost ceiling, provider/model responsibilities, escalation and hard-stop rules, completed executability evidence, and architecture-isolation boundary |
 | `V0.2-ARCHITECTURE.md` | Structural architecture, authority planes, logical agents, requirement/traceability architecture, tooling/model/skill/MCP/context boundaries, implementation dependency order, non-goals |
 | `V0.2-WORKFLOW-CONTRACTS.md` | Lifecycle semantics, readiness/grooming, work-plan behavior, verification/evidence semantics, escalation, reconciliation, status/resume, project-version upgrade behavior |
 | `V0.2-ARCHITECTURE-REVIEW.md` | AR backlog, case evidence, POC results, human decisions, review history, cross-reference ledger |
