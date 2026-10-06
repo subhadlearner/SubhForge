@@ -1,16 +1,16 @@
-# SubhForge v0.2.0 — Discovery and Open Decisions
+# SubhForge v0.2.0 — Discovery and Open Work
 
 **Status:** Active pre-code discovery  
 **Date:** 2026-10-06  
-**Purpose:** Maintain only the still-valid decision frontier for SubhForge v0.2.0.
+**Purpose:** Maintain the single live frontier of unresolved research, design, review and pre-code work required to build SubhForge v0.2.0.
 
-> This document is working discovery context, not product or architecture authority. Resolved decisions are promoted to the PRD, Architecture, Workflow Contracts or other owning authority and then closed here.
+> This document is working discovery context, not product or architecture authority. A Discovery Item closes only when its accepted result is promoted to the PRD, Architecture, Workflow Contracts, Qualification, Timeline or other owning authority as appropriate.
 
 ---
 
 ## 1. Confirmed Product Decisions
 
-The following product-level decisions are already represented in the v0.2 PRD and are not open questions:
+The following product-level decisions are already represented in the v0.2 PRD and are not open Discovery Items:
 
 - SubhForge is a personal AI-assisted delivery system for Subhadeep, not a generic engineering product.
 - LARGE flow covers Discovery → PRD → Architecture → Project → Epic → Feature → Spec → Implement → Verify → Review → Feature/Epic acceptance → Reconciliation.
@@ -30,62 +30,151 @@ The following product-level decisions are already represented in the v0.2 PRD an
 
 ---
 
-## 2. Discovery Rules
+## 2. Discovery Item Model
 
-Each live question uses a stable `DQ-###` ID.
+All unresolved SubhForge-building work uses one stable identity:
 
-Every question records:
+`DI-###` — **Discovery Item**
 
-- **Question**
-- **Why it matters**
-- **Owner**
-- **Blocking status**
-- **Evidence/decision method**
-- **Outcome** when resolved
-- **Promote to** authoritative document when resolved
+A Discovery Item may be research, a decision, design work, review work or a final gate. These are different kinds of work, not different tracking systems.
+
+Each DI records:
+
+- **Kind** — `RESEARCH`, `DECISION`, `DESIGN`, `REVIEW`, or `GATE`;
+- **Work / Question**;
+- **Why it matters**;
+- **Owner**;
+- **Status**;
+- **Depends on**;
+- **Evidence / completion method**;
+- **Outcome**;
+- **Promote to**.
 
 Statuses:
 
-- **BLOCKING** — implementation/scope freeze cannot proceed safely without the answer.
-- **NON_BLOCKING** — can be deferred without causing downstream invention.
-- **CLOSED** — resolved and promoted to the owning authority.
-- **SUPERSEDED** — no longer relevant because another accepted decision removed the need.
+- **OPEN** — ready to be taken when its prerequisites allow.
+- **ACTIVE** — currently being worked.
+- **BLOCKED** — cannot proceed until named prerequisites close.
+- **NON_BLOCKING** — useful but safe to defer beyond the v0.2 release if necessary.
+- **CLOSED** — completed and the accepted outcome is promoted to its authoritative home.
+- **SUPERSEDED** — no longer needed because another accepted result removed the need.
 
-Do not preserve an old architecture-review question merely because it existed. A DQ survives only if it is still required by the current PRD.
+Rules:
+
+1. There is no separate `DQ-###` versus pre-code-gate namespace.
+2. A DI exists only when it represents distinct work or a distinct consequential decision.
+3. Do not create a DI whose only purpose is “all other DIs are closed”; that is derived state.
+4. Closely coupled questions that will be researched/decided together should be one DI with explicit sub-decisions.
+5. A chat conclusion is not DI closure.
+6. A DI closes only after its accepted outcome is durable in the owning authority.
+7. Git history preserves earlier Discovery wording; completed historical process does not need a permanent live DI.
 
 ---
 
-## 3. Current Decision Frontier
+## 3. Completed Pre-Code Context
 
-### DQ-001 — Operational work-graph backend
+The following context is already settled and does not need separate live tracking:
 
-**Question:** Should LARGE projects use Jira or GitHub Issues as the single live operational work-graph backend?
+- **v0.1 frozen at H10.** H11–H14 were cancelled/superseded; the frozen research baseline remains available through Git history/tag `research_v_0.1_h10`.
+- **Temporary cost-controlled construction workflow established.** `design/V0.2-TEMPORARY-BUILD-WORKFLOW.md` governs current build-time cost/provider controls only.
+- **One canonical v0.2 lineage retained:** `feature/v0.2.0`.
+- **v0.1 lessons captured** as historical audit input; they are not v0.2 product authority.
+- **Clean active design authority created/reconciled:** PRD, Discovery, Architecture, Workflow Contracts and Qualification.
+- **README authority map and Delivery Timeline reconciled** to the clean document structure and the Dec 31, 2026 / Jan 2027 delivery direction.
+- The former active pre-code checklist has been retired; its still-relevant live work is represented by the DIs below.
 
-**Why it matters:** The selected backend must support Epics/Features/Specs/Bugs, dependency/governance representation, requirement traces, lifecycle state, reconciliation state, evidence references and low-friction status/next-work queries without creating another truth store.
+These facts may be revisited only if new evidence materially contradicts them.
 
-**Owner:** Architect, with Subhadeep final decision.
+---
 
-**Status:** BLOCKING
+## 4. Current Discovery Items
 
-**Evidence/decision method:** Compare the same representative work graph against both candidates. Evaluate at least hierarchy fit, dependency modelling, requirement traceability, PR/commit linkage, human usability, API/MCP support, least-privilege mutation, recovery/idempotency, query/context/token cost, export/recovery and vendor lock-in.
+### DI-001 — Accept the clean v0.2 design baseline
+
+**Kind:** REVIEW
+
+**Work:** Jointly review the clean PRD, Discovery, Architecture, Workflow Contracts and Qualification documents and confirm that they form one coherent SubhForge v0.2 baseline.
+
+**Why it matters:** The clean documents were reconciled from multiple older design generations. Implementation should not proceed while contradictions or stale assumptions remain in the active authority set.
+
+**Owner:** Subhadeep, with ChatGPT/Claude as review support where useful.
+
+**Status:** ACTIVE
+
+**Depends on:** None.
+
+**Evidence / completion method:** Review the active set for product scope, lifecycle boundaries, agent authority, dependency/readiness semantics, reconciliation, model/harness portability, qualification and cost/complexity. Any real unresolved issue becomes a new or amended DI rather than being hidden in review comments.
 
 **Outcome:** Open.
 
-**Promote to:** Architecture.
+**Promote to:** The owning active document(s) for any accepted corrections; close this DI when Subhadeep accepts the set as a coherent baseline.
 
 ---
 
-### DQ-002 — Durable STANDARD/LARGE mode discovery
+### DI-002 — Confirm and freeze the v0.2 release scope and Definition of Done
 
-**Question:** What is the smallest durable mechanism that allows commands to discover a project's selected mode without repeatedly asking Subhadeep?
+**Kind:** DECISION
 
-**Why it matters:** Mode must not silently change or depend on chat/session memory. The previous `PROJECT-001.md` existence rule is not carried forward.
+**Work:** Establish the provisional in/out boundary needed to decide which remaining DIs are release-critical, then finalize/freeze that same scope and DoD after those in-scope decisions close.
+
+**Why it matters:** A separate “scope cut” and later “scope freeze” would duplicate the same release-boundary work. One item should own the boundary from provisional cut through final freeze.
+
+**Owner:** Subhadeep, supported by PRD/Architecture reasoning.
+
+**Status:** BLOCKED
+
+**Depends on:** DI-001 for the provisional cut. Final closure also depends on the in-scope blocking DIs identified by that cut.
+
+**Evidence / completion method:**
+- start from PRD goals, non-goals and candidate DoD;
+- identify what must ship in stable v0.2.0 versus later versions;
+- mark which DIs are release-blocking versus safely deferrable;
+- preserve required dogfood/safety evidence;
+- after required DIs resolve, reconcile the PRD DoD/non-goals and explicitly freeze the release boundary.
+
+**Outcome:** Open.
+
+**Promote to:** PRD; Timeline only if scope evidence requires a schedule change.
+
+---
+
+### DI-003 — Select the operational work-graph backend and minimal schema
+
+**Kind:** RESEARCH / DECISION
+
+**Work:** Select Jira or GitHub Issues as the single live operational work-graph backend and define the smallest schema/relationship representation required by accepted SubhForge semantics.
+
+**Why it matters:** Backend choice and minimum schema are one coupled decision. Testing a backend without the required minimal graph/schema would not prove suitability, while designing schema before selecting the backend would be speculative.
+
+**Owner:** Architect, with Subhadeep final decision.
+
+**Status:** BLOCKED
+
+**Depends on:** DI-001; release-critical status confirmed by DI-002.
+
+**Evidence / completion method:** Use the same representative work graph for both candidates. Evaluate hierarchy/sub-item fit, Contains/Governed-by/Depends-on representation, lifecycle state, blockers/escalations, reconciliation state/holds, FR/NFR traceability, suite ownership, evidence/implementation references, PR/commit linkage, human usability, API/MCP support, least-privilege writes, idempotent recovery, high-frequency status/next-work query cost, export/recovery and vendor lock-in. Define no fields beyond accepted workflow needs.
+
+**Outcome:** Open.
+
+**Promote to:** Architecture and Workflow Contracts where physical representation affects workflow contracts.
+
+---
+
+### DI-004 — Define durable STANDARD/LARGE mode discovery
+
+**Kind:** DESIGN / DECISION
+
+**Work:** Define the smallest durable mechanism that lets SubhForge determine a project's selected mode without repeatedly asking Subhadeep.
+
+**Why it matters:** Mode must not silently change or depend on chat/session memory. The old `PROJECT-001.md` existence rule is not carried forward.
 
 **Owner:** Architect.
 
-**Status:** BLOCKING
+**Status:** BLOCKED
 
-**Evidence/decision method:** Prefer a single durable, inspectable project-level marker/configuration that does not create a competing state store and works when Kilo/model tooling is unavailable.
+**Depends on:** DI-001; scope confirmation through DI-002.
+
+**Evidence / completion method:** Prefer a single durable, inspectable project-level marker/configuration that does not create a competing state store and remains understandable if Kilo/model tooling is unavailable.
 
 **Outcome:** Open.
 
@@ -93,53 +182,48 @@ Do not preserve an old architecture-review question merely because it existed. A
 
 ---
 
-### DQ-003 — Minimal operational backend schema
+### DI-005 — Define Git ↔ operational-backend identity, traceability and consistency
 
-**Question:** After DQ-001 selects the backend, what exact hierarchy, fields, labels/metadata and relationships are required—no more?
+**Kind:** DESIGN
 
-**Why it matters:** Over-modeling the backend would recreate the document/state overload v0.2 is trying to remove.
+**Work:** Define one coherent cross-plane model for:
+- Git authority ↔ operational work-item identity/reference;
+- FR/NFR traceability;
+- acceptance/evidence references;
+- implementation/PR links;
+- meaningful stale/missing-reference detection.
+
+**Why it matters:** The former “Git/backend consistency” and “requirement/evidence linkage” questions are the same boundary viewed from two sides. Separate designs could create duplicated metadata or contradictory freshness rules.
 
 **Owner:** Architect.
 
-**Status:** BLOCKING after DQ-001.
+**Status:** BLOCKED
 
-**Evidence/decision method:** Derive fields only from accepted PRD/workflow requirements: identity, parentage, lifecycle, FR/NFR traceability, Contains/Governed-by/Depends-on semantics, blockers/escalations, reconciliation holds/state, suite ownership and evidence/implementation references.
+**Depends on:** DI-003.
+
+**Evidence / completion method:** Persist identifiers/references rather than copied authority. Define only mechanically provable identity/reference/freshness checks required by readiness, status, reconciliation and evidence freshness. Avoid a synchronization subsystem or second truth store.
 
 **Outcome:** Open.
 
-**Promote to:** Architecture and Workflow Contracts where semantics apply.
+**Promote to:** Architecture; Workflow/Qualification only for semantics/proof that depend on the representation.
 
 ---
 
-### DQ-004 — Git ↔ operational-backend consistency
+### DI-006 — Define reconciliation physical state and recovery representation
 
-**Question:** What is the minimum mechanism needed to detect meaningful drift between canonical Git authority and operational work state without creating a second source of truth?
+**Kind:** DESIGN
 
-**Why it matters:** Reconciliation, readiness and status become unsafe if work metadata silently refers to stale or missing authority.
+**Work:** Define how reconciliation packages, candidate/touched scope, holds, partial APPLY state, operation postconditions and overlap/conflict detection are represented across Git and the selected operational backend.
 
-**Owner:** Architect.
-
-**Status:** BLOCKING
-
-**Evidence/decision method:** Identify only mechanically provable identity/reference/freshness checks. Avoid a broad synchronization subsystem.
-
-**Outcome:** Open.
-
-**Promote to:** Architecture / verification mechanics.
-
----
-
-### DQ-005 — Reconciliation physical representation
-
-**Question:** How should reconciliation packages, held scope, partial APPLY state and overlap/conflict detection be represented in the selected backend/Git split?
-
-**Why it matters:** FR-016 requires safe pause, approval, retry/idempotency and unaffected-work preservation, but the PRD intentionally does not prescribe storage details.
+**Why it matters:** Reconciliation semantics are accepted, but safe pause, approval, retry/idempotency and unaffected-work preservation require a durable physical representation.
 
 **Owner:** Architect.
 
-**Status:** BLOCKING
+**Status:** BLOCKED
 
-**Evidence/decision method:** Resolve after DQ-001/DQ-003. Prefer the smallest representation that supports deterministic pre/postconditions, resume and conflict detection.
+**Depends on:** DI-003 and DI-005.
+
+**Evidence / completion method:** Use the smallest representation that supports deterministic pre/postconditions, scope holds, resume, partial APPLY recovery, overlap/conflict detection and fail-closed behavior without duplicating authority.
 
 **Outcome:** Open.
 
@@ -147,17 +231,21 @@ Do not preserve an old architecture-review question merely because it existed. A
 
 ---
 
-### DQ-006 — Requirement and evidence linkage representation
+### DI-007 — Define Protected Architecture Invariant representation
 
-**Question:** How are stable FR/NFR traces, acceptance criteria, verification evidence references and implementation/PR links represented across Git and the selected operational backend?
+**Kind:** DESIGN
 
-**Why it matters:** Traceability must support impact discovery and evidence freshness without copying authoritative requirement text into multiple stores.
+**Work:** Define the simplest durable representation for Protected Architecture Invariants and their `DETERMINISTIC` / `SEMANTIC` / `MIXED` enforcement mapping.
+
+**Why it matters:** Protected architecture is required, but SubhForge must not grow another heavyweight fitness-function framework without evidence.
 
 **Owner:** Architect.
 
-**Status:** BLOCKING
+**Status:** BLOCKED
 
-**Evidence/decision method:** Persist identifiers/references, not duplicated authority. Prove common lookups needed by readiness, reconciliation and status.
+**Depends on:** DI-001 and scope confirmation through DI-002.
+
+**Evidence / completion method:** Prefer human-readable architecture authority plus the smallest machine-readable contract required by deterministic verification.
 
 **Outcome:** Open.
 
@@ -165,161 +253,45 @@ Do not preserve an old architecture-review question merely because it existed. A
 
 ---
 
-### DQ-007 — Protected Architecture Invariant representation
+### DI-008 — Define physical agent/capability and interaction routing
 
-**Question:** What is the simplest durable representation for Protected Architecture Invariants and their DETERMINISTIC / SEMANTIC / MIXED enforcement mapping?
+**Kind:** DESIGN
 
-**Why it matters:** The PRD requires protected architecture but not a heavyweight fitness-function subsystem.
+**Work:** Define the smallest physical command/agent/capability mapping for the logical roles **and** the mechanism that distinguishes:
+- owning-workflow interview/approval interactions; from
+- Subhadeep-initiated explain/challenge conversations.
 
-**Owner:** Architect.
-
-**Status:** BLOCKING
-
-**Evidence/decision method:** Prefer human-readable architecture authority plus a small machine-readable contract only where deterministic verification needs it.
-
-**Outcome:** Open.
-
-**Promote to:** Architecture.
-
----
-
-### DQ-008 — Logical agent/capability → physical command mapping
-
-**Question:** What exact Kilo commands/agents implement the logical roles in the PRD, and which roles should remain capabilities rather than dedicated agents?
-
-**Why it matters:** The product needs clear ownership without multiplying agents merely to mirror every noun in the design.
+**Why it matters:** Physical role mapping and interaction-mode implementation are coupled. Both decide how logical authority contracts are exposed through the harness; designing them separately risks duplicated agents or a conversational state subsystem.
 
 **Owner:** Architect.
 
-**Status:** BLOCKING before implementation plan.
+**Status:** BLOCKED
 
-**Evidence/decision method:** Minimize physical agents while preserving one owner per responsibility, authority boundaries, interaction contracts and resumability.
+**Depends on:** DI-001 and scope confirmation through DI-002.
+
+**Evidence / completion method:** Minimize physical agents/commands while preserving one owner per responsibility, authority boundaries and resumability. Prefer deriving interaction mode from invoked capability, durable target and owning authority instead of creating a new conversation-state engine.
 
 **Outcome:** Open.
 
-**Promote to:** Architecture / implementation plan.
+**Promote to:** Architecture / agent-command contracts.
 
 ---
 
-### DQ-009 — Interaction-mode implementation
+### DI-009 — Define minimum lifecycle observability and recovery diagnostics
 
-**Question:** What is the simplest reliable way for SubhForge to distinguish owning-workflow interview/approval interactions from Subhadeep-initiated explain/challenge conversations without allowing conversation context to expand mutation authority?
+**Kind:** DESIGN
 
-**Why it matters:** The PRD defines the behavior but not the physical mechanism.
+**Work:** Define the minimum durable diagnostics required for agent handoffs, backend mutations, blockers, reconciliation and recovery.
+
+**Why it matters:** Subhadeep should normally be able to understand what happened, why work stopped, what authority/evidence was used and what safe next action exists without inspecting SubhForge internals.
 
 **Owner:** Architect.
 
-**Status:** BLOCKING before agent implementation.
+**Status:** BLOCKED
 
-**Evidence/decision method:** Prefer derivation from invoked command/target/owning workflow and durable target identity over a new conversational state engine.
+**Depends on:** DI-003, DI-005 and DI-006 for the operations that need to be observable.
 
-**Outcome:** Open.
-
-**Promote to:** Architecture / agent contracts.
-
----
-
-### DQ-010 — Optional PR creation
-
-**Question:** Should v0.2 implement automatic PR creation after reviewed Spec delivery, or leave PR preparation/manual creation as the initial behavior?
-
-**Why it matters:** It improves convenience but is explicitly not a release gate and must not distract from core delivery/reconciliation reliability.
-
-**Owner:** Subhadeep with implementation recommendation from Architect.
-
-**Status:** NON_BLOCKING
-
-**Evidence/decision method:** Implement only if GitHub integration makes it small, safe and low-maintenance after core Spec delivery works.
-
-**Outcome:** Open.
-
-**Promote to:** Architecture/implementation plan if accepted.
-
----
-
-### DQ-011 — Dry orchestration / contract validation
-
-**Question:** Is any dedicated dry-orchestration/contract validator still necessary in v0.2, and if so what is the smallest useful form?
-
-**Why it matters:** v0.1 showed that validation infrastructure can become another framework requiring its own maintenance.
-
-**Owner:** Architect.
-
-**Status:** NON_BLOCKING until verification design; BLOCKING before qualification freeze.
-
-**Evidence/decision method:** Retain only if it protects an accepted failure mode more cheaply than deterministic tests, focused integration, canary or dogfood.
-
-**Outcome:** Open.
-
-**Promote to:** Qualification/Architecture if retained; otherwise close as unnecessary.
-
----
-
-### DQ-012 — Minimum observability for handoffs and recovery
-
-**Question:** What minimum durable diagnostics are required for agent handoffs, backend mutations, blockers, reconciliation and recovery so that Subhadeep normally does not have to inspect SubhForge internals?
-
-**Why it matters:** NFR-007 requires diagnosability without building a full observability platform.
-
-**Owner:** Architect.
-
-**Status:** BLOCKING before implementation plan.
-
-**Evidence/decision method:** Define only the fields/events needed to answer what happened, why work stopped, what authority/evidence was used, and what safe next action exists.
-
-**Outcome:** Open.
-
-**Promote to:** Architecture.
-
----
-
-### DQ-013 — Skills baseline
-
-**Question:** Which reusable engineering skills genuinely deserve global SubhForge scope for v0.2?
-
-**Why it matters:** Skills improve engineering quality but increase context, maintenance and supply-chain/provenance surface.
-
-**Owner:** Architect.
-
-**Status:** NON_BLOCKING for initial skeleton; BLOCKING before final scope freeze for any skill claimed as baseline.
-
-**Evidence/decision method:** Admit only skills with real recurring need, credible provenance, non-duplication, acceptable context/tool cost and removal impact.
-
-**Outcome:** Open.
-
-**Promote to:** Architecture / installation manifest.
-
----
-
-### DQ-014 — MCP/integration baseline
-
-**Question:** Which integrations are baseline SubhForge dependencies versus project-specific optional tools?
-
-**Why it matters:** The operational work backend and GitHub access are likely core, while cloud/vendor integrations should not become globally privileged by default.
-
-**Owner:** Architect.
-
-**Status:** BLOCKING for baseline integrations only.
-
-**Evidence/decision method:** Apply least privilege, trusted-source preference, bounded action, failure degradation and removability.
-
-**Outcome:** Open.
-
-**Promote to:** Architecture.
-
----
-
-### DQ-015 — STANDARD compatibility boundary
-
-**Question:** What minimum STANDARD behavior must be frozen and regression-tested while LARGE is rebuilt?
-
-**Why it matters:** The PRD requires that LARGE evolution not silently regress STANDARD, but v0.2 is a clean build and should not drag forward every v0.1 implementation detail.
-
-**Owner:** Architect + qualification design.
-
-**Status:** BLOCKING before scope/DoD freeze.
-
-**Evidence/decision method:** Preserve user-visible capability/invariants that still matter, not obsolete v0.1 internal contracts.
+**Evidence / completion method:** Retain only fields/events needed for diagnosis/recovery. Reuse harness/runtime telemetry where helpful but do not make provider/harness logs lifecycle authority.
 
 **Outcome:** Open.
 
@@ -327,84 +299,241 @@ Do not preserve an old architecture-review question merely because it existed. A
 
 ---
 
-## 4. Pre-Code Context and Closure Gates
+### DI-010 — Define the baseline external capability set
 
-This section replaces the former active `V0.2-PRE-CODE-CHECKLIST.md`. Discovery now owns the live pre-code frontier because unresolved research/decision work and readiness to begin implementation are part of the same decision context.
+**Kind:** DECISION
 
-Dates remain owned by `design/SUBHFORGE-DELIVERY-TIMELINE.md`; accepted product/architecture/workflow/qualification rules remain in their own authority documents.
+**Work:** Decide the smallest v0.2 baseline of reusable Skills and MCP/integrations; classify everything else as project-specific or deferred.
 
-### 4.1 Completed pre-code context
+**Why it matters:** Skills and integrations solve the same baseline-capability question: what external/reusable capability SubhForge itself should carry globally. Maintaining two independent baseline decisions would duplicate admission/security/cost reasoning.
 
-The following context is already settled and does not need separate active tracking:
+**Owner:** Architect, with Subhadeep approval for consequential permissions/cost.
 
-- **v0.1 frozen at H10.** H11–H14 were cancelled/superseded; the frozen research baseline remains available through Git history/tag `research_v_0.1_h10`.
-- **Temporary cost-controlled construction workflow established.** `design/V0.2-TEMPORARY-BUILD-WORKFLOW.md` governs current build-time cost/provider controls only.
-- **One canonical v0.2 pre-code lineage retained:** `feature/v0.2.0`.
-- **v0.1 lessons captured** as historical audit input; they are not v0.2 product authority.
-- **Clean active design authority created/reconciled:** PRD, Discovery, Architecture, Workflow Contracts and Qualification.
-- **README authority map and Delivery Timeline reconciled** to the clean document structure and the Dec 31, 2026 / Jan 2027 delivery direction.
+**Status:** BLOCKED
 
-These facts may be revisited only if new evidence materially contradicts them.
+**Depends on:** DI-002. Work-management integration specifics also depend on DI-003.
 
-### 4.2 Current pre-code state
+**Evidence / completion method:** Apply real recurring need, credible provenance, non-duplication, authority compatibility, least privilege, context/tool cost, security/supply-chain risk, failure degradation and removability. Cloud/vendor integrations default to project-specific unless evidence proves global value.
 
-**Current activity:** joint review of the clean PRD, Discovery, Architecture, Workflow Contracts and Qualification set.
+**Outcome:** Open.
 
-Implementation must not begin merely because the documents exist. Pre-code closes only when the gates below pass.
-
-### 4.3 Pre-code closure gates
-
-| Gate | Requirement | Current state |
-|---|---|---|
-| **PCG-01 — Clean design review** | Subhadeep accepts the clean PRD/Discovery/Architecture/Workflow/Qualification set as a coherent baseline. | **OPEN** |
-| **PCG-02 — Scope cut** | Define what must ship in stable v0.2.0 versus later versions; preserve required safety/dogfood evidence. | **BLOCKED by PCG-01** |
-| **PCG-03 — Blocking Discovery closure** | Close/promote every blocking in-scope `DQ-###`; explicitly defer only non-blocking questions that are safe to postpone. | **BLOCKED by PCG-02** |
-| **PCG-04 — Scope + Definition of Done freeze** | Reconcile the PRD DoD/non-goals with resolved Discovery decisions and freeze the release boundary. | **BLOCKED by PCG-03** |
-| **PCG-05 — Walking skeleton defined** | Define the smallest real end-to-end LARGE slice from idea/document intake through reviewed Spec delivery with durable state/resume. | **BLOCKED by PCG-04** |
-| **PCG-06 — Verification strategy frozen** | Map each required failure risk to the cheapest sufficient deterministic/integration/canary/dogfood evidence layer; resolve `DQ-011`. | **BLOCKED by PCG-05** |
-| **PCG-07 — Dogfood path frozen** | Accept MediBot greenfield, Evaluation Guardrails reconciliation and scale/context qualification entry/exit evidence. | **BLOCKED by PCG-06** |
-| **PCG-08 — Implementation plan ready** | Produce dependency-aware, acceptance-driven work units executable from fresh sessions/durable authority. | **BLOCKED by PCG-04–07** |
-| **PCG-09 — Final pre-code approval** | Confirm no known unowned blocker, unacceptable cost/complexity risk or unresolved release-critical assumption remains. | **BLOCKED by prior gates** |
-| **PCG-10 — Begin implementation** | Create/use the implementation branch and begin product code only after PCG-01–09 pass. | **BLOCKED** |
-
-### 4.4 Gate operating rules
-
-- A gate closes only with durable evidence in Discovery or the authority document that owns the result.
-- Closing a `DQ-###` requires promotion into its owning authority; a chat conclusion is not closure.
-- Scope added after PCG-04 requires an explicit trade-off or schedule decision.
-- Research/POCs exist only to close named DQs or prove a named gate; prototype code does not automatically become product code.
-- Real dogfood is release work, not optional polish.
-- If a gate starts expanding into a subsystem whose cost exceeds the failure it protects against, stop and simplify/re-scope before proceeding.
-- No separate pre-code tracker should be recreated unless Discovery demonstrably becomes unable to represent the live decision frontier and closure gates cleanly.
+**Promote to:** Architecture / installation manifest.
 
 ---
 
-## 5. Explicitly Closed / Not Carried Forward
+### DI-011 — Define the STANDARD compatibility boundary
 
-These are not discovery questions for v0.2 unless new evidence reopens them:
+**Kind:** DECISION / DESIGN
+
+**Work:** Define the minimum STANDARD behavior/invariants that v0.2 must preserve and regression-test while LARGE is rebuilt.
+
+**Why it matters:** The PRD protects STANDARD, but a clean v0.2 build should not accidentally drag forward every v0.1 internal contract.
+
+**Owner:** Architect + Qualification design, with Subhadeep acceptance.
+
+**Status:** BLOCKED
+
+**Depends on:** DI-001 and DI-002.
+
+**Evidence / completion method:** Preserve still-required user-visible capability/invariants, not obsolete implementation details.
+
+**Outcome:** Open.
+
+**Promote to:** Architecture + Qualification.
+
+---
+
+### DI-012 — Decide whether automatic PR creation belongs in v0.2
+
+**Kind:** DECISION
+
+**Work:** Decide whether v0.2 should automatically create a PR after reviewed Spec delivery or initially stop at PR-ready/manual creation.
+
+**Why it matters:** It improves convenience but is not a core release requirement and must not distract from delivery/reconciliation reliability.
+
+**Owner:** Subhadeep with Architect implementation recommendation.
+
+**Status:** NON_BLOCKING
+
+**Depends on:** DI-002; evaluate after core Spec delivery/GitHub integration shape is known.
+
+**Evidence / completion method:** Include only if GitHub integration makes it small, safe and low-maintenance. Failure of PR automation must never invalidate valid implementation/review evidence.
+
+**Outcome:** Open.
+
+**Promote to:** Architecture / Workflow / implementation plan if accepted.
+
+---
+
+### DI-013 — Finalize the v0.2 qualification and dogfood strategy
+
+**Kind:** DESIGN / DECISION
+
+**Work:** Freeze one coherent verification/qualification strategy, including:
+- deterministic unit/static/contract evidence;
+- focused integration/FAST proof;
+- behavioral compatibility canary;
+- whether any dedicated dry-orchestration/contract validator is justified;
+- release-level FULL qualification breadth;
+- MediBot greenfield dogfood;
+- Evaluation Guardrails reconciliation dogfood;
+- scale/context dogfood.
+
+**Why it matters:** The former dry-validator question, verification-strategy gate and dogfood-path gate are one proof-design problem. Splitting them risks adding validation machinery that does not serve the actual release evidence.
+
+**Owner:** Qualification design, with Architecture input and Subhadeep acceptance.
+
+**Status:** BLOCKED
+
+**Depends on:** DI-002 and enough of DI-003–DI-011 to know the real boundaries/failure modes being qualified.
+
+**Evidence / completion method:** For every expensive/model-bearing layer name the failure class it protects against and why cheaper deterministic evidence is insufficient. Dogfood remains mandatory release evidence; synthetic smoke does not replace it.
+
+**Outcome:** Open.
+
+**Promote to:** Qualification.
+
+---
+
+### DI-014 — Define the v0.2 walking skeleton
+
+**Kind:** DESIGN
+
+**Work:** Define the smallest real end-to-end LARGE implementation slice from idea/document intake through reviewed Spec delivery, including only the state/context/status/resume behavior required to prove the lifecycle is real.
+
+**Why it matters:** The skeleton is the first implementation boundary. It must prove the architecture without front-loading the entire framework.
+
+**Owner:** Architect + implementation planning, with Subhadeep acceptance.
+
+**Status:** BLOCKED
+
+**Depends on:** DI-002 plus the architectural DIs required by the chosen thin slice, especially DI-003–DI-008.
+
+**Evidence / completion method:** Specify entry/exit behavior, durable identities/state, minimum work-backend operations, handoffs, bounded context, status/resume, tests and acceptance evidence. Optional PR creation is excluded unless DI-012 is deliberately pulled into the skeleton.
+
+**Outcome:** Open.
+
+**Promote to:** Architecture / Workflow / implementation plan as appropriate.
+
+---
+
+### DI-015 — Produce the dependency-aware implementation plan
+
+**Kind:** DESIGN
+
+**Work:** Convert the accepted scope, resolved architecture and walking skeleton into bounded, acceptance-driven implementation work units executable from fresh sessions and durable authority.
+
+**Why it matters:** Implementation should not reopen settled architecture or depend on hidden chat context.
+
+**Owner:** Planner/Architect with Subhadeep review.
+
+**Status:** BLOCKED
+
+**Depends on:** DI-002 through DI-014 for all release-blocking items relevant to implementation sequencing.
+
+**Evidence / completion method:** Produce the smallest dependency-aware plan that implements foundations/walking skeleton first and then LARGE delivery, reconciliation and qualification support in accepted dependency order.
+
+**Outcome:** Open.
+
+**Promote to:** Implementation work system / planning authority selected by DI-003; repository only for genuinely architectural plan decisions.
+
+---
+
+### DI-016 — Final pre-code approval
+
+**Kind:** GATE
+
+**Work:** Decide whether SubhForge v0.2 implementation may begin.
+
+**Why it matters:** This is the one consequential pre-code human gate. It should not be duplicated by a second “begin implementation” item.
+
+**Owner:** Subhadeep.
+
+**Status:** BLOCKED
+
+**Depends on:** DI-001 through DI-015 for every item classified as release-blocking by DI-002. NON_BLOCKING items may remain open only when their deferral is explicitly safe.
+
+**Evidence / completion method:** Confirm:
+- accepted scope/DoD;
+- no unresolved release-critical DI;
+- architecture/workflow consistency;
+- acceptable complexity and cost;
+- qualification/dogfood strategy;
+- executable implementation plan;
+- no known unowned blocker.
+
+**Outcome:** Open.
+
+**Promote to:** Discovery closure record; implementation begins immediately after this DI closes.
+
+---
+
+## 5. Dependency Summary
+
+The intended progression is:
+
+```text
+DI-001  Clean design review
+   ↓
+DI-002  Provisional scope boundary → eventual scope/DoD freeze
+   ↓
+Architectural decisions:
+DI-003 backend+schema
+DI-004 mode discovery
+DI-005 cross-plane identity/traceability
+DI-006 reconciliation representation
+DI-007 protected invariants
+DI-008 agents+interaction routing
+DI-009 observability
+DI-010 baseline skills/integrations
+DI-011 STANDARD boundary
+DI-012 optional PR (non-blocking)
+   ↓
+DI-014 walking skeleton
+   ↓
+DI-013 qualification + dogfood strategy
+   ↓
+DI-015 implementation plan
+   ↓
+DI-016 final pre-code approval
+   ↓
+Implementation
+```
+
+This is a dependency guide, not a requirement to execute every independent DI serially. Independent items may be worked in parallel when doing so does not violate their prerequisites or Subhadeep's preferred one-issue-at-a-time working style.
+
+---
+
+## 6. Explicitly Closed / Not Carried Forward
+
+These are not live Discovery Items unless new evidence reopens them:
 
 - Whether v0.2 should be implemented through stable v0.1.1 — **closed: no; clean build**.
 - Whether `/specbypassceremony` is the v0.2 admission path — **closed: no**.
 - Whether temporary `/arch-*` review commands/agents are required — **closed: no**.
 - Whether LARGE operational Epic/Feature/Spec state should be a Markdown repository tree — **closed: no**.
 - Whether SQLite should be a second workflow state store — **closed: no**.
-- Whether Jira is selected by default — **closed: no; evidence required**.
+- Whether Jira is selected by default — **closed: no; DI-003 requires evidence**.
 - Whether an entire Epic must finish before another can progress — **closed: no; use truthful DAG eligibility**.
 - Whether Planner may resolve missing upstream product/architecture intent by interviewing Subhadeep directly — **closed: no; route to owning authority**.
 - Whether model/provider/harness identity defines SubhForge semantics — **closed: no**.
 - Whether post-PR production-release orchestration is required in v0.2 — **closed: no**.
 - Whether every production defect requires reconciliation — **closed: no; defects against existing authority use Bug/Fix, authority changes reconcile**.
+- Whether a separate active pre-code checklist is required — **closed: no; Discovery Items own the live frontier and pre-code closure**.
 
 ---
 
-## 6. Closure Rule
+## 7. Closure Rule
 
-A discovery question is closed only when:
+A Discovery Item is CLOSED only when:
 
-1. sufficient evidence exists;
-2. Subhadeep decides when human authority is reserved;
-3. the accepted result is promoted to its authoritative home;
-4. affected questions/requirements are reconciled;
-5. this record is marked CLOSED or SUPERSEDED with the destination reference.
+1. its prerequisites were satisfied;
+2. sufficient evidence exists;
+3. Subhadeep decides when human authority is reserved;
+4. the accepted result is promoted to its authoritative home;
+5. affected DIs/requirements are reconciled;
+6. the DI records its outcome/destination.
 
-Git history preserves prior discovery; this document should remain small and current.
+**Pre-code is closed when DI-016 is CLOSED.** There is no separate pre-code-gate tracker.
+
+Git history preserves prior Discovery versions; this document should remain small enough to understand the current frontier without reconstructing old process history.
