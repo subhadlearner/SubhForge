@@ -79,6 +79,17 @@ Subhadeep explicitly selects LARGE. SubhForge may recommend a mode but must neve
 
 Once selected, mode must be durable and must not silently change. The physical mode-marker/discovery mechanism is an architecture decision, not a PRD concern.
 
+### Lifecycle coverage
+
+SubhForge v0.2 deliberately covers the software-delivery lifecycle in four segments:
+
+| Lifecycle segment | SubhForge responsibility |
+|---|---|
+| **Requirement → Spec** | **Core.** Own the flow from idea/document intake through Discovery → PRD → Architecture → Project/Epic/Feature/Spec. |
+| **Spec → PR** | **Core through reviewed implementation; PR creation is desirable but non-blocking.** SubhForge owns implementation, tests, verification and review before the change is considered ready. It should be able to prepare/raise a PR where practical, but automated PR creation is not a v0.2 release gate. |
+| **PR → Production** | **Outside the primary v0.2 lifecycle.** Code, architecture, security and quality reviews required by SubhForge happen before PR readiness. Post-PR organizational approvals, deployment orchestration and production release are not required v0.2 capabilities. |
+| **Production/feedback → Spec/Feature/Epic/Authority** | **Core change path.** A proven defect against existing accepted behavior follows Bug → Diagnose/Fix → Re-verify. Feedback that changes/misses accepted requirements, architecture, acceptance criteria, dependencies or planned work enters change triage and Reconciliation, which may propagate to the appropriate Spec/Feature/Epic and upstream authority. |
+
 ---
 
 ## 4. Sources of Truth
@@ -125,7 +136,14 @@ SubhForge shall support STANDARD and LARGE workflows without one silently changi
 
 ### FR-002 — Discovery and ideation
 
-For LARGE projects, `/ideate` shall turn a vague idea into durable discovery containing at least:
+For LARGE projects, `/ideate` shall accept either:
+
+- a conversational idea described by Subhadeep; or
+- existing notes/documents supplied by Subhadeep.
+
+The Ideation Agent shall actively interview Subhadeep to obtain the information required to establish durable discovery. It shall extract already-known decisions from supplied material instead of forcing them to be restated.
+
+The canonical Git discovery document shall contain at least:
 
 - problem/outcome;
 - users/actors;
@@ -137,7 +155,11 @@ For LARGE projects, `/ideate` shall turn a vague idea into durable discovery con
 - unresolved decision/research frontier;
 - assumptions and required evidence.
 
-Material unresolved discovery work shall be tracked durably and resumably.
+When a material question cannot be answered during ideation, SubhForge shall create a durable research/decision work item rather than keeping the question only in chat.
+
+The Research Agent is optional. Subhadeep may perform the research himself and update the durable work item with evidence. The Research Agent may later be invoked to evaluate/synthesize that evidence, close the research item when justified, and update the discovery document with the research result. Research evidence does not silently become product authority; product conclusions are confirmed through the owning Ideation/PRD workflow.
+
+Ideation shall be resumable from the current discovery document plus durable open work items, not from chat history.
 
 ### FR-003 — Existing-authority admission
 
@@ -244,6 +266,8 @@ Known failures route to Fix; unknown failures route through Diagnose then Fix; a
 
 Routine Spec completion shall not require Subhadeep approval.
 
+After review approval, SubhForge should be able to prepare and, where configured, raise a PR containing the bounded change plus useful Spec/requirement/evidence references. Automated PR creation is desirable but is not mandatory for the v0.2 release.
+
 ### FR-011 — Verification and review separation
 
 Implementation, verification and review are distinct responsibilities.
@@ -272,9 +296,12 @@ Every Epic shall have an owning Feature for its E2E-suite work.
 
 The Builder authors the suite; the Verifier runs and evidences it.
 
-### FR-014 — Defect workflow
+### FR-014 — Production feedback and defect workflow
 
-Defects shall enter a bounded Bug → Diagnose/Fix → Re-verify workflow.
+Production/runtime/user feedback shall first be classified against current accepted authority.
+
+- A proven implementation defect against already-accepted behavior enters a bounded Bug → Diagnose/Fix → Re-verify workflow and does not require full reconciliation merely because it occurred in production.
+- Feedback that reveals a missing/changed requirement, acceptance criterion, architecture obligation, dependency or planned behavior enters Change Triage and, when material, Reconciliation.
 
 Higher-level escaped defects shall be classified by the layer where they should reasonably have been caught so repeated escapes improve future planning/testing.
 
@@ -368,8 +395,8 @@ Physical filenames and model choices may change; these responsibility boundaries
 
 | Agent / capability | Owns | Must not do |
 |---|---|---|
-| Ideation Agent | Discovery, unknowns, research frontier | Decide PRD/architecture |
-| Research Agent | Bounded evidence and conclusions | Silently make product decisions |
+| Ideation Agent | Conversational/document intake, discovery, interviews, unknowns and research frontier | Decide PRD/architecture |
+| Research Agent | **Optional** bounded research closure, evidence synthesis and discovery research updates | Silently make product decisions |
 | PRD Agent | Canonical requirements | Mutate architecture |
 | Architect Agent | Architecture, NFR reach, protected invariants | Silently change product intent |
 | Planner / Decomposition Agent | Epic/Feature/Spec decomposition, readiness, dependencies | Invent missing PRD/architecture intent |
@@ -388,6 +415,18 @@ Physical filenames and model choices may change; these responsibility boundaries
 Subhadeep can question any responsible reasoning agent's rationale.
 
 Only Ideation, PRD and Architect agents may normally initiate broad product/architecture questioning. Other agents may initiate only bounded blocking clarification within their authority.
+
+### Interaction contract
+
+Agent interaction depends on **initiator + target + intent + owning authority**.
+
+**Owning workflow → Subhadeep:** when Ideation, PRD or Architect is authoring/refining its authority, it may interview Subhadeep to obtain missing authoritative information or request a consequential decision/approval that the agent cannot make.
+
+**Subhadeep → Agent:** when Subhadeep starts a conversation with Architect, Planner, Reviewer or another reasoning agent about an existing artifact/work item, the default mode is bounded **explain/challenge**, not mutation. The agent reconstructs the relevant durable context and explains its rationale.
+
+If that conversation becomes a request to change accepted authority, the receiving agent must route the request to the workflow that owns that authority. For example, a Planner or Reviewer discussing an architecture choice cannot silently change architecture; an architecture change returns to the Architect/change-governance path.
+
+Implementation may represent this interaction contract however is simplest, but conversation context alone never expands an agent's mutation authority.
 
 ---
 
@@ -456,9 +495,13 @@ Required authority must never be dropped merely to fit context.
 
 SubhForge shall expose and control expensive model calls, retries, smoke breadth and context growth. Stronger models are used only where expected value justifies cost.
 
-### NFR-005 — Portability
+### NFR-005 — Model and harness adaptability
 
-Kilo/models/tools may execute SubhForge but shall not define lifecycle semantics, authority or project history.
+No execution harness, model family or provider is a permanent product dependency.
+
+Kilo/models/tools may execute SubhForge but shall not define lifecycle semantics, authority or project history. SubhForge's agent contracts, durable state, authority boundaries and handovers must remain stable enough that the primary harness or assigned model/provider can be replaced without redesigning project history or changing what a workflow means.
+
+Portability is required at these seams; v0.2 is not required to build a generic plug-in framework for every possible harness/provider.
 
 ### NFR-006 — Security
 
@@ -490,12 +533,27 @@ During real dogfood, avoidable manual status reconstruction, handoff coordinatio
 
 The current development environment may use VS Code, Kilo, GitHub, ChatGPT, Claude and DeepSeek.
 
-These are **workers/tools, not product authority**.
+These are **workers/tools, not product authority**. Agent responsibilities are stable product contracts; model assignments are configurable execution policy.
 
-Model/tool routing may optimize cost and quality, but:
+Current default routing:
+
+| Work class | Current default |
+|---|---|
+| Product discovery, PRD, architecture, decomposition, senior synthesis/review | Strong primary reasoning model — currently GPT-5.6 Sol |
+| Lightweight orchestration/status/bookkeeping where semantic reasoning is small | Lightweight/cheaper model or deterministic code — currently GPT-5.6 Luna where a model is useful |
+| Routine implementation, tests and bounded fixes | DeepSeek by default |
+| Material independent co-architecture/challenge | Claude Sonnet through the bounded Claude Code + Pro path |
+| Exceptional high-risk architecture/challenge or hard diagnosis | Claude Opus by explicit escalation |
+| Mechanical state, graph, validation, eligibility and mutation preconditions | Deterministic code first |
+
+This routing is a **current configuration baseline, not product authority**. It may change because of model quality, availability, price or tooling evolution without changing agent responsibility or workflow semantics.
+
+Model/tool routing rules:
 
 - model choice never changes lifecycle semantics or mutation authority;
 - no provider is required to preserve project truth;
+- there is no silent paid/provider fallback;
+- stronger models are used only when expected value justifies cost;
 - external construction skills/tooling may be removed without changing SubhForge product semantics.
 
 ---
@@ -507,6 +565,7 @@ v0.2 will not attempt to become:
 - a generic workflow platform for other engineers;
 - a multi-user enterprise governance system;
 - an autonomous scheduler/background project manager;
+- a post-PR CI/CD, organizational approval or production-release orchestration platform;
 - an arbitrary brownfield-codebase onboarding/migration product;
 - a universal provider-routing framework;
 - a generic multi-backend work-management plugin framework;
@@ -578,15 +637,22 @@ SubhForge v0.2 is successful when:
 
 ---
 
-## 14. Explicitly Unresolved Product-Adjacent Decisions
+## 14. Discovery and Open-Decision Registry
 
-These remain to be settled through architecture/design evidence and must not be guessed in implementation:
+Unanswered design/research questions are intentionally **not embedded as competing requirements in this PRD**.
 
-1. **Operational work backend:** Jira vs GitHub Issues.
-2. **Physical durable mode marker/discovery mechanism:** the old `PROJECT-001.md` marker is not carried forward.
-3. **Smallest implementation needed for any dry orchestration/contract validation:** retain only if the current design audit proves it protects a real requirement at acceptable complexity/cost.
+The current decision frontier is maintained in:
 
-These are bounded decisions. They do not reopen the product scope above.
+`design/discovery/SUBHFORGE-V0.2-DISCOVERY.md`
+
+Each live question has a stable `DQ-###` identity, owner, blocking status and closure evidence. When a question is resolved:
+
+- a product requirement is promoted into this PRD only when it changes what SubhForge must do;
+- an implementation/structural answer is promoted into Architecture;
+- workflow semantics are promoted into the appropriate workflow authority;
+- obsolete questions are closed/superseded rather than silently deleted.
+
+The Discovery document is working decision context, not a second source of product truth.
 
 ---
 
