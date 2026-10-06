@@ -645,7 +645,7 @@ The current decision frontier is maintained in:
 
 `design/discovery/SUBHFORGE-V0.2-DISCOVERY.md`
 
-Each live question has a stable `DQ-###` identity, owner, blocking status and closure evidence. When a question is resolved:
+Each live Discovery Item has a stable `DI-###` identity, kind, owner, status, dependencies and closure evidence. When an item is resolved:
 
 - a product requirement is promoted into this PRD only when it changes what SubhForge must do;
 - an implementation/structural answer is promoted into Architecture;
