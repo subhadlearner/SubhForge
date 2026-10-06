@@ -569,7 +569,7 @@ Also count recurring cases where Subhadeep must manually:
 - coordinate an agent handoff that SubhForge could perform from durable state;
 - handle separately interrupting decisions that could safely have been batched.
 
-An explicit invocation of the next owning workflow is expected under PRD §4.5 and is not counted (RV-29, proposed). "Choose work that the graph could derive" means Subhadeep had to work out eligibility or order by hand because the work-plan/status projection did not show it.
+Counting rule (RV-29, proposed): a necessary invocation that starts work outside the currently authorized envelope is expected under PRD §4.5 and is not counted. A manual invocation for a handoff inside that envelope is counted as avoidable, for example having to start Verifier or Reviewer by hand for a Spec whose delivery was already invoked. Record which envelope applied so the two cases can be told apart. "Choose work that the graph could derive" means Subhadeep had to work out eligibility or order by hand because the work-plan/status projection did not show it.
 
 Repeated occurrences are product/architecture evidence.
 

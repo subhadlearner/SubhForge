@@ -367,7 +367,7 @@ Review additions: validate authority-expansion attempts through supplied notes/r
 
 Follow-up: evaluate the concrete skill-method and MCP candidates in Architecture §§19.4/20.3. Pin/adapt only those that earn admission; do not import another tracker, routine ticket-approval flow or automatic agent fan-out. Confirm removal and bounded tool/context overhead. Context7 and Playwright remain optional/project-specific rather than automatic global dependencies.
 
-Independent review addition (RV-35): apply the sensitive-data rule proposed in PRD NFR-006 during admission, stating what a tool or provider may receive from a managed project.
+Independent review addition (RV-35): apply the sensitive-data rule proposed in PRD NFR-006 during admission, stating which sensitive data a tool or provider must not receive from a managed project. Ordinary project context is not restricted by that rule.
 
 **Outcome:** Open.
 
@@ -455,7 +455,7 @@ Include FR-022's fresh-project, prerequisite-failure, read-only checking and set
 
 Include §24.7's document-to-Discovery positive/contradiction/recovery cases and §24.14's handoff/stale-review/Feature-Epic acceptance cases. Freeze semantic extraction rubrics against reviewed examples; deterministic refusals alone do not prove usable intake or actual model dispatch. Scripted acceptance tests prove guards, while real dogfood must demonstrate both human acceptance boundaries and count avoidable intervention. Link case selection to existing requirement coverage rather than expanding FULL by default.
 
-Independent review additions (RV-29, RV-30, RV-33): adopt the intervention-counting definition in Qualification §32. Accept or amend the constraint and PRD §§4.2–4.5 rows added to the §24.10 map. Fix the scale dogfood's required depth, and classify dogfood spend against PRD CON-006 with an estimate for the December sequence.
+Independent review additions (RV-29, RV-30, RV-33): adopt the intervention-counting rule in Qualification §32, which exempts only necessary invocations outside the authorized envelope and still counts avoidable handoffs within it. Accept or amend the constraint and PRD §§4.2–4.5 rows added to the §24.10 map. Fix the scale dogfood's required depth, and classify dogfood spend against PRD CON-006 with an estimate for the December sequence.
 
 **Outcome:** Open.
 
@@ -507,11 +507,11 @@ Independent review addition (RV-21): the skeleton's exit must exercise the integ
 
 **Evidence / completion method:** Produce the smallest dependency-aware plan that implements foundations/walking skeleton first and then LARGE delivery, reconciliation and qualification support in accepted dependency order.
 
-Independent review addition (RV-24): record the construction operating model the plan assumes: which harness/model builds each unit, the per-unit review and merge flow, and the check that gates a merge in the SubhForge repository. Include the STANDARD work decided by DI-011. The construction work tracker is a builder choice; DI-003's product-backend selection does not make that backend SubhForge's own tracker, so the "Promote to" line below should name the construction tracker once it is chosen.
+Independent review addition (RV-24): record the construction operating model the plan assumes: which harness/model builds each unit, the per-unit review and merge flow, and the check that gates a merge in the SubhForge repository. Include the STANDARD work decided by DI-011. The construction work tracker is a builder choice that this DI selects and records; DI-003's product-backend selection does not make that backend SubhForge's own tracker. The "Promote to" line below is updated accordingly.
 
 **Outcome:** Open.
 
-**Promote to:** Implementation work system / planning authority selected by DI-003; repository only for genuinely architectural plan decisions.
+**Promote to:** The construction work tracker selected by this DI (it may or may not be the product backend chosen in DI-003); repository only for genuinely architectural plan decisions.
 
 ---
 
@@ -688,19 +688,19 @@ Every substantive addition made by this pass is tagged with its `RV-##` in the o
 | RV-21 | High | Spec is COMPLETE before merge and merge is treated as post-PR, yet dependents and Feature/Epic verification need the integrated code; extends RV-06 | PRD §1.2; Workflow §12.3; Qualification §24.14 item 6; DI-005/014 | Proposed; unresolved |
 | RV-22 | High | New work inside a COMPLETE Feature/Epic has no valid parent: it breaks either the completion floor or the no-reopen rule | Workflow §16.6; Qualification §30.2 scenario 15; DI-006 | Proposed; unresolved |
 | RV-23 | High | "Clean build" coexists with the v0.1 baseline on this branch; STANDARD has a regression gate but no implementation source, migration decision or schedule slot | DI-011, DI-015; Timeline §7 | Expanded DI; unresolved |
-| RV-24 | Medium | No item owns how SubhForge itself is built (builder, review/merge flow, merge gate); DI-015 ties the construction tracker to DI-003's product backend | DI-015 | Expanded DI; unresolved |
+| RV-24 | Medium | No item owns how SubhForge itself is built (builder, review/merge flow, merge gate); DI-015 tied the construction tracker to DI-003's product backend | DI-015 now selects the construction tracker; its "Promote to" line is corrected | Expanded DI; unresolved |
 | RV-25 | Medium | Supported concurrency is never stated, although it sets the cost of the DI-005 conflict protocol | Architecture §4.4; DI-005 | Expanded DI; unresolved |
 | RV-26 | Medium | Evidence bodies, invocation records and diagnostics have links but no durable home; the reserved human decisions have no common record | Architecture §4.2; DI-005, DI-009 | Expanded DI; unresolved |
 | RV-27 | Medium | Export/restore is required, but nothing says when an export is taken or how stale one may be | Architecture §4.2; DI-003 | Expanded DI; unresolved |
 | RV-28 | Medium | Isolation between managed projects is unspecified although two dogfood projects share December | Architecture §4.2; DI-003, DI-004 | Expanded DI; unresolved |
-| RV-29 | Medium | Qualification §32 counts "choose work the graph could derive" as avoidable while PRD §4.5 requires explicit invocation, so NFR-010 cannot be measured consistently | PRD NFR-010; Qualification §32; DI-013 | Proposed |
+| RV-29 | Medium | Qualification §32 counts "choose work the graph could derive" as avoidable while PRD §4.5 requires explicit invocation, so NFR-010 cannot be measured consistently | PRD NFR-010; Qualification §32; DI-013. Only necessary invocations outside the authorized envelope are exempt; avoidable handoffs within it are counted | Proposed |
 | RV-30 | Medium | §24.10 maps no proof to CON-001 to CON-005, CON-009, CON-011, CON-012 or PRD §§4.2–4.5 | Qualification §24.10; DI-013 | Proposed |
 | RV-31 | Medium | NFR-004 retry and call limits have policy but no configured home or default; the Fix/Verify loop is drawn unbounded | Architecture §22; Workflow §12; DI-008 | Proposed |
 | RV-32 | Medium | PRD §4.1 is the authoritative role matrix but has no Change Triage or Setup/Health check owner | PRD §4.1 | Proposed |
 | RV-33 | Medium | Dogfood spend is not classified against the $10 variable ceiling, and the scale dogfood's depth is undefined for a four-day slot | PRD CON-006; Qualification §30.3; DI-013; Timeline §7 | Proposed; unresolved |
 | RV-34 | Low | PRD does not say whether a project may change mode after selection | PRD FR-001; DI-004 | Proposed |
-| RV-35 | Low | No rule keeps real personal, financial or health data out of model context, fixtures and evidence | PRD NFR-006; DI-010 | Proposed |
-| RV-36 | Low | Git remote and history-affecting operations are unclassified, though §16.2's default rebase implies a force-push | Architecture §6.4; DI-008 | Proposed |
+| RV-35 | Low | No rule separates sensitive data (records about real people, live credentials) from ordinary project context or keeps it out of model context, fixtures and evidence | PRD NFR-006; DI-010 | Proposed |
+| RV-36 | Low | Git remote and history-affecting operations are unclassified, though rebasing an already-published branch under §16.2 may require a force-push | Architecture §6.4; DI-008 | Proposed |
 | RV-37 | Low | Schedule hygiene: no deferral order or capacity assumption; Timeline's Oct 13–20 row omits DI-010 | DI-002; Timeline §7 | Recorded as risk |
 | RV-38 | Low | Small reference gaps: exemption representation cited no DI; backend history and Project resume state absent from DI-003 criteria; model-map scope unstated | Workflow §11A; DI-003; Architecture §7.1 | Corrected draft / expanded DI |
 

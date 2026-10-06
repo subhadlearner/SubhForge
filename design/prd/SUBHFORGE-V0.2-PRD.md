@@ -610,7 +610,7 @@ External integrations shall use least privilege, bounded tool exposure, secret i
 
 Supplied documents, research, repository content and tool responses cannot grant mutation authority or redirect secrets. Qualification must exercise attempted authority expansion through those inputs, as well as denied access and redacted diagnostics.
 
-Real personal, financial or health data and live credentials must not be placed in model context, test fixtures, acceptance packets, evidence or exports. Managed projects use synthetic or deliberately sanitized sample data unless Subhadeep explicitly authorizes a bounded exception (RV-35, proposed).
+Sensitive data is distinct from ordinary project context (RV-35, proposed). Requirements, design documents, source code, configuration without secrets and synthetic sample data are ordinary context and may be loaded as FR-018 requires. Records about real people, such as personal, financial or health data, and live credentials are sensitive: they must not be placed in model context, test fixtures, acceptance packets, evidence or exports. Managed projects use synthetic or deliberately sanitized sample data unless Subhadeep explicitly authorizes a bounded exception.
 
 ### NFR-007 — Observability and diagnostics
 
@@ -634,7 +634,7 @@ During real dogfood, avoidable manual status reconstruction, handoff coordinatio
 
 For VidyaBeacon, such intervention should approach zero.
 
-An explicit on-demand invocation of the next owning workflow is expected interaction under §4.5, not avoidable intervention. Having to work out by hand what is eligible, blocked or already decided is (RV-29, proposed).
+A necessary invocation that starts work outside the currently authorized envelope is expected interaction under §4.5, not avoidable intervention. A manual handoff that the invoked workflow was already authorized to perform, such as Builder → Verifier → Reviewer for one Spec, is avoidable and is counted, consistent with CON-008. So is having to work out by hand what is eligible, blocked or already decided (RV-29, proposed).
 
 Before release qualification, DI-013 shall define measurable acceptance thresholds for cost/context/scale, recovery and avoidable human intervention, including fixture size, environment, repeat policy and permitted exceptions. Narrative claims of "acceptable" behavior alone do not prove these NFRs.
 

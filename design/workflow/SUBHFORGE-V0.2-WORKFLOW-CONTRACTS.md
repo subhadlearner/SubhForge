@@ -406,7 +406,7 @@ Rules:
 - A stage that stops early persists its draft and open frontier, then resumes by re-invoking the same owning command as in §17.3.
 - A gap owned by the other stage routes there. Architect does not repair product intent; PRD does not decide architecture.
 - Editing accepted PRD/Architecture is a change under §17.1, not a resumed authoring session.
-- Both stages run while the Project is `PLANNING`. Neither adds a lifecycle state.
+- Initial PRD/Architecture formation runs while the Project is `PLANNING`. Revising accepted authority while the Project is `ACTIVE` or `MAINTENANCE` follows change governance (§17.1, §16) and does not move the Project back to `PLANNING`. Neither stage adds a lifecycle state.
 
 Two on-demand capabilities also lack an invocation contract. Change Triage has a fixed verdict shape in §17.1 but no statement of who may invoke it or against which target. Adversary appears in PRD §4.1, and §8.3 names `/adversarial-check` as a backstop, without a defined target, output or routing. DI-008 defines both as on-demand capabilities whose output is advisory until routed through the owning workflow, with no new approval step.
 
