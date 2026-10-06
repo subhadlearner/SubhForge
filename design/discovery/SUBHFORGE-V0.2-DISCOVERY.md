@@ -75,7 +75,7 @@ Rules:
 The following context is already settled and does not need separate live tracking:
 
 - **v0.1 frozen at H10.** H11–H14 were cancelled/superseded; the frozen research baseline remains available through Git history/tag `research_v_0.1_h10`.
-- **Temporary cost-controlled construction workflow established.** `design/V0.2-TEMPORARY-BUILD-WORKFLOW.md` governs current build-time cost/provider controls only.
+- **Cost-controlled construction constraints established.** Durable budget/fallback/model-harness constraints now live in the PRD; the former temporary build-workflow document is archived as evidence only.
 - **One canonical v0.2 lineage retained:** `feature/v0.2.0`.
 - **v0.1 lessons captured** as historical audit input; they are not v0.2 product authority.
 - **Clean active design authority created/reconciled:** PRD, Discovery, Architecture, Workflow Contracts and Qualification.
