@@ -116,3 +116,18 @@ is **superseded**.
 The current authoritative delivery direction is:
 
 > **Clean-build SubhForge v0.2.0, fully dogfooded and qualified by December 31, 2026; begin VidyaBeacon in January 2027.**
+
+---
+
+## 7. Schedule Risks Surfaced by Review — 2026-10-06
+
+Recorded under rule 7 of §4. No date above is changed; each risk is owned by the cited Discovery item and stays open until that item resolves it.
+
+| Risk | Why it threatens the plan | Owner |
+|---|---|---|
+| STANDARD has no build or migration slot | §2 schedules a STANDARD regression on Dec 21–24 but no work that produces or carries forward STANDARD in a clean build | DI-011, DI-015 (RV-23) |
+| Scale/context dogfood depth is undefined | Dec 21–24 holds the third dogfood, STANDARD regression, the canary and cost checks in four days | DI-013 (RV-33) |
+| Harness feasibility is assumed, not probed | Oct 13–20 closes physical agent mapping and model dispatch; a negative probe result changes the architecture | DI-008 (RV-19) |
+| No pre-agreed deferral order | A slipped checkpoint has no recorded answer for what leaves scope first | DI-002 (RV-37) |
+| Oct 13–20 row omits the baseline external capability set | README §9 step 4 groups DI-010 with the same decisions | DI-010 (RV-37) |
+| No stated working-capacity assumption | Period lengths cannot be checked against available session hours | DI-002 (RV-37) |
