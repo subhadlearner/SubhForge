@@ -258,7 +258,7 @@ Do not create:
 
 for normal evolution. Git history already provides versioning.
 
-### 4.2 Operational Work Graph — REVIEW (`DI-003`, `DI-003`)
+### 4.2 Operational Work Graph — REVIEW (`DI-003`)
 
 For LARGE projects, SubhForge will use **one external operational work-graph system of record** for:
 
@@ -400,7 +400,7 @@ Therefore:
 | **Kilo** | Current primary execution harness for SubhForge commands/agents | Replaceable execution choice; must not define lifecycle semantics |
 | **Git** | Versioned product/code/architecture authority | Core |
 | **GitHub** | Repository hosting, commit/PR linkage and optional PR creation | Core repository integration; post-PR release orchestration remains out of scope |
-| **Operational Work Graph Backend** | LARGE-project Idea/Epic/Feature/Spec/Bug graph | **REVIEW:** Discovery `DI-003` (Jira vs GitHub Issues), then `DI-003` schema |
+| **Operational Work Graph Backend** | LARGE-project Idea/Epic/Feature/Spec/Bug graph | **REVIEW:** Discovery `DI-003` selects the backend and its minimal schema |
 | **Claude Code + Pro** | Current bounded path for independent co-architecture/challenge and selected hard diagnosis | Current execution option, never authority or a required lifecycle dependency |
 | **Python deterministic helpers** | Graph/status/smoke/context/evidence mechanics where code is stronger than prompting | Core principle |
 | **Project CI/build/test tooling** | Product-specific build/test/deploy evidence | Chosen by project architecture; SubhForge must integrate without hard-coding one stack |
@@ -946,7 +946,7 @@ This index preserves the user-facing capability view without restating normative
 | First-class reconciliation | `V0.2-WORKFLOW-CONTRACTS.md` §16 |
 | Analyse → approve → apply separation | `V0.2-WORKFLOW-CONTRACTS.md` §16 |
 | Replaceable AI workers / harness boundaries | §§6–8 in this document |
-| Skills + MCP | §§19–20 in this document; baseline scope still resolves through `DI-010`/`DI-010` |
+| Skills + MCP | §§19–20 in this document; baseline scope resolves through `DI-010` |
 | Feature/Epic verification + human acceptance | `V0.2-WORKFLOW-CONTRACTS.md` §§13–14 and §23 |
 | Intelligent validation economics | `V0.2-QUALIFICATION.md` §24 |
 | Human authority with low ceremony | §3 in this document |
