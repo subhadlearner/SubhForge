@@ -30,7 +30,6 @@ These are useful inputs or temporary operating aids. They do **not** override th
 | Document | Purpose |
 |---|---|
 | [V0.1-LESSONS-LEARNED.md](V0.1-LESSONS-LEARNED.md) | Historical evidence from the frozen v0.1 H01–H10 research baseline. It informs decisions but is not v0.2 product authority. |
-| [V0.2-TEMPORARY-BUILD-WORKFLOW.md](V0.2-TEMPORARY-BUILD-WORKFLOW.md) | Temporary construction workflow covering model/provider cost discipline and build-time operating rules. It must remain removable without changing SubhForge product semantics. |
 
 ---
 
@@ -38,7 +37,8 @@ These are useful inputs or temporary operating aids. They do **not** override th
 
 The following files may remain temporarily so the clean documents can be reviewed against them, but they are **not current v0.2 authority**:
 
-- `old/V0.2-PRE-CODE-CHECKLIST.md` — archived historical tracker; live pre-code gates now live in Discovery
+- `old/V0.2-PRE-CODE-CHECKLIST.md` — archived historical tracker; live pre-code work now lives in Discovery
+- `old/V0.2-TEMPORARY-BUILD-WORKFLOW.md` — archived construction/cost evidence; durable constraints now live in the PRD
 
 - `V0.2-ARCHITECTURE.md`
 - `V0.2-WORKFLOW-CONTRACTS.md`
