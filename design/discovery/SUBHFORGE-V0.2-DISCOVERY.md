@@ -121,9 +121,9 @@ These facts may be revisited only if new evidence materially contradicts them.
 
 **Owner:** Subhadeep, supported by PRD/Architecture reasoning.
 
-**Status:** BLOCKED
+**Status:** BLOCKED until DI-001 closes. After that, DI-002 becomes ACTIVE: it first records a **provisional scope classification**, remains open while release-blocking DIs are resolved, and closes only when the final scope/DoD is frozen.
 
-**Depends on:** DI-001 for the provisional cut. Final closure also depends on the in-scope blocking DIs identified by that cut.
+**Depends on:** DI-001 to begin. Final closure depends on the release-blocking DIs identified by DI-002's provisional scope classification.
 
 **Evidence / completion method:**
 - start from PRD goals, non-goals and candidate DoD;
@@ -150,7 +150,7 @@ These facts may be revisited only if new evidence materially contradicts them.
 
 **Status:** BLOCKED
 
-**Depends on:** DI-001; release-critical status confirmed by DI-002.
+**Depends on:** DI-001 and DI-002's provisional scope classification.
 
 **Evidence / completion method:** Use the same representative work graph for both candidates. Evaluate hierarchy/sub-item fit, Contains/Governed-by/Depends-on representation, lifecycle state, blockers/escalations, reconciliation state/holds, FR/NFR traceability, suite ownership, evidence/implementation references, PR/commit linkage, human usability, API/MCP support, least-privilege writes, idempotent recovery, high-frequency status/next-work query cost, export/recovery and vendor lock-in. Define no fields beyond accepted workflow needs.
 
@@ -172,7 +172,7 @@ These facts may be revisited only if new evidence materially contradicts them.
 
 **Status:** BLOCKED
 
-**Depends on:** DI-001; scope confirmation through DI-002.
+**Depends on:** DI-001 and DI-002's provisional scope classification.
 
 **Evidence / completion method:** Prefer a single durable, inspectable project-level marker/configuration that does not create a competing state store and remains understandable if Kilo/model tooling is unavailable.
 
@@ -311,7 +311,7 @@ These facts may be revisited only if new evidence materially contradicts them.
 
 **Status:** BLOCKED
 
-**Depends on:** DI-002. Work-management integration specifics also depend on DI-003.
+**Depends on:** DI-002's provisional scope classification. Work-management integration specifics also depend on DI-003.
 
 **Evidence / completion method:** Apply real recurring need, credible provenance, non-duplication, authority compatibility, least privilege, context/tool cost, security/supply-chain risk, failure degradation and removability. Cloud/vendor integrations default to project-specific unless evidence proves global value.
 
@@ -333,7 +333,7 @@ These facts may be revisited only if new evidence materially contradicts them.
 
 **Status:** BLOCKED
 
-**Depends on:** DI-001 and DI-002.
+**Depends on:** DI-001 and DI-002's provisional scope classification.
 
 **Evidence / completion method:** Preserve still-required user-visible capability/invariants, not obsolete implementation details.
 
@@ -355,7 +355,7 @@ These facts may be revisited only if new evidence materially contradicts them.
 
 **Status:** NON_BLOCKING
 
-**Depends on:** DI-002; evaluate after core Spec delivery/GitHub integration shape is known.
+**Depends on:** DI-002's provisional scope classification; evaluate after core Spec delivery/GitHub integration shape is known.
 
 **Evidence / completion method:** Include only if GitHub integration makes it small, safe and low-maintenance. Failure of PR automation must never invalidate valid implementation/review evidence.
 
@@ -385,7 +385,7 @@ These facts may be revisited only if new evidence materially contradicts them.
 
 **Status:** BLOCKED
 
-**Depends on:** DI-002 and enough of DI-003–DI-011 to know the real boundaries/failure modes being qualified.
+**Depends on:** DI-014 plus the release-blocking architecture/workflow DIs that define the real boundaries and failure modes being qualified.
 
 **Evidence / completion method:** For every expensive/model-bearing layer name the failure class it protects against and why cheaper deterministic evidence is insufficient. Dogfood remains mandatory release evidence; synthetic smoke does not replace it.
 
@@ -407,7 +407,7 @@ These facts may be revisited only if new evidence materially contradicts them.
 
 **Status:** BLOCKED
 
-**Depends on:** DI-002 plus the architectural DIs required by the chosen thin slice, especially DI-003–DI-008.
+**Depends on:** DI-002's provisional scope classification plus the architectural DIs required by the chosen thin slice, especially DI-003–DI-008.
 
 **Evidence / completion method:** Specify entry/exit behavior, durable identities/state, minimum work-backend operations, handoffs, bounded context, status/resume, tests and acceptance evidence. Optional PR creation is excluded unless DI-012 is deliberately pulled into the skeleton.
 
