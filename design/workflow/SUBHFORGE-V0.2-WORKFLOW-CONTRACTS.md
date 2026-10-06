@@ -10,7 +10,7 @@
 > - Live unresolved questions: `design/discovery/SUBHFORGE-V0.2-DISCOVERY.md`
 > - This document: normative lifecycle/workflow semantics
 >
-> Physical command/agent/backend representation that remains open under a `DQ-###` must not be guessed here. Qualification should prove these contracts rather than redefine them.
+> Physical command/agent/backend representation that remains open under a `DI-###` must not be guessed here. Qualification should prove these contracts rather than redefine them.
 
 ---
 
@@ -167,7 +167,7 @@ Rules:
 - normally one unresolved decision per ESC record;
 - complete bounded discovery before escalating, then stop searching once the threshold is met;
 - store references/conclusions rather than copied context/transcripts;
-- the selected operational work backend must persist the `ESC-###` identity, status, blocked scope, owner and report reference; exact backend representation is resolved through Discovery `DQ-003`;
+- the selected operational work backend must persist the `ESC-###` identity, status, blocked scope, owner and report reference; exact backend representation is resolved through Discovery `DI-003`;
 - the escalation record is operational provenance, **not** product/architecture authority;
 - the final answer is promoted into the canonical authority that semantically owns it;
 - a genuine specification clarification produces an owning-authority edit;
@@ -348,7 +348,7 @@ Workflow behavior follows Architecture §8.1.
 - **Subhadeep → Agent:** a conversation about an existing artifact/work item defaults to bounded explain/challenge behavior.
 - If the conversation becomes a request to change accepted authority, the receiving agent routes it to the workflow that owns that authority.
 - Planner, Reviewer, Verifier, Status and other downstream capabilities do not gain authority merely because Subhadeep is chatting with them.
-- Exact implementation of interaction-mode detection remains open under Discovery `DQ-009`.
+- Exact implementation of interaction-mode detection remains open under Discovery `DI-008`.
 
 ---
 
@@ -512,7 +512,7 @@ Rules:
   - It owns the implementation work for tests proving the Feature's child Specs collaborate across their real contracts/boundaries.
 - `/feature` must materialize/designate the Epic E2E owner as part of Feature decomposition.
 - `/spec` must materialize/designate the Feature integration owner as part of Spec decomposition.
-- The owner designation is durable operational metadata/reference in the selected work backend; exact physical field/label is resolved through Discovery `DQ-003`.
+- The owner designation is durable operational metadata/reference in the selected work backend; exact physical field/label is resolved through Discovery `DI-003`.
 - Planner defines/links the suite-owning work from already accepted Epic/Feature verification intent. Planner does not invent product behavior merely to create tests.
 - Builder/Implementer writes and maintains the suite code through the normal implementation lifecycle of the owning Feature/Spec's child work.
 - Verifier **runs** the appropriate suite and records immutable evidence. Verifier does not author missing expected behavior or silently create tests as an untracked side effect.
@@ -712,7 +712,7 @@ The default human acceptance boundaries are therefore:
 Subhadeep is not required to repeat acceptance at Spec level for behavior that
 will subsequently be accepted at Feature/Epic level.
 
-### 12.2 Optional PR handoff — REVIEW (`DQ-010`)
+### 12.2 Optional PR handoff — REVIEW (`DI-012`)
 
 After final Review approval and Spec completion, SubhForge may prepare and, where configured, create a PR containing the bounded change plus useful Spec/requirement/evidence references.
 
@@ -1113,7 +1113,7 @@ dependencies, acceptance criteria, completion state or other operational semanti
 This happens before semantic analysis is complete and before human approval, so work
 that is about to be superseded cannot be started in the approval window.
 
-The physical representation is backend-specific and remains open under Discovery `DQ-005`, but the semantic contract is fixed:
+The physical representation is backend-specific and remains open under Discovery `DI-006`, but the semantic contract is fixed:
 
 - the REC identifies its current candidate/touched work-item scope;
 - items in that scope are ineligible for ordinary implementation, verification,
@@ -1249,7 +1249,7 @@ Effects:
 
 Not every change should restart `Discovery → PRD → Architecture`, but "small change" is too subjective to be an authority rule.
 
-The **Change Triage capability** is the semantic gate and must be auditable. Its exact physical command/agent mapping remains part of Discovery `DQ-008`; workflow semantics do not depend on a particular command name.
+The **Change Triage capability** is the semantic gate and must be auditable. Its exact physical command/agent mapping remains part of Discovery `DI-008`; workflow semantics do not depend on a particular command name.
 
 Every triage verdict must explicitly state:
 
