@@ -15,7 +15,7 @@ The design set is intentionally being simplified. Old review/tooling documents m
 | Document | Authority |
 |---|---|
 | [prd/SUBHFORGE-V0.2-PRD.md](prd/SUBHFORGE-V0.2-PRD.md) | **Product authority** — what SubhForge v0.2 must do: goals, lifecycle boundary, functional/non-functional requirements, agent responsibilities, handover expectations, guardrails, non-goals and Definition of Done |
-| [discovery/SUBHFORGE-V0.2-DISCOVERY.md](discovery/SUBHFORGE-V0.2-DISCOVERY.md) | **Decision frontier, not normative product authority** — confirmed context, live `DI-###` questions, assumptions, owners, blocking status and closure/promotion destination |
+| [discovery/SUBHFORGE-V0.2-DISCOVERY.md](discovery/SUBHFORGE-V0.2-DISCOVERY.md) | **Single pre-code Discovery work frontier, not normative product authority** — live `DI-###` research, decisions, design/review work and final pre-code gate, with owners, dependencies, status and promotion destination |
 | [architecture/SUBHFORGE-V0.2-ARCHITECTURE.md](architecture/SUBHFORGE-V0.2-ARCHITECTURE.md) | **Structural architecture authority** — authority/execution planes, protected invariants, logical agents, traceability architecture, harness/model/tool boundaries, context and implementation dependency structure |
 | [workflow/SUBHFORGE-V0.2-WORKFLOW-CONTRACTS.md](workflow/SUBHFORGE-V0.2-WORKFLOW-CONTRACTS.md) | **Lifecycle/workflow authority** — lifecycle states, readiness, grooming, dependencies, delivery, verification, escalation, change triage, reconciliation, status/resume and evidence semantics |
 | [qualification/SUBHFORGE-V0.2-QUALIFICATION.md](qualification/SUBHFORGE-V0.2-QUALIFICATION.md) | **Proof/release authority** — validation layers, regressions, dogfood, adversarial cases, release evidence and stable-release qualification |
@@ -63,7 +63,7 @@ In particular, these older artifacts must not reintroduce superseded directions 
 When documents appear to conflict, use this order by subject:
 
 1. **Product intent / requirement:** PRD.
-2. **Unresolved question:** Discovery until resolved; no downstream document may guess the answer.
+2. **Unresolved pre-code research/decision/design work:** Discovery until resolved; no downstream document may guess or bypass the required outcome.
 3. **Structural solution:** Architecture.
 4. **Lifecycle/workflow behavior:** Workflow Contracts.
 5. **How behavior is proven:** Qualification.
@@ -85,9 +85,11 @@ Git history preserves earlier wording; do not create parallel “v2/v3” author
 | **DEFERRED** | Intentionally outside current v0.2 scope unless evidence reopens it. |
 | **NON-GOAL** | Explicitly excluded from v0.2. |
 
-Discovery additionally uses:
+Discovery Items use their own work-status vocabulary:
 
-- **BLOCKING**
+- **OPEN**
+- **ACTIVE**
+- **BLOCKED**
 - **NON_BLOCKING**
 - **CLOSED**
 - **SUPERSEDED**
