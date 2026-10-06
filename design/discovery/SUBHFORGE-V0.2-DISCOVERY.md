@@ -61,13 +61,12 @@ Statuses:
 
 Rules:
 
-1. There is no separate `DQ-###` versus pre-code-gate namespace.
-2. A DI exists only when it represents distinct work or a distinct consequential decision.
-3. Do not create a DI whose only purpose is “all other DIs are closed”; that is derived state.
-4. Closely coupled questions that will be researched/decided together should be one DI with explicit sub-decisions.
-5. A chat conclusion is not DI closure.
-6. A DI closes only after its accepted outcome is durable in the owning authority.
-7. Git history preserves earlier Discovery wording; completed historical process does not need a permanent live DI.
+1. A DI exists only when it represents distinct work or a distinct consequential decision.
+2. Do not create a DI whose only purpose is “all other DIs are closed”; that is derived state.
+3. Closely coupled questions that will be researched/decided together should be one DI with explicit sub-decisions.
+4. A chat conclusion is not DI closure.
+5. A DI closes only after its accepted outcome is durable in the owning authority.
+6. Git history preserves earlier Discovery wording; completed historical process does not need a permanent live DI.
 
 ---
 
