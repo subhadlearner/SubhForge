@@ -113,7 +113,7 @@ The canary must be cheap enough to run:
 - when the configured model/provider materially changes;
 - after a significant execution-harness upgrade or replacement;
 - during release qualification;
-- optionally from `/doctor` as a compatibility check.
+- optionally as an explicitly invoked compatibility check alongside `/doctor`; read-only prerequisite/health checking does not itself run paid/model-bearing work (Workflow §9.4).
 
 The initial canary baseline is built during **RC1 implementation** and is part of the RC1 exit evidence so that it exists before major dogfooding begins.
 
@@ -175,6 +175,18 @@ Qualification must prove PRD FR-002 and Workflow §9.1 through both entry styles
 5. Accepted conclusions are promoted into discovery by the owning workflow; raw evidence/chat output is not treated as canonical truth.
 6. A later Ideation invocation resumes from current discovery + durable open items, not from the prior chat transcript.
 
+#### Document-led proof detail — REVIEW (`DI-004`, `DI-008`, `DI-013`)
+
+Exercise Workflow §9.1.1 with a small supplied document and a multi-source conflicting/incomplete variant:
+
+- From fresh project setup, explicit document-led `/ideate` creates an inspectable canonical Discovery in Git, linked to consumed source identities/sections and the durable research/decision frontier. A complete source avoids unnecessary interviews; an incomplete source cannot earn readiness merely because extraction succeeded.
+- Distinguish confirmed intent from proposals/assumptions. Unsupported empirical claims require evidence; contradictory material intent is surfaced with source references rather than invented. The expected semantic properties come from a Subhadeep-reviewed reference/rubric, not exact generated prose.
+- Missing access, unreadable sections or bounded-context truncation is reported; no claim of complete review/readiness is made when the missing content is material. Embedded instructions cannot authorize tools, secret disclosure or authority changes.
+- After interruption/lost response, re-invocation without the original chat/attachment reconstructs from durable source provenance/authorized extraction, Discovery and backend work. Repeated/changed input preserves logical identity and confirmed decisions; changed accepted authority routes through change governance.
+- A separate valid-PRD-to-Architect case proves §9.2 remains available and does not forcibly run Ideation merely because the input is a document.
+
+Use deterministic fixtures for references, access, recovery and guarded outcomes; reserve a bounded real-agent evaluation for extraction, contradiction handling and useful frontier quality. A refusal-only case does not prove successful document-to-Discovery creation.
+
 ---
 
 ### 24.8 Interaction-routing regression — ACCEPTED
@@ -209,7 +221,7 @@ The following is a review coverage map, not a declaration of completeness or pas
 | FR-003, FR-004, FR-005 | Valid direct admission, stable/retired IDs, protected invariant enforcement/conflict | §24.5, §30.2; DI-005/007/008 |
 | FR-006, FR-007, FR-008 | Vertical decomposition, actionable owed contracts, gate invalidation, suite ownership; missing/retired links, cycles and cross-hierarchy eligibility | §24.6, §30.1–30.4; DI-003/005 |
 | FR-009; NFR-007 | Read-only status/work-plan, correct blockers; partial/paginated/failed reads cannot appear empty or eligible | §30.3/30.4; DI-003/009 |
-| FR-010, FR-011, FR-012, FR-013 | Distinct author/verify/review duties; exact tested baseline; effective gates, waiver limits, current AC-0; no routine Spec approval | §24.6, §30.1, §32; DI-005/008/014 |
+| FR-010, FR-011, FR-012, FR-013 | Distinct author/verify/review duties; exact tested baseline; effective gates, waiver limits, current AC-0; no routine Spec approval | §24.6/24.14, §30.1, §32; DI-005/008/014 |
 | FR-014, FR-015 | Proven defect versus changed/missing authority; escaped-defect feedback; explicit local-lane approval; completed-parent fixes | §24.9, §30.2; DI-008 |
 | FR-016 | Holds/overlap, protected conflicts, no-impact stopping, normalized replay, obligation closure and cancelled-pause recovery | §30.2; DI-006 |
 | FR-017; NFR-001, NFR-002; CON-010 | Fresh-session continuation, uncertain-write recovery, no duplicate identities; export + matching Git restore | §24.6/30.4; DI-003/005/006/009 |
@@ -302,8 +314,23 @@ Prove PRD FR-022 on the supported local setup:
 3. Prerequisite/health checking changes no host/project/backend state and makes no undeclared paid call. Authorized setup changes only its managed scope.
 4. Interrupted/repeated setup preserves existing authority, implementation and customizations, avoids duplicate identities, and resumes safely or exposes a specific conflict.
 5. Valid supplied authority is admitted without overwriting it with blank templates or inventing upstream history. Generated templates never count as accepted requirements or completed gates.
+6. LARGE document-led discovery bootstrap works before delivery initialization; direct-authority admission does not invent upstream history. STANDARD setup follows DI-011 without imposing a LARGE hierarchy/backend. Repeated setup cannot silently change mode, pinned release or model configuration.
 
 Use deterministic filesystem/configuration/prerequisite fixtures for most cases and a small real supported-environment/harness setup check. Install/bootstrap/doctor release checks reference this proof rather than establishing a separate product rule.
+
+---
+
+### 24.14 Delivery handoff and human-gate regression — REVIEW (`DI-005`, `DI-008`, `DI-013`)
+
+Prove Workflow §§12–14, 17.4 and 23 with the smallest representative delivery fixture:
+
+1. A permitted Spec loop hands durable implementation/test references to Verifier and current factual evidence to Reviewer, then completes only the reviewed revision. Routine Spec approval is not requested. Missing tests/authority, failed evidence or stale review cannot be relabelled PASS by the sender.
+2. A code, contract or required-suite change between verification, review and completion blocks reuse of affected evidence/approval. Feature/Epic verification uses a composed baseline containing the relevant child changes, not a union of individually green branch reports.
+3. Feature and Epic each require their planned suite owner, current required checks, completed non-RETIRED children and explicit revision-bound human AC-0. Exercise accept, reject and defer; reject/defer cannot complete, rewrite criteria or reopen COMPLETE children. An automated/model judge cannot accept on Subhadeep's behalf, and a waiver cannot bypass AC-0 or missing/integrity-invalid proof.
+4. A changed demonstrated capability or relevant implementation/evidence premise triggers acceptance re-assessment before reliance/completion; recorded acceptance of an older demonstration is insufficient. Rejection observations route to Bug/fix or owning-authority change, preserve child history and require refreshed affected proof.
+5. Caller model overrides remain scoped to the addressed agent. The receiving handoff resolves its own key/default and preserves its role/tool authority. Stop/resume across quota, unsupported binding, context/budget or human-decision boundaries preserves safe progress and does not continue uninvoked work or choose a paid fallback.
+
+Most stale-result, completion, waiver and permission cases use deterministic guards and scripted agent outputs. A small real handoff slice proves the harness exercises separate logical responsibilities; actual Subhadeep acceptance during dogfood proves the human interaction. Test-simulated human decisions validate control flow only, not usability or satisfaction with the product.
 
 ---
 
