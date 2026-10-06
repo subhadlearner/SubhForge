@@ -444,6 +444,38 @@ SubhForge shall use layered framework qualification:
 
 Synthetic smoke complements, but does not replace, real dogfood.
 
+#### FR-021 — Caller-selected models and centralized model versions
+
+Agent responsibility and model selection shall be independent. Subhadeep shall be able to invoke a logical agent with an explicit model-selection key, without editing that agent's definition.
+
+- One predefined, durable execution-configuration map owns model keys, their concrete provider/model-version identifiers and configured agent defaults.
+- An explicit caller selection takes precedence over the configured default for that agent. Omission uses the configured default; it does not permit the agent to guess a model.
+- Agent definitions shall not hardcode provider model-version identifiers or duplicate the central map. Updating an existing key to a new compatible model version requires changing the map only, not every agent file.
+- Selection is scoped to the addressed agent invocation. It does not silently change another agent, shared defaults or later calls.
+- The selected key, map revision and resolved provider/model identifier shall be recorded with invocation evidence. Updating the map during a running invocation shall not silently switch its model.
+- Unknown keys, missing defaults, unsupported capabilities or inability of the configured harness to honor the selection shall stop explicitly before model work begins. No silent provider, model or paid fallback is permitted.
+- Model selection never expands authority or bypasses tool permissions, budget or context limits. A configuration change remains subject to the applicable behavioral compatibility check.
+
+This requires a small central map and a supported selection path, not automatic discovery of new releases or a universal provider router. Adopting a new provider/harness may require adapter changes; upgrading a compatible version behind an existing supported key must not require agent-file edits.
+
+#### FR-022 — Simple project setup and prerequisite verification
+
+Starting a new SubhForge-managed project shall use a short guided setup path that does not require Subhadeep to manually copy agent files, assemble templates or reconstruct software prerequisites. This applies to the selected STANDARD/LARGE mode and supported local environment.
+
+Setup shall:
+
+- establish the intended project scope, durable mode and pinned SubhForge release/configuration references;
+- make the applicable agent/capability definitions available to the configured harness and connect them to FR-021's central model map without duplicating model-version definitions;
+- initialize the applicable project-local authority/document/configuration templates for the selected mode and entry stage; valid supplied authority may be admitted rather than overwritten or recreated;
+- preserve the one-backend rule: operational Epic/Feature/Spec work is created through the selected backend, not a duplicate live Markdown hierarchy;
+- check required software availability and compatible versions against the supported prerequisite manifest, including applicable runtime, Git, shell/harness and required integration dependencies; distinguish required, optional, missing, incompatible and unchecked conditions;
+- verify locally checkable configuration/model-map/backend-binding prerequisites and report access/authentication checks honestly; any optional live check must expose its scope and cost rather than silently making paid model calls;
+- report a clear readiness result with precise remediation and the safe next invocation, without claiming READY when a required prerequisite is unresolved;
+- safely resume or repeat interrupted setup without duplicate identities, overwriting existing project work or destroying customizations. Managed files/changes must be identifiable and conflicts surfaced;
+- keep prerequisite/health checking read-only. Installation, configuration mutation or remediation belongs to the setup path within the explicit invocation authorization, existing permission and budget boundaries; no silent system-wide installation, subscription or paid fallback is assumed.
+
+Templates are starting structures, not accepted requirements, completed decisions or evidence. Setup readiness proves the environment is usable for the selected next stage; it does not bypass discovery, authority admission or delivery readiness gates. A project should remain understandable and recoverable without the original setup session.
+
 ---
 
 ## 4. Operating Model Requirements
@@ -482,6 +514,8 @@ Interaction depends on **initiator + target + intent + owning authority**.
 
 Subhadeep may challenge the rationale of any responsible reasoning capability.
 
+Research may ask only bounded clarification of an ambiguous/blocking research target. Builder may initiate blocking escalation, and Diagnoser may ask for evidence needed to resolve a blocking ambiguity. These are not downstream product/architecture interviews. Planner and Reconciliation Planner route missing upstream intent to the owning authority.
+
 ### 4.3 Handover requirements
 
 Every handover must be reconstructable from durable state and explicitly identify the authority/evidence the receiver may rely on.
@@ -502,6 +536,20 @@ Every handover must be reconstructable from durable state and explicitly identif
 | Reconciliation Planner | Executor | explicit approved verdict with bounded operations/preconditions/postconditions |
 
 A handover shall fail closed when mandatory authority, identity, evidence or ownership is missing.
+
+### 4.4 Engineering-method and independent-reasoning requirements
+
+SubhForge shall consider appropriate TDD, domain modelling, explicit API/event/data contracts, security, testability, observability, resilience, performance/cost, migration/backward compatibility, maintainability and research/prototyping/decision methods. Apply the smallest useful method to the accepted problem; industry practice alone does not justify extra machinery.
+
+Skills/integrations are admitted only for demonstrated value, non-duplication, credible provenance/licensing, authority compatibility, bounded permissions/context/cost, portability, security and focused validation. Pin/adapt reviewed inputs and retain provenance. A capability that can be removed without material quality/reliability/cost loss does not earn global baseline scope.
+
+Material architecture work may use ChatGPT and Claude for independent co-architecture: one develops an alternative analysis/recommendation, and synthesis remains subject to Subhadeep's acceptance. Independent challenge uses fresh bounded context. This creates neither dual authority nor a requirement to call both providers routinely; no particular provider is required for basic lifecycle continuity, and smoke does not consume Claude budget by default.
+
+### 4.5 Invocation authority and governing priorities
+
+SubhForge acts on demand. An eligible dependency or discovered work item is information, not permission to start another invocation. Routine handoffs may proceed only within the explicitly invoked workflow's authorized envelope; recovery resumes position, not permission.
+
+When trade-offs conflict, prioritize correctness/resilience, then required validation/dogfood, then scope discipline/simplicity, then schedule. Status and work-plan projections do not acquire mutation authority. The deterministic reconciliation-control exception for pre-approval holds and safe pause/restoration is defined in Workflow §§16.2/16.4, not by the semantic planning agent.
 
 ---
 
@@ -533,6 +581,8 @@ Required authority must never be dropped merely to fit context.
 SubhForge shall expose/control expensive model calls, retries, smoke breadth and context growth.
 
 Stronger models are used only where expected value justifies cost, consistent with CON-006 and CON-007.
+
+One substantive model invocation per lifecycle stage is the default; additional calls require a blocker, failed check, explicit review escalation or user continuation. Repeated semantically equivalent failures stop visibly. Deterministic preparation precedes expensive calls, unchanged authority is not repeatedly reread without a freshness reason, and available usage/token/time telemetry is retained. These limits do not permit dropping mandatory authority.
 
 ### NFR-005 — Model and harness adaptability
 
@@ -590,6 +640,12 @@ v0.2 shall not attempt to become:
 - a system that treats chat/session history as authority;
 - a system that front-loads speculative reusable infrastructure;
 - a framework whose assurance depends primarily on exhaustive expensive model smoke.
+
+The exclusions also cover arbitrary agent-to-agent communication, a generic project-management/graph database, vector DB/RAG for workflow state, and support for multiple harnesses merely to demonstrate abstraction.
+
+### 6.1 Deferred capability boundary
+
+Unless accepted evidence reopens scope, defer whole-Feature/Epic implementation in one invocation, additional specialized smoke fixtures, sophisticated effort-weighted progress percentages, broad cloud write integrations, rare automated invariant rebaseline, and richer provider/backend abstractions beyond the required seams. No local SQLite workflow-state database is assumed; reconsidering storage requires an explicit authority decision and must not create a second live state store.
 
 ---
 

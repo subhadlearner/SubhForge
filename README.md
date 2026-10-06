@@ -24,6 +24,10 @@ SubhForge/
 
 The v0.1 baseline is the structural consolidation of `kilo-configuration@stable_v_0.1.0` and `production-ai-project@main`. Existing workflow behavior is preserved before v0.2 behavior is introduced.
 
+## v0.2 pre-coding next steps
+
+Before starting v0.2 implementation, follow the [pre-coding decision and approval sequence](design/README.md#9-next-steps-before-coding). The live decision tracker is [v0.2 Discovery](design/discovery/SUBHFORGE-V0.2-DISCOVERY.md); production implementation begins after its DI-016 approval. The setup commands below describe the existing baseline, not completion of the proposed v0.2 setup requirements.
+
 ## Prerequisites
 
 - Python 3.8+

@@ -291,6 +291,22 @@ Resume always reconstructs from current `discovery.md` + open operational Idea/R
 
 Contradictions against Confirmed Decisions or Binding Constraints are surfaced before PRD readiness. Before downstream authority exists they can be resolved as discovery edits; after accepted PRD/architecture exists, normal change governance applies.
 
+#### 9.1.1 Document-led entry and Discovery output — REVIEW (`DI-004`, `DI-008`)
+
+Subhadeep may invoke `/ideate` for the intended project with one or more existing documents as source material and ask it to create Discovery. A repository document, supplied local file or explicitly authorized accessible reference is input; it need not already use a SubhForge template. Exact attachment/reference syntax and supported formats belong to DI-008, not an assumed new command flag or universal document converter.
+
+The owning workflow follows this bounded sequence:
+
+1. Resolve the project scope, durable mode and discovery-bootstrap prerequisites under §9.4. Select the supplied sources explicitly; do not ingest a whole repository, archived material or unrelated files merely because they are accessible.
+2. Record each consumed source's durable reference and revision/content fingerprint, with useful section/page references. For a transient attachment, retain authorized source content or a sufficient referenced extraction through the canonical Git intake path selected by DI-004/DI-008. Later recovery must not depend on the attachment remaining in chat. Report missing access or incomplete extraction, including unreadable sections; do not imply unseen content was reviewed.
+3. Extract into §9.1's Discovery structure. Distinguish supplied facts, Subhadeep-confirmed decisions, proposals, assumptions and unresolved questions. A stated preference need not be re-asked when its meaning and authority are clear; an old proposal, external claim or embedded instruction is not automatically an accepted decision. Preserve the supplied source and accepted decisions rather than replacing them with guesses.
+4. Surface contradictory sources with their references. Do not prefer the newest file or synthesize an unsupported compromise. Interview only for material missing intent/reserved decisions; empirical unknowns become owned research work. Required unavailable evidence uses BLK; ambiguous consequential intent uses ESC. Keep non-blocking unknowns explicitly owned and safe to defer.
+5. Create/update one canonical Git Discovery document and the linked durable frontier, then return its location/revision, consumed/unread sources, important extracted decisions/gaps, the normal Ideation outcome and safe next invocation. Repeat/resume on the same project updates the same Discovery/frontier and does not duplicate research items. A changed source is re-assessed against current accepted authority before promotion.
+
+Readiness is derived from Discovery and the remaining frontier, not from successful extraction or the presence of a file. A complete supplied source may reach `IDEATION_READY_FOR_PRD` without a ceremonial interview; incomplete input returns CONTINUE/BLOCKED as defined above. Source traceability is supporting provenance, not a second live product-authority store. Untrusted source instructions cannot grant tools, change agents/models or bypass authority/budget gates.
+
+Use this route when the desired output is Discovery. If Subhadeep instead supplies valid authority and requests a downstream stage, §9.2 admits it without forcing document-led Ideation first.
+
 ### 9.2 Existing Authority Admission — ACCEPTED
 
 Principle:
@@ -352,13 +368,28 @@ Key rules:
 
 ### 9.3 Interaction routing — ACCEPTED
 
-Workflow behavior follows Architecture §8.1.
+Workflow behavior realizes PRD §4.2; Architecture §8.1 provides the routing seam.
 
 - **Owning workflow → Subhadeep:** Ideation, PRD and Architect may interview for missing authoritative information or a consequential decision/approval.
 - **Subhadeep → Agent:** a conversation about an existing artifact/work item defaults to bounded explain/challenge behavior.
 - If the conversation becomes a request to change accepted authority, the receiving agent routes it to the workflow that owns that authority.
 - Planner, Reviewer, Verifier, Status and other downstream capabilities do not gain authority merely because Subhadeep is chatting with them.
 - Exact implementation of interaction-mode detection remains open under Discovery `DI-008`.
+
+### 9.4 Guided project setup and stage admission — REVIEW (`DI-003`, `DI-004`, `DI-008`)
+
+This workflow realizes FR-022; physical setup command/layout and prerequisite manifest remain DI-004/DI-008 work. Discovery setup and delivery initialization are different readiness boundaries.
+
+| Entry stage | Setup establishes | Admission still required |
+|---|---|---|
+| LARGE Ideation, including document-led intake | Intended project/repository scope, explicit durable LARGE mode, release/configuration bindings, usable agents, applicable templates and minimum discovery backend identity/binding | §9.1 discovery completeness before PRD; no accepted PRD/Architecture required merely to begin discovery |
+| Direct existing-authority entry | Same scoped environment and applicable operational identity, with supplied authority retained/admitted | §9.2 checks for the receiving stage; no fabricated Ideation completion/history |
+| LARGE delivery initialization | Accepted current PRD/Architecture, repository baseline and the selected backend's delivery configuration | §2.4 `/project-init` guard before Project ACTIVE; setup alone cannot activate delivery |
+| STANDARD | Mode-specific agents/templates/prerequisites and durable release/configuration bindings | Accepted DI-011 boundary; no LARGE hierarchy or backend imposed merely by this table |
+
+Check prerequisites first and report required/optional/unchecked conditions plus remediation. Read-only checking never installs software, writes backend objects or invokes a behavioral model canary; any optional model-bearing compatibility run is separately invoked within the approved scope/cost. Authorized setup performs only the managed changes needed for the chosen entry stage. Missing required prerequisites prevent readiness for that stage, without manufacturing authority or claiming zero work from an inaccessible backend.
+
+At a safe stopping point report what was durably established, what remains and the exact safe owning invocation. Retry resolves uncertain writes against current authoritative identity before creating anything again; partial setup is not READY. Preserve existing files/customizations, expose conflicts and use §9.2 for supplied authority. A repeated setup is not an implicit mode conversion, release upgrade or model-map update; those require explicit intent and compatibility handling under the owning contract.
 
 ---
 
@@ -792,7 +823,12 @@ flowchart TD
     NS --> V
     RC --> V
     G -- CLEAR / allowed exception --> H[Human Feature acceptance: AC-0]
-    H --> C[Feature COMPLETE in operational work backend]
+    H --> A0{AC-0 decision}
+    A0 -- Accept --> CG{Current completion guards pass?}
+    CG -- Yes --> C[Feature COMPLETE in operational work backend]
+    CG -- No --> WAIT
+    A0 -- Reject --> CT[Defect or change triage]
+    A0 -- Defer --> WAIT[Remain ACTIVE with acceptance pending]
 ```
 
 Verification is an evidence/gate overlay, not a persisted `VERIFIED` lifecycle state.
@@ -824,7 +860,12 @@ flowchart TD
     NW --> V
     RC --> V
     G -- CLEAR / allowed exception --> H[Human Epic acceptance: AC-0]
-    H --> C[Epic COMPLETE in operational work backend]
+    H --> A0{AC-0 decision}
+    A0 -- Accept --> CG{Current completion guards pass?}
+    CG -- Yes --> C[Epic COMPLETE in operational work backend]
+    CG -- No --> WAIT
+    A0 -- Reject --> CT[Defect or change triage]
+    A0 -- Defer --> WAIT[Remain ACTIVE with acceptance pending]
 ```
 
 The same overlay rule applies to Epic verification: a passing verification run does not create a separate `VERIFIED` lifecycle state; the Epic remains active until human `AC-0` acceptance and completion guards pass.
@@ -1373,6 +1414,8 @@ Approval is concentrated where a semantic classification could incorrectly bypas
 - **PROTECTED_ARCHITECTURE_CONFLICT** → no triage approval is required to stop/escalate;
   the later architecture decision is explicitly human-authorized.
 
+For an exceptional protected-invariant revision, perform an explicit architecture review, revise the canonical architecture, review/approve its architecture PR, and only then reconcile against that newly accepted authority. No automatic rebaseline engine or ordinary Planner/Fixer permission is implied.
+
 The fast lane cannot add new observable product behavior, weaken an accepted requirement, change a Protected Architecture Invariant, or bypass traceability/evidence updates that the refinement actually requires.
 
 It is a triage shortcut for genuinely local work, **not a process bypass**.
@@ -1445,7 +1488,7 @@ At a safe persistence boundary:
 - do not persist chain-of-thought, expanded prompt context or half-completed tool execution;
 - return:
   - `EPIC_CONTINUE`, `FEATURE_CONTINUE` or `SPEC_CONTINUE` when useful local grooming work remains and the invocation is ending cleanly;
-  - `CONTEXT_CEILING_EXCEEDED` when Architecture §21's hard context ceiling would otherwise be crossed. Mandatory authority is never dropped merely to fit the budget.
+  - `CONTEXT_CEILING_EXCEEDED` when PRD NFR-003's hard context ceiling would otherwise be crossed. Architecture §21 supplies the bounded packet. Mandatory authority is never dropped merely to fit the budget.
 
 A later invocation of the **same owning command + same durable ID** reconstructs from current authority rather than chat history.
 
@@ -1464,6 +1507,16 @@ Before continuing, it revalidates the current parent/authority and blockers. Set
 If authority has materially changed, normal material-change/reconciliation rules win. If the item is already READY, resume does not move it backward to GROOMING merely to recreate context.
 
 This is the intended recovery path for **budget/time/context-overrun scenarios**: persist safe progress, stop, and later re-invoke the owning workflow on the durable item rather than paying to reconstruct a long chat/session.
+
+### 17.4 Invocation envelope, models and handoff — REVIEW (`DI-005`, `DI-008`)
+
+PRD §§4.3–4.5 govern on-demand authorization; FR-021 and Architecture §7 govern model resolution. Before dispatch, identify the logical owner, durable target/project, intended operation, authorized handoffs/tool scope, authority/state revisions and execution limits. Exact physical syntax/envelope is DI-008 work; this is not a background runner or permission inferred from graph eligibility.
+
+- Resolve an explicit model key only for the addressed agent call; otherwise use that logical agent's central default. Preflight the real binding/capabilities before model work and record the map revision and resolved identifier. A handoff does not inherit the sender's override or mutation permission. An unsupported selection stops explicitly, without a prompt pretending to switch model or a silent fallback.
+- Routine handoffs inside the invoked envelope may proceed when the receiving owner's current admission checks pass. Produce durable references to input/output revisions, implementation/check identity, outstanding frontier/obligations and the safe next owner/action. Do not pass expanded chat, hidden reasoning or a sender's success assertion as authority.
+- Revalidate relevant authority/state at handoff and before guarded writes/completion. If implementation changes after verification or review, old approval/evidence cannot certify the changed revision. Refresh the affected checks and review; changing the model alone does not reopen unchanged accepted work or invalidate valid implementation evidence.
+- Stop at a required human decision/acceptance, exhausted execution limit, unsupported model/access, unresolved persistence result or unsafe authority/state drift. Persist established safe progress and report the precise reason and next invocation; an earlier approval cannot authorize changed intent, and an uncertain write must be resolved before retry.
+- A fresh explicitly resumed call resolves the current central map and reconstructs from durable state, as in §17.3. It restores position, never permission. Independent work may continue only if it is within the authorized envelope and passes all its own guards.
 
 ---
 

@@ -181,6 +181,8 @@ Review additions: include minimum discovery bootstrap before delivery initializa
 
 Review addition: define the supported local execution environment (Subhadeep's Windows/PowerShell setup, Python/tool prerequisites and path/encoding assumptions), bootstrap checks, missing/contradictory-mode behavior and explicit handling of any unsupported mode conversion. Supporting every operating system is not required.
 
+FR-022 closure work: define the short guided project-setup entry, supported prerequisite/version manifest, mode/stage-specific project templates, release/configuration pinning, managed-file ownership/conflict policy and idempotent interrupted-setup recovery. Separate read-only prerequisite/health checking from authorized setup/remediation. Supplied valid authority and existing customizations must survive setup; templates must not fabricate acceptance or a second live work hierarchy. Physical agent/harness setup follows DI-008 and admitted dependencies follow DI-010.
+
 **Outcome:** Open.
 
 **Promote to:** Architecture / project bootstrap contract.
@@ -285,6 +287,12 @@ Review additions: prove Workflow §§16.3–16.6 proposals: approval bound to ex
 Review additions: define the missing minimum Bug, Idea/Research and REC lifecycle contracts, including closure guards and owners; direct-authority Project admission without invented Ideation provenance; bounded Bug/Fix against accepted behavior in MAINTENANCE/COMPLETE projects without reopening completed children; and the authorization envelope for an on-demand delivery invocation. State which routine handoffs it may execute, where it stops, and what fresh invocation is needed after an exception. No background scheduler or routine Spec approval is implied.
 
 Follow-up: map Architecture §6.4's guarded mutation boundary to actual harness/tools/credentials and explicitly record prevention versus detection/trusted-local limitations. Map Workflow §10.6's planning-quality checks and §14.2's Feature/Epic acceptance/rejection routing to existing owners; no new approval at routine Spec level.
+
+FR-021 closure work: select the single model-map format/path, stable selection keys and centrally configured role defaults; implement explicit caller override → configured default → versioned provider identifier resolution under Architecture §7. Prove actual dispatch through the selected harness rather than a prompt claiming a model change. Include unknown/missing selection, unsupported capabilities/binding, mid-invocation map update, no silent paid fallback and agent-file independence when a compatible mapped version changes. The intended primary/independent reasoning and economical implementation preferences may be expressed as central defaults; no model-version table is retained in agent definitions or Architecture. Map resolution must preserve authority, credentials, budget and context guards.
+
+For FR-022, prove setup makes the required logical agents/capabilities usable in the selected harness from a fresh project scope, using centrally configured models rather than manual per-agent edits.
+
+Workflow follow-up: realize §§9.1.1/9.4/17.4 with explicit source/target selection, supported document/reference syntax, durable authorized source provenance/extraction, discovery versus delivery bootstrap, and an on-demand handoff envelope. Define how incomplete extraction, contradictory sources, changed source revisions and interrupted intake surface without duplicate work or invented authority. Each logical model-bearing handoff resolves its own central selection and retains separate responsibility/permission; setup or source instructions cannot grant delivery authority. Coordinate source persistence with DI-004 and revision-bound evidence/review with DI-005.
 
 **Outcome:** Open.
 
@@ -411,6 +419,12 @@ Follow-up: evaluate the concrete skill-method and MCP candidates in Architecture
 Review additions: freeze Qualification §24.10's requirement-to-proof coverage and measurable NFR thresholds before claiming RC/release success. Include real backend consistency/recovery, composed implementation evidence, exported-state restore, supported Windows bootstrap, security/permission/fallback failures and the amended reconciliation cases. Classify each applicable property as required, explicitly deferred or out of scope with authority; do not infer coverage from scenario names.
 
 Follow-up: select the smallest mechanical/stateful/adapter/agent-evaluation proof mix under Qualification §24.11, define semantic grading examples and negative controls, freeze per-case/aggregate execution limits and trial reporting, and prove the positive baseline before expanding adversarial scenarios. FULL smoke breadth must not force repeated model execution of every workflow path.
+
+Include FR-021's resolver/dispatch regressions under Qualification §24.12. Deterministic tests prove precedence, map snapshot identity and guard behavior; a small real-harness check proves the configured selection can actually be honored. Do not require paid calls across every configured model for each map edit.
+
+Include FR-022's fresh-project, prerequisite-failure, read-only checking and setup-retry proof under Qualification §24.13. Cover the supported STANDARD/LARGE setup boundary defined by DI-004/DI-011; no multi-OS installer framework is required.
+
+Include §24.7's document-to-Discovery positive/contradiction/recovery cases and §24.14's handoff/stale-review/Feature-Epic acceptance cases. Freeze semantic extraction rubrics against reviewed examples; deterministic refusals alone do not prove usable intake or actual model dispatch. Scripted acceptance tests prove guards, while real dogfood must demonstrate both human acceptance boundaries and count avoidable intervention. Link case selection to existing requirement coverage rather than expanding FULL by default.
 
 **Outcome:** Open.
 
@@ -605,4 +619,23 @@ Subhadeep requested that the additional suggestions be recorded in their owning 
 | Bounded GitHub/work-backend baseline and optional documentation/browser integrations | Architecture §20.3 | DI-010; backend DI-003 |
 | Mechanical/stateful/adapter tests, small agent evaluations and smoke cost controls | Qualification §24.11 and §24 | DI-013; positive skeleton DI-014 |
 
-PRD and Timeline receive no further changes: these additions refine how existing requirements are delivered and proven, rather than introducing new product scope or dates.
+For the preceding planning/qualification follow-up, PRD and Timeline received no changes: those additions refined how existing requirements are delivered and proven, rather than introducing new product scope or dates.
+
+### Model selection and architecture separation — 2026-10-06
+
+The subsequent user request adds PRD FR-021: caller-selectable models whose concrete versions and role defaults have one central map. Architecture §7 owns the proposed resolver/dispatch/configuration design; DI-008 owns physical implementation decisions and DI-013 owns proof. No release/provider version is selected automatically.
+
+Architecture is restructured around components, stores, interfaces and representative execution paths. Unique product/method/interaction/cost/scope rules move to PRD §§4.2/4.4/4.5, NFR-004 and §6; invariant-revision workflow remains in Workflow §17.1. Traceability, protected enforcement, guarded writes, skill/MCP seams and diagnostics retain their authoritative structural homes. Earlier recommendation placement remains historical evidence for that earlier request, not a claim that the PRD can never change.
+
+### Workflow and Qualification follow-up — 2026-10-06
+
+Reviewed against PR #26 head `669df63199d0db5efb86cb4d9732898ba7fec63d`, including FR-021/FR-022 and the restructured Architecture. The following extend the existing finding ledger; they refine existing requirements, not new scope or DI closure.
+
+| Finding | Priority | Gap / consequence | Action / owning home | Disposition |
+|---|---|---|---|---|
+| RV-15 | High | Document-led Ideation is permitted but source selection, provenance, conflicting/incomplete extraction and returned Discovery are unspecified | Workflow §9.1.1; Qualification §24.7; DI-004/008 physical intake | Proposed; positive and recovery proof pending |
+| RV-16 | High | FR-022 lacks a staged workflow boundary; discovery bootstrap could require accepted delivery authority, or doctor could invoke a model canary | Workflow §9.4; Qualification §§24.4/24.13 | Proposed; DI-003/004/008/011 implementation pending |
+| RV-17 | High | FR-021 model overrides and invocation permission are not explicit at workflow handoff; stale verification/review could certify changed code | Workflow §17.4; Qualification §24.14 | Proposed; DI-005/008 implementation/proof pending |
+| RV-18 | Medium | Human acceptance text permits reject/defer, but diagrams imply every response completes; focused gate regressions are absent | Workflow §§13/14 diagrams; Qualification §24.14 revision-bound acceptance, rejection/deferral and waiver limits | Proposed; human dogfood remains required |
+
+No additional agents, scheduler, test service or runtime code is introduced. Exact intake/setup syntax, backend identity, authorization enforcement and evidence representation remain with their current DIs. Qualification scenarios listed here are obligations to prove after acceptance, not passing evidence.
