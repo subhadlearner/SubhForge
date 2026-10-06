@@ -391,6 +391,25 @@ Check prerequisites first and report required/optional/unchecked conditions plus
 
 At a safe stopping point report what was durably established, what remains and the exact safe owning invocation. Retry resolves uncertain writes against current authoritative identity before creating anything again; partial setup is not READY. Preserve existing files/customizations, expose conflicts and use §9.2 for supplied authority. A repeated setup is not an implicit mode conversion, release upgrade or model-map update; those require explicit intent and compatibility handling under the owning contract.
 
+### 9.5 PRD and Architecture stage contracts — REVIEW (`DI-005`, `DI-008`)
+
+Proposed by RV-20. §9.1 gives Ideation explicit outcomes, exit conditions and resume behavior. The PRD and Architecture stages are relied on throughout this document to produce "accepted" authority, but have no equivalent contract. The minimum below follows §9.1 by analogy; outcome names are placeholders for DI-008.
+
+| Stage | Entry | Exit gate | Outcomes |
+|---|---|---|---|
+| PRD (`/prd`) | `IDEATION_READY_FOR_PRD`, or supplied material under §9.2 | Canonical PRD with stable FR/NFR IDs, acceptance intent, scope/non-goals and no material contradiction, plus Subhadeep's explicit acceptance of that revision | `PRD_CONTINUE`, `PRD_READY_FOR_ARCHITECTURE`, `PRD_BLOCKED` |
+| Architecture (`/architect`) | Accepted PRD, authored or admitted | Boundaries, NFR reach, Protected Architecture Invariants and an enforcement mapping for every applicable NFR, plus Subhadeep's explicit acceptance of that revision | `ARCHITECTURE_CONTINUE`, `ARCHITECTURE_READY_FOR_PLANNING`, `ARCHITECTURE_BLOCKED` |
+
+Rules:
+
+- Drafting is not acceptance. Authority becomes consumable downstream only at its recorded accepted revision (PRD CON-002); how that acceptance is recognized is DI-005 work.
+- A stage that stops early persists its draft and open frontier, then resumes by re-invoking the same owning command as in §17.3.
+- A gap owned by the other stage routes there. Architect does not repair product intent; PRD does not decide architecture.
+- Editing accepted PRD/Architecture is a change under §17.1, not a resumed authoring session.
+- Initial PRD/Architecture formation runs while the Project is `PLANNING`. Revising accepted authority while the Project is `ACTIVE` or `MAINTENANCE` follows change governance (§17.1, §16) and does not move the Project back to `PLANNING`. Neither stage adds a lifecycle state.
+
+Two on-demand capabilities also lack an invocation contract. Change Triage has a fixed verdict shape in §17.1 but no statement of who may invoke it or against which target. Adversary appears in PRD §4.1, and §8.3 names `/adversarial-check` as a backstop, without a defined target, output or routing. DI-008 defines both as on-demand capabilities whose output is advisory until routed through the owning workflow, with no new approval step.
+
 ---
 
 ## 10. Planning / Decomposition Workflow
@@ -729,7 +748,7 @@ Rules:
 - a change to either the governed authority **or the authorizing decision** is assessed normally for reconciliation;
 - exemptions are material metadata and participate in structural-move/governance recomputation.
 
-Physical backend representation of the exemption/authorization pair is selected during the work-backend architecture review; the semantic contract above is fixed.
+Physical backend representation of the exemption/authorization pair is selected during the work-backend architecture review (Discovery `DI-003`); the semantic contract above is fixed.
 
 ---
 
@@ -758,6 +777,8 @@ flowchart TD
 ```
 
 The normal product loop is intentionally smaller than framework smoke.
+
+The Fix → Verify and Diagnose → Fix loops are bounded by the configured repeat limit (PRD NFR-004, Architecture §22). Reaching it stops through the durable ESC/BLK path with the Spec still ACTIVE; the loop is not retried until green (RV-31, proposed).
 
 ### 12.1 Human acceptance boundary — ACCEPTED
 
@@ -800,6 +821,12 @@ Rules:
 SubhForge-required code, architecture, security and engineering review happens before PR readiness.
 
 After a PR is raised, organizational approval, merge governance, deployment orchestration and production release are outside the primary v0.2 workflow. Evidence or defects discovered later may re-enter through §15/§17.
+
+#### Integration availability — REVIEW (`DI-005`, `DI-014`)
+
+Proposed by RV-21; extends RV-06. A Spec becomes COMPLETE at review approval, before any merge. Two contracts then rely on code that may still sit on an unmerged branch: a dependent Spec that needs the provider's implementation and not only its contract (§11A), and Feature/Epic verification over a composed baseline (§23.2). Treating merge as wholly post-PR leaves both without a defined source.
+
+DI-005/DI-014 must state when a completed Spec's change enters the project's integration baseline, who performs that step, and what a dependent may assume before it has happened. Until then, a `Depends on` edge satisfied by a COMPLETE provider is not proof that the provider's code is present in the consumer's baseline. No PR automation, deployment or new Spec state is implied.
 
 ---
 
@@ -1331,6 +1358,10 @@ Rules:
 - REC closure is derived from authoritative current state and obligation evidence, not cached counters/markers;
 - a package with unresolved obligations remains visible to `/status` and continues to block only the affected scope.
 
+**New work under a COMPLETE parent — REVIEW (`DI-006`).** Proposed by RV-22. §2.4 never reopens COMPLETE, and Feature/Epic completion requires every non-RETIRED child to be COMPLETE. An authority change that needs new or replacement work inside an already COMPLETE Feature or Epic therefore has no defined parent: adding a DRAFT child breaks the completion floor, and reopening the parent breaks the no-backward-move rule.
+
+DI-006 must choose the representation, for example successor work under the nearest still-open ancestor, linked to what it supersedes or extends. It must also state how the completed parent's earlier `AC-0` stops being relied on for the changed capability while its lifecycle stays COMPLETE. The same answer has to cover a Project in `MAINTENANCE` or `COMPLETE`.
+
 ---
 
 Partial work-graph mutation must be diagnosable, idempotent where practical, and safely recoverable.
@@ -1475,7 +1506,8 @@ Other examples:
 - implementation resumes with `/implement SPEC-123`;
 - Bug diagnosis resumes through the owning diagnose path;
 - reconciliation resumes with `/reconcile REC-###`;
-- ideation resumes through `/ideate`.
+- ideation resumes through `/ideate`;
+- PRD and Architecture authoring resume through `/prd` and `/architect` (§9.5, proposed).
 
 #### Grooming continuation / budget-pressure behavior
 

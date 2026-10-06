@@ -133,6 +133,8 @@ These facts may be revisited only if new evidence materially contradicts them.
 - preserve required dogfood/safety evidence;
 - after required DIs resolve, reconcile the PRD DoD/non-goals and explicitly freeze the release boundary.
 
+Independent review addition (RV-37): record an ordered deferral list with the provisional classification, naming what leaves scope first if a Timeline checkpoint slips, so that CON-011's "deliberately reduced" has a pre-agreed answer. State the working-capacity assumption the Timeline periods rely on.
+
 **Outcome:** Open.
 
 **Promote to:** PRD; Timeline only if scope evidence requires a schedule change.
@@ -156,6 +158,8 @@ These facts may be revisited only if new evidence materially contradicts them.
 **Evidence / completion method:** Use the same representative work graph for both candidates. Evaluate hierarchy/sub-item fit, Contains/Governed-by/Depends-on representation, lifecycle state, blockers/escalations, reconciliation state/holds, FR/NFR traceability, suite ownership, evidence/implementation references, PR/commit linkage, human usability, API/MCP support, least-privilege writes, idempotent recovery, high-frequency status/next-work query cost, export/recovery and vendor lock-in. Define no fields beyond accepted workflow needs.
 
 Review additions: include minimum discovery bootstrap before delivery initialization; complete/paginated reads, version/conflict detection, duplicate-create recovery after a lost response, and the cost/licensing of required fields/API access. Demonstrate restore from a recorded export with stable identity/relationships and matching Git references. A feature list or export button alone is insufficient evidence.
+
+Independent review additions (RV-27, RV-28, RV-38): decide when a recovery export is produced (an explicit on-demand capability, plus the points where one is expected, such as before REC APPLY and at Feature/Epic acceptance), where it is kept without becoming a live store, and how status exposes its age. Show that two managed projects stay isolated in the backend: project-scoped identity namespace, binding and queries. MediBot and the scale dogfood already run in the same month. Confirm transition history is retrievable through the API/export, since Workflow §2.4 relies on backend history, and that a `PAUSED` Project can persist its resume state.
 
 **Outcome:** Open.
 
@@ -182,6 +186,8 @@ Review additions: include minimum discovery bootstrap before delivery initializa
 Review addition: define the supported local execution environment (Subhadeep's Windows/PowerShell setup, Python/tool prerequisites and path/encoding assumptions), bootstrap checks, missing/contradictory-mode behavior and explicit handling of any unsupported mode conversion. Supporting every operating system is not required.
 
 FR-022 closure work: define the short guided project-setup entry, supported prerequisite/version manifest, mode/stage-specific project templates, release/configuration pinning, managed-file ownership/conflict policy and idempotent interrupted-setup recovery. Separate read-only prerequisite/health checking from authorized setup/remediation. Supplied valid authority and existing customizations must survive setup; templates must not fabricate acceptance or a second live work hierarchy. Physical agent/harness setup follows DI-008 and admitted dependencies follow DI-010.
+
+Independent review additions (RV-28, RV-34): setup binds one project to one backend scope, and a command run in one project's repository cannot read or mutate another project's work. Record the mode-conversion answer proposed in PRD FR-001.
 
 **Outcome:** Open.
 
@@ -214,6 +220,13 @@ Review additions: resolve Architecture §4.4 and Workflow §23.2, including exac
 
 Follow-up: define how Workflow §14.2's acceptance packet references the demonstrated revision and records accept/reject/defer using existing work/evidence authority, without a second acceptance store.
 
+Independent review additions (RV-21, RV-25, RV-26):
+
+- **Integration availability.** State when a COMPLETE Spec's change enters the integration baseline, who performs that step and what a dependent may assume beforehand (Workflow §12.3).
+- **Concurrency envelope.** One mutating invocation per project at a time is the smallest safe default. Allowing parallel Spec work is a deliberate widening that needs its own conflict proof.
+- **Evidence home.** Choose the durable home of evidence bodies and invocation records (a Git path versus a backend attachment) such that storing evidence does not alter the implementation identity it certifies.
+- **One human-decision record.** Reuse one minimal record for every reserved decision: PRD/Architecture acceptance, `AC-0`, REC verdict approval, `LOCAL_REFINEMENT` approval or downgrade, waiver and retirement. It binds the decision, the exact subject revision and the time, and is distinguishable from agent-authored text within the limits DI-008 records.
+
 **Outcome:** Open.
 
 **Promote to:** Architecture; Workflow/Qualification only for semantics/proof that depend on the representation.
@@ -237,6 +250,8 @@ Follow-up: define how Workflow §14.2's acceptance packet references the demonst
 **Evidence / completion method:** Use the smallest representation that supports deterministic pre/postconditions, scope holds, resume, partial APPLY recovery, overlap/conflict detection and fail-closed behavior without duplicating authority.
 
 Review additions: prove Workflow §§16.3–16.6 proposals: approval bound to exact verdict/baseline, stable postconditions across ordered operations, APPLY completion distinct from REC obligation closure, authorized obligation work despite its own hold, unaffected/cancelled pause recovery, and partial hold acquisition/release failure. Do not rely on a mutable APPLIED marker to solve replay.
+
+Independent review addition (RV-22): define where new or replacement work is parented when the affected Feature/Epic is already COMPLETE, and how that parent's earlier `AC-0` stops being relied on, without reopening COMPLETE (Workflow §16.6; Qualification §30.2 scenario 15).
 
 **Outcome:** Open.
 
@@ -294,6 +309,14 @@ For FR-022, prove setup makes the required logical agents/capabilities usable in
 
 Workflow follow-up: realize §§9.1.1/9.4/17.4 with explicit source/target selection, supported document/reference syntax, durable authorized source provenance/extraction, discovery versus delivery bootstrap, and an on-demand handoff envelope. Define how incomplete extraction, contradictory sources, changed source revisions and interrupted intake surface without duplicate work or invented authority. Each logical model-bearing handoff resolves its own central selection and retains separate responsibility/permission; setup or source instructions cannot grant delivery authority. Coordinate source persistence with DI-004 and revision-bound evidence/review with DI-005.
 
+Independent review additions (RV-19, RV-20, RV-31, RV-36, RV-38):
+
+- **First sub-decision: execution topology** (Architecture §3.1). Choose control-led, harness-led, or which operations use each, using the bounded harness probe, before any other mapping in this DI depends on it. Because the probe can change the architecture, run it as early as its prerequisites allow.
+- PRD/Architecture stage contracts and Change Triage/Adversary invocation (Workflow §9.5).
+- Configured home and defaults for execution limits (Architecture §22).
+- Classification of Git remote and history-affecting operations (Architecture §6.4).
+- Model-map scope, installation-wide or project-local (Architecture §7.1).
+
 **Outcome:** Open.
 
 **Promote to:** Architecture / agent-command contracts.
@@ -315,6 +338,8 @@ Workflow follow-up: realize §§9.1.1/9.4/17.4 with explicit source/target selec
 **Depends on:** DI-003, DI-005 and DI-006 for the operations that need to be observable.
 
 **Evidence / completion method:** Retain only fields/events needed for diagnosis/recovery. Reuse harness/runtime telemetry where helpful but do not make provider/harness logs lifecycle authority.
+
+Independent review addition (RV-26): name where lifecycle events and diagnostics are durably kept, so they survive the session and appear in or beside the recovery export.
 
 **Outcome:** Open.
 
@@ -342,6 +367,8 @@ Review additions: validate authority-expansion attempts through supplied notes/r
 
 Follow-up: evaluate the concrete skill-method and MCP candidates in Architecture §§19.4/20.3. Pin/adapt only those that earn admission; do not import another tracker, routine ticket-approval flow or automatic agent fan-out. Confirm removal and bounded tool/context overhead. Context7 and Playwright remain optional/project-specific rather than automatic global dependencies.
 
+Independent review addition (RV-35): apply the sensitive-data rule proposed in PRD NFR-006 during admission, stating which sensitive data a tool or provider must not receive from a managed project. Ordinary project context is not restricted by that rule.
+
 **Outcome:** Open.
 
 **Promote to:** Architecture / installation manifest.
@@ -363,6 +390,8 @@ Follow-up: evaluate the concrete skill-method and MCP candidates in Architecture
 **Depends on:** DI-001 and DI-002's provisional scope classification.
 
 **Evidence / completion method:** Preserve still-required user-visible capability/invariants, not obsolete implementation details.
+
+Independent review addition (RV-23): this branch still carries the v0.1 `forge/`, `template/` and `tools/` baseline, while §1 calls v0.2 a clean build. Decide the STANDARD implementation source: retained v0.1 assets run as they are, or STANDARD rebuilt on v0.2 foundations. Decide the disposition of each existing baseline directory. Either answer is implementation or migration work that DI-015 must plan; the Timeline schedules a STANDARD regression but no STANDARD build or migration.
 
 **Outcome:** Open.
 
@@ -426,6 +455,8 @@ Include FR-022's fresh-project, prerequisite-failure, read-only checking and set
 
 Include §24.7's document-to-Discovery positive/contradiction/recovery cases and §24.14's handoff/stale-review/Feature-Epic acceptance cases. Freeze semantic extraction rubrics against reviewed examples; deterministic refusals alone do not prove usable intake or actual model dispatch. Scripted acceptance tests prove guards, while real dogfood must demonstrate both human acceptance boundaries and count avoidable intervention. Link case selection to existing requirement coverage rather than expanding FULL by default.
 
+Independent review additions (RV-29, RV-30, RV-33): adopt the intervention-counting rule in Qualification §32, which exempts only necessary invocations outside the authorized envelope and still counts avoidable handoffs within it. Accept or amend the constraint and PRD §§4.2–4.5 rows added to the §24.10 map. Fix the scale dogfood's required depth, and classify dogfood spend against PRD CON-006 with an estimate for the December sequence.
+
 **Outcome:** Open.
 
 **Promote to:** Qualification.
@@ -452,6 +483,8 @@ Review addition: prove discovery/backend bootstrap and valid-authority direct ad
 
 Follow-up: identify the first demonstrable vertical slice and its minimal applicable cross-cutting foundations under Workflow §10.6. Establish an uninterrupted positive baseline before qualification expansion; defer infrastructure that has no accepted obligation or real consumer.
 
+Independent review addition (RV-21): the skeleton's exit must exercise the integration step once, so that a second Spec depending on the first runs against a baseline that actually contains it.
+
 **Outcome:** Open.
 
 **Promote to:** Architecture / Workflow / implementation plan as appropriate.
@@ -474,9 +507,11 @@ Follow-up: identify the first demonstrable vertical slice and its minimal applic
 
 **Evidence / completion method:** Produce the smallest dependency-aware plan that implements foundations/walking skeleton first and then LARGE delivery, reconciliation and qualification support in accepted dependency order.
 
+Independent review addition (RV-24): record the construction operating model the plan assumes: which harness/model builds each unit, the per-unit review and merge flow, and the check that gates a merge in the SubhForge repository. Include the STANDARD work decided by DI-011. The construction work tracker is a builder choice that this DI selects and records; DI-003's product-backend selection does not make that backend SubhForge's own tracker. The "Promote to" line below is updated accordingly.
+
 **Outcome:** Open.
 
-**Promote to:** Implementation work system / planning authority selected by DI-003; repository only for genuinely architectural plan decisions.
+**Promote to:** The construction work tracker selected by this DI (it may or may not be the product backend chosen in DI-003); repository only for genuinely architectural plan decisions.
 
 ---
 
@@ -639,3 +674,41 @@ Reviewed against PR #26 head `669df63199d0db5efb86cb4d9732898ba7fec63d`, includi
 | RV-18 | Medium | Human acceptance text permits reject/defer, but diagrams imply every response completes; focused gate regressions are absent | Workflow §§13/14 diagrams; Qualification §24.14 revision-bound acceptance, rejection/deferral and waiver limits | Proposed; human dogfood remains required |
 
 No additional agents, scheduler, test service or runtime code is introduced. Exact intake/setup syntax, backend identity, authorization enforcement and evidence representation remain with their current DIs. Qualification scenarios listed here are obligations to prove after acceptance, not passing evidence.
+
+### Independent design review — 2026-10-06
+
+Reviewed the active design at commit `849a68add2cbd48071f5dfde709d39624fc38ff1` (PR #26 merged), PRD first, then Discovery, Architecture, Workflow, Qualification and Timeline. `design/old/` was not read. This pass looked for gaps the RV-01 to RV-18 ledger does not already own; it does not re-litigate them.
+
+Every substantive addition made by this pass is tagged with its `RV-##` in the owning document and has the same proposed status as the earlier additions. No DI is closed and no dependency, agent, store or date is added.
+
+| Finding | Priority | Gap / consequence | Action / owning home | Disposition |
+|---|---|---|---|---|
+| RV-19 | High | Architecture §3 reads control-led while Workflow commands and §§6.4/8.1 read harness-led; the outer loop decides where guards, model selection and budgets can be enforced, and no item owns probing the harness | Architecture §3.1; DI-008 first sub-decision | Proposed; unresolved until probed |
+| RV-20 | High | PRD and Architecture stages have no workflow contract (outcomes, exit gate, acceptance, resume), unlike Ideation and grooming; Change Triage and Adversary lack an invocation contract | Workflow §9.5, §17.3; DI-005/008 | Proposed |
+| RV-21 | High | Spec is COMPLETE before merge and merge is treated as post-PR, yet dependents and Feature/Epic verification need the integrated code; extends RV-06 | PRD §1.2; Workflow §12.3; Qualification §24.14 item 6; DI-005/014 | Proposed; unresolved |
+| RV-22 | High | New work inside a COMPLETE Feature/Epic has no valid parent: it breaks either the completion floor or the no-reopen rule | Workflow §16.6; Qualification §30.2 scenario 15; DI-006 | Proposed; unresolved |
+| RV-23 | High | "Clean build" coexists with the v0.1 baseline on this branch; STANDARD has a regression gate but no implementation source, migration decision or schedule slot | DI-011, DI-015; Timeline §7 | Expanded DI; unresolved |
+| RV-24 | Medium | No item owns how SubhForge itself is built (builder, review/merge flow, merge gate); DI-015 tied the construction tracker to DI-003's product backend | DI-015 now selects the construction tracker; its "Promote to" line is corrected | Expanded DI; unresolved |
+| RV-25 | Medium | Supported concurrency is never stated, although it sets the cost of the DI-005 conflict protocol | Architecture §4.4; DI-005 | Expanded DI; unresolved |
+| RV-26 | Medium | Evidence bodies, invocation records and diagnostics have links but no durable home; the reserved human decisions have no common record | Architecture §4.2; DI-005, DI-009 | Expanded DI; unresolved |
+| RV-27 | Medium | Export/restore is required, but nothing says when an export is taken or how stale one may be | Architecture §4.2; DI-003 | Expanded DI; unresolved |
+| RV-28 | Medium | Isolation between managed projects is unspecified although two dogfood projects share December | Architecture §4.2; DI-003, DI-004 | Expanded DI; unresolved |
+| RV-29 | Medium | Qualification §32 counts "choose work the graph could derive" as avoidable while PRD §4.5 requires explicit invocation, so NFR-010 cannot be measured consistently | PRD NFR-010; Qualification §32; DI-013. Only necessary invocations outside the authorized envelope are exempt; avoidable handoffs within it are counted | Proposed |
+| RV-30 | Medium | §24.10 maps no proof to CON-001 to CON-005, CON-009, CON-011, CON-012 or PRD §§4.2–4.5 | Qualification §24.10; DI-013 | Proposed |
+| RV-31 | Medium | NFR-004 retry and call limits have policy but no configured home or default; the Fix/Verify loop is drawn unbounded | Architecture §22; Workflow §12; DI-008 | Proposed |
+| RV-32 | Medium | PRD §4.1 is the authoritative role matrix but has no Change Triage or Setup/Health check owner | PRD §4.1 | Proposed |
+| RV-33 | Medium | Dogfood spend is not classified against the $10 variable ceiling, and the scale dogfood's depth is undefined for a four-day slot | PRD CON-006; Qualification §30.3; DI-013; Timeline §7 | Proposed; unresolved |
+| RV-34 | Low | PRD does not say whether a project may change mode after selection | PRD FR-001; DI-004 | Proposed |
+| RV-35 | Low | No rule separates sensitive data (records about real people, live credentials) from ordinary project context or keeps it out of model context, fixtures and evidence | PRD NFR-006; DI-010 | Proposed |
+| RV-36 | Low | Git remote and history-affecting operations are unclassified, though rebasing an already-published branch under §16.2 may require a force-push | Architecture §6.4; DI-008 | Proposed |
+| RV-37 | Low | Schedule hygiene: no deferral order or capacity assumption; Timeline's Oct 13–20 row omits DI-010 | DI-002; Timeline §7 | Recorded as risk |
+| RV-38 | Low | Small reference gaps: exemption representation cited no DI; backend history and Project resume state absent from DI-003 criteria; model-map scope unstated | Workflow §11A; DI-003; Architecture §7.1 | Corrected draft / expanded DI |
+
+**Assessment:** the earlier ledger made the lifecycle semantics largely coherent. What remains is mostly physical and operational: who is the outer loop, where reviewed code becomes available, and how work is represented after completion. RV-19 and RV-21 can each change the architecture, so they should be settled before the other DI-005/DI-008 detail.
+
+Considered and deliberately not applied, for Subhadeep's decision:
+
+- a short glossary of load-bearing terms (authority, claim, effective gate, envelope, hold, obligation, candidate versus touched scope), which would help a weaker implementation model but adds a document that can drift;
+- README §9 step 1 still describes PR #26 as pending;
+- Workflow §31A is written for VidyaBeacon specifically though it applies to any managed project;
+- Workflow §14.2 precedes §14.1 in the file.

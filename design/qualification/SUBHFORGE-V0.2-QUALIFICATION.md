@@ -232,6 +232,12 @@ The following is a review coverage map, not a declaration of completeness or pas
 | FR-022 | Simple scoped agent/template setup, prerequisite checks, honest readiness, customization preservation and interruption-safe retry | §24.13; DI-004/008/010/011/013 |
 | NFR-004, NFR-008; CON-006, CON-007 | Measured calls/tokens/runtime/spend, bounded retry, explicit quota/auth/rate-limit failure, no silent paid fallback | §24.1, §30.3/30.4; DI-010/013 |
 | NFR-010; CON-008 | Count avoidable versus reserved human interventions and recurring bookkeeping | §32; DI-013 |
+| CON-002, CON-003; PRD §§4.2–4.5 | A reserved human decision cannot be supplied by an agent; no path depends on chat or provider-session state; handover fails closed; an eligible item never starts an uninvoked workflow | §24.8, §24.14, §30.1; DI-005/008 |
+| CON-004, CON-009 | Each mechanically decidable guard is deterministic code with a negative test; missing authority, identity or evidence blocks instead of being guessed through | §24.11, §30.4; DI-013 |
+| CON-005, CON-012 | A model/harness change leaves identity, authority and handover unchanged; the product runs with construction scaffolding and optional skills removed | §24.4, §24.12, §31; DI-010/013 |
+| CON-001, CON-011 | Not test-provable. Evidenced by the DI-002 scope record and a release record showing no required proof was dropped for schedule | DI-002; §31 |
+
+The last four rows are proposed by RV-30. Those constraints were previously covered only by implication, and DI-013 does not accept coverage inferred from scenario names.
 
 For scale/context/cost/intervention claims, freeze before the qualifying run:
 
@@ -329,6 +335,7 @@ Prove Workflow §§12–14, 17.4 and 23 with the smallest representative deliver
 3. Feature and Epic each require their planned suite owner, current required checks, completed non-RETIRED children and explicit revision-bound human AC-0. Exercise accept, reject and defer; reject/defer cannot complete, rewrite criteria or reopen COMPLETE children. An automated/model judge cannot accept on Subhadeep's behalf, and a waiver cannot bypass AC-0 or missing/integrity-invalid proof.
 4. A changed demonstrated capability or relevant implementation/evidence premise triggers acceptance re-assessment before reliance/completion; recorded acceptance of an older demonstration is insufficient. Rejection observations route to Bug/fix or owning-authority change, preserve child history and require refreshed affected proof.
 5. Caller model overrides remain scoped to the addressed agent. The receiving handoff resolves its own key/default and preserves its role/tool authority. Stop/resume across quota, unsupported binding, context/budget or human-decision boundaries preserves safe progress and does not continue uninvoked work or choose a paid fallback.
+6. A dependent Spec does not start against provider code that is absent from its baseline merely because the provider is COMPLETE. The integration step defined by DI-005/DI-014 is observable, and its absence is reported rather than assumed (RV-21, proposed).
 
 Most stale-result, completion, waiver and permission cases use deterministic guards and scripted agent outputs. A small real handoff slice proves the harness exercises separate logical responsibilities; actual Subhadeep acceptance during dogfood proves the human interaction. Test-simulated human decisions validate control flow only, not usability or satisfaction with the product.
 
@@ -386,6 +393,7 @@ The scenarios exercise normative rules in `design/workflow/SUBHFORGE-V0.2-WORKFL
 | 12 | APPLY succeeds with remaining REVERIFY/NEW_WORK_REQUIRED | Normal completion stays gated; explicitly approved verification/grooming can satisfy the obligation despite the REC's own gate; REC closes only at its defined obligation boundary | Workflow §16.6 review proposal |
 | 13 | Unaffected/cancelled analysis with paused ACTIVE Spec | Current-authority and other-hold checks precede release; baseline refresh/tests can run through authorized recovery; Spec returns ACTIVE safely or remains visibly blocked | Workflow §§16.2,16.4,16.6 review proposals |
 | 14 | Later operation overwrites an earlier postcondition | Invalid package is rejected before APPLY; normalized persistent effects survive retry, including crash after the last write | Workflow §16.3 review proposal |
+| 15 | Authority change needs new work inside a COMPLETE Feature/Epic | COMPLETE is not reopened and the completion floor still holds; replacement work has a valid open parent and a supersession/extension link; the earlier `AC-0` is not relied on for the changed capability | Workflow §16.6 review proposal (RV-22, `DI-006`) |
 
 #### Shared reconciliation fixture — ACCEPTED
 
@@ -438,6 +446,8 @@ Prove:
 - status projection;
 - multi-session continuity;
 - cost/token behavior.
+
+DI-013 must fix this dogfood's required depth before it runs (RV-33, proposed): how much is decomposed versus actually implemented, across how many Epics and interrupted sessions, and which budget its model spend counts against (PRD CON-006). The Timeline gives it four days shared with other release checks, so an undefined depth is a schedule risk.
 
 ---
 
@@ -558,6 +568,8 @@ Also count recurring cases where Subhadeep must manually:
 - answer a decision that is already settled in current authority;
 - coordinate an agent handoff that SubhForge could perform from durable state;
 - handle separately interrupting decisions that could safely have been batched.
+
+Counting rule (RV-29, proposed): a necessary invocation that starts work outside the currently authorized envelope is expected under PRD §4.5 and is not counted. A manual invocation for a handoff inside that envelope is counted as avoidable, for example having to start Verifier or Reviewer by hand for a Spec whose delivery was already invoked. Record which envelope applied so the two cases can be told apart. "Choose work that the graph could derive" means Subhadeep had to work out eligibility or order by hand because the work-plan/status projection did not show it.
 
 Repeated occurrences are product/architecture evidence.
 

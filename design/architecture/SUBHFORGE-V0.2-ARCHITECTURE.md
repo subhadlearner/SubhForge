@@ -59,6 +59,23 @@ flowchart TD
 
 These are logical seams, not a requirement for eight services or eight physical agents. DI-008 selects the smallest file/command layout preserving them. Verifier executes checks and Reviewer judges evidence through separate capability invocations; the diagram does not grant agents unrestricted backend access.
 
+### 3.1 Control direction and harness feasibility — REVIEW (`DI-008`)
+
+Proposed by RV-19. The diagram above reads as **control-led**: a deterministic entry point assembles context, resolves the model and calls the harness. Workflow's `/command` references and §§6.4/8.1 read as **harness-led**: Subhadeep invokes an agent inside the harness, and that agent calls deterministic helpers as tools. These are different topologies. Which one is the outer loop decides where FR-021 selection, §6.4 guards, §21 packet injection and §22 budget preflight can actually be enforced, and whether a multi-agent handoff inside one invocation (Workflow §17.4) is possible at all.
+
+DI-008 must choose one primary topology, or name the operations that use each, before other physical mapping depends on it. A harness-led design cannot claim a guard that the invoked agent could skip by not calling the helper. A control-led design depends on the harness offering non-interactive invocation with per-call model and tool scope.
+
+Settle this with a bounded, disposable probe of the current harness rather than by assumption. Minimum probe questions:
+
+- can a model be selected per invocation from outside the agent definition;
+- can agent/command definitions be scoped to one project;
+- can tools and MCP servers be restricted per agent;
+- can the harness be invoked non-interactively with a supplied context packet and return a structured result;
+- can one run hand off to a second agent that uses a different model;
+- what usage/token facts does it report.
+
+An unsupported answer narrows the design. It is not worked around with a prompt that claims the capability. Probe code is not production code.
+
 ## 4. Authority and Execution Planes
 
 ### 4.1 Product Truth — Git — ACCEPTED
@@ -71,7 +88,7 @@ The central model map is versioned execution configuration in Git (§7). It cont
 
 One selected external backend stores Project/Idea/Research/Epic/Feature/Spec/Bug identities, lifecycle and acceptance metadata, declared relationships, traces, implementation/evidence links, ESC/BLK records and REC operational holds/obligations. No second live Markdown work hierarchy is maintained.
 
-DI-003 compares Jira and GitHub Issues using the same representative graph, including next-work/status query cost, hierarchy/contracts, permission boundaries, retry/recovery and export/restore. That evaluation and minimum schema remain Discovery work. A recovery export is a non-live snapshot. If neither candidate is suitable, preserve the two-plane separation and seek an explicit decision rather than introducing another store silently.
+DI-003 compares Jira and GitHub Issues using the same representative graph, including next-work/status query cost, hierarchy/contracts, permission boundaries, retry/recovery and export/restore. That evaluation and minimum schema remain Discovery work. A recovery export is a non-live snapshot. When exports are produced, where they are kept and how their age is exposed are not yet defined (RV-27); neither is isolation between several managed projects in one backend (RV-28). Both are DI-003 work. This section lists evidence *links* only: the durable home of evidence bodies, invocation records and human-decision records is DI-005 work (RV-26). If neither candidate is suitable, preserve the two-plane separation and seek an explicit decision rather than introducing another store silently.
 
 ### 4.3 Execution Plane — ACCEPTED
 
@@ -87,6 +104,7 @@ Git and the external work backend do not provide one shared transaction. DI-005/
 - how an accepted revision invalidates old readiness/evidence before affected work can advance, including the window before REC candidate holds exist;
 - version/fingerprint checks at mutation and completion boundaries, rather than trusting a context packet loaded earlier;
 - ownership of serialization or equivalent conflict detection for overlapping invocations and manual backend edits;
+- the supported concurrency envelope (RV-25): whether more than one mutating invocation may run against a project at once, for example two Specs in separate worktrees, or one at a time with conflict detection reserved for manual edits;
 - complete versus partial/paginated/unavailable reads;
 - recovery after a successful remote write whose response is lost;
 - durable create identity, duplicate detection and safe retry under the selected backend's actual API semantics.
@@ -139,7 +157,7 @@ The adapter receives a provider-neutral agent contract, context packet and resol
 
 Agent instructions alone are not enforcement. Agents propose operational mutations through a bounded capability; the deterministic control/adapter layer checks target identity, current accepted authority, invocation permission, lifecycle/dependency/REC guards and relevant version preconditions before committing them. Review and verification remain separate from implementation.
 
-DI-008 must specify which writes are mechanically prevented, which are detected by verification/review, and which remain trusted local actions. In particular, distinguish operational-backend writes, accepted Git-authority changes and ordinary implementation edits. Where practical, remove direct raw write credentials/tools from an agent whose writes must pass the guard. If the chosen harness cannot isolate shell/filesystem access, document that limitation and the containment/detection used; do not claim a sandbox that does not exist.
+DI-008 must specify which writes are mechanically prevented, which are detected by verification/review, and which remain trusted local actions. In particular, distinguish operational-backend writes, accepted Git-authority changes and ordinary implementation edits. Classify Git remote and history-affecting operations as well: push, force-push (rebasing an already-published branch under Workflow §16.2 may require one), branch/worktree deletion and tags (RV-36, proposed). Where practical, remove direct raw write credentials/tools from an agent whose writes must pass the guard. If the chosen harness cannot isolate shell/filesystem access, document that limitation and the containment/detection used; do not claim a sandbox that does not exist.
 
 The boundary must reject invalid proposals even when a model confidently requests them. Approval applies only to its recorded scope/revision and does not disable other guards. This is a narrow control boundary, not a new agent, permission platform or second state store. Its failure-path proof belongs in Qualification §24.11.
 
@@ -172,6 +190,8 @@ Secrets are referenced through isolated credential bindings, never embedded. For
 ```
 
 Version and role defaults have one home. Changing the version behind `claude-sonnet` changes that map entry only. This does not permit a harness to replace an unavailable configured identifier with its own unrecorded "latest" selection.
+
+Whether the map is installation-wide or project-local is also DI-008 work (RV-38). A project pinned to a SubhForge release under Workflow §31A must not have its models changed by an unrelated map edit without that change being visible.
 
 ### 7.2 Resolution and dispatch
 
@@ -376,6 +396,8 @@ Explain/challenge uses the same assembler without mutation permission. Physical 
 ## 22. Execution Budget Boundary
 
 PRD CON-006, CON-007 and NFR-004 own budget/retry policy. Control performs deterministic preparation and budget preflight before model dispatch, while the harness reports available model-call/token/time facts. Invocation diagnostics link actual execution to the resolved map revision. Unknown telemetry stays unknown rather than being counted as zero. Repeated failure and safe stopping use Workflow's durable continuation/ESC/BLK paths.
+
+NFR-004's limits need one configured home (RV-31, proposed). Per-invocation model-call/token/time ceilings and the fix/verify repeat bound are execution configuration, not agent prose. DI-008 decides whether they sit beside the §7 map or in a separate project-level file, their defaults, and which of them a caller may raise for one invocation. An absent limit stops preflight; it is not read as unlimited.
 
 ---
 

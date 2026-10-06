@@ -9,6 +9,8 @@
 
 The 2026-10-06 review clarifications are proposed additions pending DI-001 acceptance; no scope freeze or Discovery closure is implied.
 
+Additions tagged `RV-19` to `RV-38` come from the independent review recorded in Discovery §8 and carry the same proposed status.
+
 ---
 
 ## 1. Core Product Requirement
@@ -47,6 +49,8 @@ SubhForge v0.2 deliberately covers the lifecycle in four segments:
 | **Spec → reviewed implementation** | **Core.** SubhForge owns implementation, tests, verification and review. PR preparation/creation may be supported where useful, but automated PR creation is not a v0.2 release gate. |
 | **PR → Production** | **Outside primary v0.2 scope.** Post-PR organizational approvals, deployment orchestration and production release are not required v0.2 capabilities. |
 | **Production/runtime/user feedback → accepted authority/work** | **Core evolution path.** A proven defect against existing accepted behavior uses Bug → Diagnose/Fix → Re-verify. Feedback that changes or exposes missing requirements, architecture, acceptance, dependencies or planned behavior enters Change Triage/Reconciliation. |
+
+Proposed boundary clarifications (RV-21): integrating a reviewed Spec change into the managed project's integration baseline belongs to *Spec → reviewed implementation* wherever a dependent Spec or Feature/Epic verification relies on it. It is not post-PR release orchestration. Who performs that step is DI-005/DI-014 work. Local or test environments needed to run integration/E2E checks and `AC-0` demonstrations are ordinary project delivery work; only production deployment and release stay outside scope.
 
 ---
 
@@ -118,6 +122,8 @@ The exact provider/model split is execution configuration, not a permanent produ
 
 Construction spend and the cost of operating SubhForge-managed projects are distinct measurements. Backend licensing, storage, hosted test environments and optional integrations must be surfaced before adoption; the construction ceiling does not implicitly authorize them. Discovery DI-003/DI-010/DI-013 must establish an affordable operating baseline with Subhadeep.
 
+Model/tool spend for the §7 dogfood evidence must be classified before it is incurred (RV-33, proposed): DI-013 states whether it counts against this construction ceiling or the operating baseline, with an estimate for the December dogfood sequence. An unclassified dogfood run is not assumed affordable.
+
 ### CON-007 — No silent paid/provider fallback
 
 Quota exhaustion, authentication failure, balance exhaustion, rate limits, denied permission or configured provider failure shall surface explicitly.
@@ -178,6 +184,8 @@ SubhForge shall support **STANDARD** and **LARGE** workflows.
 Subhadeep explicitly selects LARGE. SubhForge may recommend a mode but must not silently switch modes.
 
 Once selected, the mode must be durable and must not depend on chat/session memory.
+
+Converting an existing project between modes is not a v0.2 capability (RV-34, proposed). An attempted or implied conversion is refused visibly unless DI-004 accepts an explicit bounded conversion path.
 
 #### FR-002 — Discovery and ideation
 
@@ -499,9 +507,13 @@ The capabilities below define responsibility and handover boundaries required to
 | Diagnoser | Root-cause analysis | Choose unresolved product/Architecture semantics |
 | Fixer | Bounded corrective mutation | Expand accepted behavior |
 | Adversary | Independent challenge | Become authority |
+| Change Triage | Classify feedback/change requests against accepted authority with cited FR/NFR/invariant context | Downgrade its own `AUTHORITY_CHANGE`; mutate authority or work |
 | Reconciliation Planner | Impact analysis/proposed verdict | Perform semantic work mutation before approval |
 | Reconciliation Executor | Apply approved reconciliation operations | Reinterpret approved intent |
+| Setup / Health check | Guided project setup; read-only prerequisite and health reporting | Create accepted authority, activate delivery or make undeclared paid calls |
 | Smoke/Qualification capabilities | Framework qualification | Become product-delivery authority |
+
+The Change Triage and Setup / Health check rows are proposed (RV-32). They give FR-015 and FR-022 an owner in this matrix, restating Workflow §17.1 and §9.4; neither adds an agent.
 
 ### 4.2 Interaction requirements
 
@@ -598,6 +610,8 @@ External integrations shall use least privilege, bounded tool exposure, secret i
 
 Supplied documents, research, repository content and tool responses cannot grant mutation authority or redirect secrets. Qualification must exercise attempted authority expansion through those inputs, as well as denied access and redacted diagnostics.
 
+Sensitive data is distinct from ordinary project context (RV-35, proposed). Requirements, design documents, source code, configuration without secrets and synthetic sample data are ordinary context and may be loaded as FR-018 requires. Records about real people, such as personal, financial or health data, and live credentials are sensitive: they must not be placed in model context, test fixtures, acceptance packets, evidence or exports. Managed projects use synthetic or deliberately sanitized sample data unless Subhadeep explicitly authorizes a bounded exception.
+
 ### NFR-007 — Observability and diagnostics
 
 Failures, blockers, held scopes, next actions and recovery instructions must be visible enough that Subhadeep normally does not need to inspect SubhForge internals.
@@ -619,6 +633,8 @@ v0.2 LARGE evolution shall not silently regress the accepted STANDARD behavior b
 During real dogfood, avoidable manual status reconstruction, handoff coordination, repeated settled questions and routine Spec approvals are product-quality failures.
 
 For VidyaBeacon, such intervention should approach zero.
+
+A necessary invocation that starts work outside the currently authorized envelope is expected interaction under §4.5, not avoidable intervention. A manual handoff that the invoked workflow was already authorized to perform, such as Builder → Verifier → Reviewer for one Spec, is avoidable and is counted, consistent with CON-008. So is having to work out by hand what is eligible, blocked or already decided (RV-29, proposed).
 
 Before release qualification, DI-013 shall define measurable acceptance thresholds for cost/context/scale, recovery and avoidable human intervention, including fixture size, environment, repeat policy and permitted exceptions. Narrative claims of "acceptable" behavior alone do not prove these NFRs.
 
