@@ -11,7 +11,7 @@
 > - Live unresolved questions: `design/discovery/SUBHFORGE-V0.2-DISCOVERY.md`
 > - This document: how v0.2 is proven
 >
-> Qualification validates accepted product/architecture/workflow contracts. It must not silently resolve an open `DQ-###` or create a second definition of the behavior being tested.
+> Qualification validates accepted product/architecture/workflow contracts. It must not silently resolve an open `DI-###` or create a second definition of the behavior being tested.
 
 ---
 
@@ -38,7 +38,7 @@ Rules:
 2. FAST is not a per-edit ritual;
 3. FULL is release/system-wide qualification, not normal development;
 4. impact determines validation breadth;
-5. any dedicated dry-orchestration/contract validator is **not assumed**; Discovery `DQ-011` decides whether a minimal form earns its place;
+5. any dedicated dry-orchestration/contract validator is **not assumed**; Discovery `DI-013` decides whether a minimal form earns its place;
 6. FULL comes after cheap gates are green;
 7. an early FULL run requires an explicit reason;
 8. synthetic qualification complements real dogfood and must not become a substitute for it.
@@ -177,7 +177,7 @@ Qualification must prove the Architecture §8.1 / Workflow §9.3 interaction con
 - when Subhadeep initiates a question against an existing artifact/work item, the default is bounded **explain/challenge**, not mutation;
 - Planner/Reviewer/Verifier/Status can explain their rationale/context but cannot acquire upstream product/architecture mutation authority from the conversation;
 - a conversation that becomes an authority-change request routes to the owning workflow;
-- the implementation selected under Discovery `DQ-009` must prove that conversational context alone cannot expand mutation permission.
+- the implementation selected under Discovery `DI-008` must prove that conversational context alone cannot expand mutation permission.
 
 ---
 
@@ -188,7 +188,7 @@ Qualification must prove the v0.2 delivery boundary:
 1. a proven production/runtime defect against existing accepted behavior enters Bug → Diagnose/Fix → Re-verify without unnecessary full reconciliation;
 2. feedback that changes or exposes missing accepted requirements/architecture/acceptance/dependency/planned behavior enters Change Triage and, when material, Reconciliation;
 3. post-PR deployment/release orchestration is not required for the SubhForge lifecycle to consider reviewed Spec delivery complete;
-4. if optional PR creation is implemented under `DQ-010`, failure of PR automation does not invalidate valid implementation/verification/review evidence and manual PR creation remains allowed.
+4. if optional PR creation is implemented under `DI-012`, failure of PR automation does not invalidate valid implementation/verification/review evidence and manual PR creation remains allowed.
 
 ---
 
@@ -347,7 +347,7 @@ Must show:
 - durable resume/recovery paths;
 - discovery intake + handoff behavior;
 - behavioral drift canary;
-- STANDARD protection defined by the resolution of Discovery `DQ-015`.
+- STANDARD protection defined by the resolution of Discovery `DI-011`.
 
 ### RC2 — Greenfield delivery
 
@@ -373,7 +373,7 @@ Requires:
 
 - all BLOCKING Discovery questions required by v0.2 scope are closed and promoted;
 - larger-scale/context qualification;
-- STANDARD + LARGE regression against the accepted `DQ-015` compatibility boundary;
+- STANDARD + LARGE regression against the accepted `DI-011` compatibility boundary;
 - install/bootstrap/doctor/release checks;
 - required adversarial cases;
 - model/harness behavioral canary;
