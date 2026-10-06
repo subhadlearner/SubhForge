@@ -1,61 +1,116 @@
-# SubhForge Delivery Timeline --- Sep 29 to Nov 30, 2026
+# SubhForge v0.2.0 — Delivery Timeline
 
-> Document authority and stable-section policy: see `design/README.md`.
+**Status:** Active delivery plan  
+**Updated:** 2026-10-06  
+**Hard target:** `stable_v0.2.0` by **December 31, 2026**  
+**Next product:** VidyaBeacon begins **January 2027**
 
+> Schedule is a delivery constraint, not permission to weaken correctness, recovery, required dogfood, or release evidence.
 
-## Fixed Objective
+---
 
-**Target: VidyaBeacon starts on December 1, 2026. Architecture correctness and required dogfood evidence are not sacrificed to force this date.**
+## 1. Delivery Objective
 
-December 1 may move only through an explicit decision at a defined
-checkpoint (see Decision Checkpoints); it must never drift silently.
+SubhForge v0.2.0 must be complete enough by December 31, 2026 to become trusted delivery infrastructure for VidyaBeacon.
 
-SubhForge work after the final release is limited to defects that
-genuinely block VidyaBeacon. Non-blocking improvements move to later
-releases.
+“Complete” means more than feature implementation. The release must include:
 
-## Delivery Plan
+- accepted PRD, Architecture, Workflow and Qualification authorities;
+- all blocking Discovery decisions resolved and promoted;
+- a working LARGE lifecycle from Discovery through Epic acceptance;
+- reliable status, resume, dependency and evidence behavior;
+- safe change triage and reconciliation;
+- required greenfield, reconciliation and scale/context dogfood;
+- STANDARD compatibility protection;
+- acceptable runtime, context and provider cost;
+- install/bootstrap/doctor/release readiness;
+- sufficient diagnostics and recovery;
+- no dependency on temporary construction/review scaffolding.
 
-| Period | Working Sessions | Objective | Target Exit |
-|---|---|---|---|
-| Sep 29 -- Oct 4 | 5--6 | Complete planned v0.1.0 hardening | `stable_v0.1.0` |
-| Oct 5 -- Oct 10 | 5--6 | Develop and harden the two already-defined v0.1.1 items | `stable_v0.1.1` |
-| Oct 11 -- Oct 17 | 5--7 | Architecture Fitness Review for v0.2.0 | Architecture decision report |
-| Oct 18 -- Oct 22 | 4--5 | Promote accepted review decisions into the owning v0.2 Architecture / Workflow / Qualification documents; freeze RC1--RC3 exit criteria | Normative v0.2 design authorities and RC exit criteria accepted and frozen |
-| Oct 23 -- Nov 5 | 11--12 | Use stable v0.1.1 to implement and harden revised LARGE workflow; build behavioural canary baseline | `v0.2.0-rc1` |
-| Nov 6 -- Nov 12 | 5--6 | MediBot greenfield LARGE dogfood and resilience qualification | `v0.2.0-rc2` |
-| Nov 13 -- Nov 18 | 4--5 | MediBot Evaluation Guardrails reconciliation/re-verification dogfood | `v0.2.0-rc3` |
-| Nov 19 -- Nov 24 | 5--6 | Autonomous Market Intelligence scale/context qualification; final STANDARD + LARGE regression; docs/install/doctor/release qualification | `stable_v0.2.0` desired |
-| Nov 25 -- Nov 30 | Protected buffer | Emergency stabilization only; no planned features | Protect Dec 1 |
-| Dec 1 | --- | Begin VidyaBeacon | SubhForge becomes delivery infrastructure |
+After stable v0.2.0, only genuinely blocking SubhForge defects should interrupt VidyaBeacon delivery. Non-blocking improvements move to later SubhForge releases.
 
-> **v0.1.1 implementation bridge:** add a new `/specbypassceremony` command for projects that already have valid PRD + Architecture authority. The existing `/spec` command is **not modified**. `/specbypassceremony` validates the supplied/canonical upstream authority and repository readiness, then performs the normal specification-decomposition contract without requiring replay of `/prd` or `/architect` merely for provenance. Design-time workflow contract validation + dry orchestration simulation remains wholly in v0.1.0 hardening (H11).
+---
 
-## Milestone Sequence
+## 2. Delivery Plan
 
-`stable_v0.1.0 → stable_v0.1.1 → Architecture Review → v0.2 Design Freeze → rc1 → rc2 → rc3 → stable_v0.2.0 → VidyaBeacon`
-
-## Decision Checkpoints
-
-At each checkpoint, explicitly decide: **hold December 1** or **move the
-VidyaBeacon start date**. Weakening architecture, adversarial testing, or
-dogfood evidence is not an option.
-
-| Checkpoint | Date | Fires when |
+| Period | Objective | Required Exit |
 |---|---|---|
-| Review outcome | Oct 17 | Review returns `REWORK` and the correction materially consumes the v0.2 implementation/dogfood window |
-| RC1 checkpoint | Nov 8 | `v0.2.0-rc1` has not met its frozen exit criteria **or reconciliation implementation is not far enough along to run the shared fixture** |
-| Reconciliation readiness | Nov 12 | `V0.2-QUALIFICATION.md` §30.2 scenarios **6, 7 and 10** do not pass end to end |
-| RC3 checkpoint | Nov 18 | `v0.2.0-rc3` has not met its frozen exit criteria, or dogfooding produced an accepted `ADD`/`MODIFY` not yet implemented |
+| **Oct 6–12** | Review the clean PRD, Discovery, Architecture, Workflow and Qualification set; correct contradictions and remove stale assumptions | Core design set accepted for continued design closure |
+| **Oct 13–20** | Resolve the blocking Discovery questions needed for implementation: operational backend, mode discovery, minimum backend schema, consistency model, reconciliation representation, trace/evidence representation, protected-invariant representation, physical agent/capability mapping, interaction-mode implementation, baseline observability and STANDARD boundary | Blocking architectural decisions closed and promoted |
+| **Oct 21–25** | Freeze v0.2 scope/Definition of Done; finalize walking skeleton, verification strategy, dogfood path and implementation work plan | **Pre-code gate passed** |
+| **Oct 26–Nov 8** | Implement foundation + walking skeleton: project/mode bootstrap, authority planes, work backend, FR/NFR identity/traceability, core lifecycle, dependency DAG, status/work-plan/resume | End-to-end skeleton operational |
+| **Nov 9–22** | Implement LARGE planning and delivery: Ideation/document intake, optional Research, PRD/Architecture admission, Epic/Feature/Spec grooming/readiness, implement/verify/review, Feature/Epic verification and acceptance | Greenfield LARGE lifecycle implementation complete |
+| **Nov 23–Dec 6** | Implement change triage, production-feedback routing, reconciliation analysis/holds/apply/idempotency/evidence invalidation/re-verification; complete bounded observability/recovery | Reconciliation implementation complete |
+| **Dec 7–13** | MediBot greenfield LARGE dogfood; repair framework defects discovered by real delivery | Greenfield dogfood accepted |
+| **Dec 14–20** | MediBot Evaluation Guardrails reconciliation dogfood and adversarial recovery scenarios | Reconciliation dogfood accepted |
+| **Dec 21–24** | Scale/context dogfood, STANDARD regression, behavior-drift canary, runtime/token/provider-cost checks | Release-candidate evidence complete |
+| **Dec 25–28** | Install/bootstrap/doctor/release checks, documentation consistency, cleanup of temporary/superseded scaffolding | Stable candidate ready |
+| **Dec 29–31** | **Protected stabilization buffer** — defect correction and required requalification only; no planned new scope | `stable_v0.2.0` |
+| **January 2027** | Begin VidyaBeacon using the pinned tested SubhForge release | SubhForge becomes delivery infrastructure |
 
-Checkpoints judge against the RC exit criteria frozen on October 22.
+---
 
-## Hard Deadline
+## 3. Milestone Sequence
 
-**November 24:** desired `stable_v0.2.0` release.
+```text
+Clean design review
+→ Blocking Discovery closure
+→ Scope / DoD freeze
+→ Pre-code gate
+→ Walking skeleton
+→ LARGE delivery lifecycle
+→ Reconciliation
+→ Greenfield dogfood
+→ Reconciliation dogfood
+→ Scale / regression qualification
+→ Stable v0.2.0
+→ VidyaBeacon
+```
 
-**November 25--30:** protected contingency buffer only.
+---
 
-**December 1:** VidyaBeacon target start, unless moved by an explicit
-checkpoint decision. VidyaBeacon is pinned to the tested SubhForge release;
-only genuinely blocking SubhForge defects may interrupt product work.
+## 4. Schedule Protection Rules
+
+1. **December 31 is the hard delivery target**, but correctness and required release evidence are not silently weakened to preserve it.
+2. New scope after scope freeze requires an explicit trade-off: remove/defer something of comparable cost or move the plan deliberately.
+3. A Discovery question becomes schedule-critical only when implementation cannot proceed safely without it.
+4. Dogfood is release work, not optional polish.
+5. Synthetic smoke does not substitute for real-project dogfood.
+6. The Dec 29–31 window is a **stabilization buffer**, not planned feature-development capacity.
+7. Any material risk to the December 31 target must be surfaced when discovered rather than hidden until release week.
+
+---
+
+## 5. Delivery Checkpoints
+
+| Checkpoint | Target | Question |
+|---|---|---|
+| **Design review accepted** | Oct 12 | Are PRD, Discovery, Architecture, Workflow and Qualification internally coherent enough to close remaining decisions? |
+| **Blocking Discovery closed** | Oct 20 | Are all decisions required for the implementation foundation resolved and promoted to their authority homes? |
+| **Pre-code gate** | Oct 25 | Is scope frozen, DoD explicit, walking skeleton designed, qualification path defined and implementation plan ready? |
+| **Walking skeleton checkpoint** | Nov 8 | Can a minimal real project traverse the core authority/work lifecycle and resume from durable state? |
+| **LARGE lifecycle checkpoint** | Nov 22 | Can normal greenfield work progress through Spec implementation/review and Feature/Epic verification without hidden chat dependence? |
+| **Reconciliation checkpoint** | Dec 6 | Can material authority change be analysed, approved, safely applied, resumed and re-verified against the real work/evidence model? |
+| **Greenfield dogfood checkpoint** | Dec 13 | Has MediBot exposed and survived the real end-to-end LARGE workflow? |
+| **Reconciliation dogfood checkpoint** | Dec 20 | Has Evaluation Guardrails proven the real reconciliation path and required adversarial cases? |
+| **Release-candidate checkpoint** | Dec 28 | Are scale/context, STANDARD regression, behavioral canary, cost/runtime, install/doctor and cleanup evidence acceptable? |
+| **Stable release** | Dec 31 | Is SubhForge trustworthy enough to pin for VidyaBeacon? |
+
+---
+
+## 6. Explicitly Superseded Schedule
+
+The former plan targeting:
+
+- stable v0.1.1;
+- Architecture Fitness Review;
+- v0.1.1-driven v0.2 implementation;
+- `/specbypassceremony`;
+- stable v0.2.0 around November 24; and
+- VidyaBeacon on December 1, 2026
+
+is **superseded**.
+
+The current authoritative delivery direction is:
+
+> **Clean-build SubhForge v0.2.0, fully dogfooded and qualified by December 31, 2026; begin VidyaBeacon in January 2027.**
