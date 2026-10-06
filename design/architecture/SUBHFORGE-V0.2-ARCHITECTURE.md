@@ -8,9 +8,11 @@
 > - Product requirements: `design/prd/SUBHFORGE-V0.2-PRD.md`
 > - Live unresolved questions: `design/discovery/SUBHFORGE-V0.2-DISCOVERY.md`
 > - This document: durable structural architecture decisions
-> - Detailed workflow behavior: the Workflow Contracts document, pending its own reconciliation pass
+> - Detailed workflow behavior: `design/workflow/SUBHFORGE-V0.2-WORKFLOW-CONTRACTS.md`
 >
 > An unresolved `DI-###` remains Discovery authority. This document must not guess its answer merely to appear complete.
+
+The 2026-10-06 review corrections are proposals pending DI-001 acceptance. Physical choices remain open in their owning DIs; this review does not close them.
 
 ---
 
@@ -322,6 +324,20 @@ Execution combines:
 Derived views such as status and work plans are projections, not third stores of
 truth.
 
+### 4.4 Cross-plane safety boundary — REVIEW (`DI-005`, `DI-006`)
+
+Git and the external work backend do not provide one shared transaction. DI-005/DI-006 must define the smallest safe authority-activation and mutation protocol, including:
+
+- how draft versus accepted authority and the exact approved revision are recognized;
+- how an accepted revision invalidates old readiness/evidence before affected work can advance, including the window before REC candidate holds exist;
+- version/fingerprint checks at mutation and completion boundaries, rather than trusting a context packet loaded earlier;
+- ownership of serialization or equivalent conflict detection for overlapping invocations and manual backend edits;
+- complete versus partial/paginated/unavailable reads;
+- recovery after a successful remote write whose response is lost;
+- durable create identity, duplicate detection and safe retry under the selected backend's actual API semantics.
+
+Atomic transition semantics in Workflow §2.4 are a required observable guarantee, not an assumption that several remote writes are transactional. Qualification must prove the chosen protocol against real backend boundaries. No local cache or telemetry marker may override authoritative state.
+
 ---
 
 ## 5. Protected Architecture Invariants
@@ -555,7 +571,7 @@ Do not let:
 - planning rewrite architecture;
 - status mutate work;
 - research silently decide product intent;
-- reconciliation analysis semantically mutate planned work, dependencies, acceptance, lifecycle completion or authority before approval. **The sole pre-approval exception is deterministic reconciliation-control bookkeeping:** acquire/release the REC scope hold and transition an affected `ACTIVE` Spec to `PAUSED_FOR_RECONCILE` so stale implementation cannot continue.
+- reconciliation analysis semantically mutate planned work, dependencies, acceptance, lifecycle completion or authority before approval. **The sole pre-approval exception is deterministic reconciliation-control bookkeeping:** acquire/release the REC scope hold and transition an affected `ACTIVE` Spec to `PAUSED_FOR_RECONCILE` so stale implementation cannot continue. Safe restoration after a recorded no-impact/cancellation outcome follows Workflow §§16.2/16.4; it does not grant semantic mutation authority.
 
 ---
 
@@ -927,7 +943,7 @@ Feature/Epic verification semantics, evidence freshness and completion states ar
 
 Reconciliation may be designed in parallel, but it does not pass its architecture/release gate until it operates against the actual implemented verification/evidence states.
 
-This dependency order is architectural; calendar dates are planning concerns and must remain consistent with the PRD target. Qualification evidence is owned by the Qualification design after its reconciliation pass.
+This dependency order is architectural; calendar dates are planning concerns and must remain consistent with the PRD target. Qualification evidence is owned by the active Qualification document.
 
 No v0.1.1 bridge, `/specbypassceremony`, temporary `/arch-*` review system or separate implementation-tooling framework is required to preserve this dependency order. Implementation planning should derive bounded work directly from the accepted PRD, Architecture, Workflow Contracts and current Discovery decisions.
 
@@ -939,16 +955,16 @@ This index preserves the user-facing capability view without restating normative
 | Capability | Normative home |
 |---|---|
 | Bounded two-way reasoning / grill direction | §8 in this document |
-| Durable work-item resume | `V0.2-WORKFLOW-CONTRACTS.md` §17.3 |
-| Dependency-aware work planning | `V0.2-WORKFLOW-CONTRACTS.md` §11 |
-| Explainable status | `V0.2-WORKFLOW-CONTRACTS.md` §17.2 |
+| Durable work-item resume | `design/workflow/SUBHFORGE-V0.2-WORKFLOW-CONTRACTS.md` §17.3 |
+| Dependency-aware work planning | `design/workflow/SUBHFORGE-V0.2-WORKFLOW-CONTRACTS.md` §11 |
+| Explainable status | `design/workflow/SUBHFORGE-V0.2-WORKFLOW-CONTRACTS.md` §17.2 |
 | Protected architecture | §5 in this document |
-| First-class reconciliation | `V0.2-WORKFLOW-CONTRACTS.md` §16 |
-| Analyse → approve → apply separation | `V0.2-WORKFLOW-CONTRACTS.md` §16 |
+| First-class reconciliation | `design/workflow/SUBHFORGE-V0.2-WORKFLOW-CONTRACTS.md` §16 |
+| Analyse → approve → apply separation | `design/workflow/SUBHFORGE-V0.2-WORKFLOW-CONTRACTS.md` §16 |
 | Replaceable AI workers / harness boundaries | §§6–8 in this document |
 | Skills + MCP | §§19–20 in this document; baseline scope resolves through `DI-010` |
-| Feature/Epic verification + human acceptance | `V0.2-WORKFLOW-CONTRACTS.md` §§13–14 and §23 |
-| Intelligent validation economics | `V0.2-QUALIFICATION.md` §24 |
+| Feature/Epic verification + human acceptance | `design/workflow/SUBHFORGE-V0.2-WORKFLOW-CONTRACTS.md` §§13–14 and §23 |
+| Intelligent validation economics | `design/qualification/SUBHFORGE-V0.2-QUALIFICATION.md` §24 |
 | Human authority with low ceremony | §3 in this document |
 | Small repository knowledge surface | §4 in this document |
 | Long-lived project context | §21 in this document |

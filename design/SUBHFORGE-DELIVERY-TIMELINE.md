@@ -52,6 +52,8 @@ After stable v0.2.0, only genuinely blocking SubhForge defects should interrupt 
 
 ## 3. Milestone Sequence
 
+Qualification's RC labels name evidence bundles: RC1 corresponds to the walking-skeleton checkpoint; RC2 to accepted greenfield dogfood; RC3 to accepted reconciliation dogfood. Dates remain owned by this timeline. Reaching a date or applying a label does not prove its exit criteria; Discovery DI-013 freezes those criteria.
+
 ```text
 Clean design review
 → Blocking Discovery closure

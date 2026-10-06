@@ -13,6 +13,8 @@
 >
 > Qualification validates accepted product/architecture/workflow contracts. It must not silently resolve an open `DI-###` or create a second definition of the behavior being tested.
 
+The 2026-10-06 review additions are proposed proof obligations pending DI-001 acceptance; DI-013 freezes their executable cases/thresholds after the owning design decisions close. Listing a case is not evidence that it has passed.
+
 ---
 
 ## 24. Layered Validation Strategy
@@ -54,6 +56,8 @@ For tiny default fixtures:
 - Claude runtime calls in smoke = **0 by default**;
 - avoid repeated unchanged authority reads;
 - runtime/workspace setup is deterministic.
+
+Record raw wall time as well as any adjusted duration, with separately evidenced provider outage/human-wait exclusions. Never hide repeated reads, retries or local/tool overhead in those exclusions. Compare runs only with the same fixture/profile, host/toolchain and relevant execution configuration; attach those identities to timing evidence.
 
 ### 24.2 FULL execution design
 
@@ -190,6 +194,48 @@ Qualification must prove the v0.2 delivery boundary:
 3. post-PR deployment/release orchestration is not required for the SubhForge lifecycle to consider reviewed Spec delivery complete;
 4. if optional PR creation is implemented under `DI-012`, failure of PR automation does not invalidate valid implementation/verification/review evidence and manual PR creation remains allowed.
 
+### 24.10 Requirement coverage and measurable release gates — REVIEW (`DI-013`)
+
+The following is a review coverage map, not a declaration of completeness or passed tests. DI-013 must freeze concrete cases, thresholds and artifact locations against the accepted revisions. A release record links each required property to current proof, owner and PASS/FAIL/explicit deferral. Missing proof is not PASS; changed authority/implementation invalidates affected qualification evidence.
+
+| PRD requirement / constraint | Required proof surface | Current qualification home / design dependency |
+|---|---|---|
+| FR-001; NFR-009 | Durable mode, missing/conflicting marker, no silent switching; defined STANDARD regression | DI-004/011; RC1 + stable regression |
+| FR-002 | Conversational/document intake, optional/manual research, durable frontier/resume | §24.7; DI-008 lifecycle closure |
+| FR-003, FR-004, FR-005 | Valid direct admission, stable/retired IDs, protected invariant enforcement/conflict | §24.5, §30.2; DI-005/007/008 |
+| FR-006, FR-007, FR-008 | Vertical decomposition, actionable owed contracts, gate invalidation, suite ownership; missing/retired links, cycles and cross-hierarchy eligibility | §24.6, §30.1–30.4; DI-003/005 |
+| FR-009; NFR-007 | Read-only status/work-plan, correct blockers; partial/paginated/failed reads cannot appear empty or eligible | §30.3/30.4; DI-003/009 |
+| FR-010, FR-011, FR-012, FR-013 | Distinct author/verify/review duties; exact tested baseline; effective gates, waiver limits, current AC-0; no routine Spec approval | §24.6, §30.1, §32; DI-005/008/014 |
+| FR-014, FR-015 | Proven defect versus changed/missing authority; escaped-defect feedback; explicit local-lane approval; completed-parent fixes | §24.9, §30.2; DI-008 |
+| FR-016 | Holds/overlap, protected conflicts, no-impact stopping, normalized replay, obligation closure and cancelled-pause recovery | §30.2; DI-006 |
+| FR-017; NFR-001, NFR-002; CON-010 | Fresh-session continuation, uncertain-write recovery, no duplicate identities; export + matching Git restore | §24.6/30.4; DI-003/005/006/009 |
+| FR-018; NFR-003 | Measure assembled context including mandatory authority/tool output; pressure and hard ceiling; safe continuation | §24.6, §30.3; DI-008/013 |
+| FR-019; NFR-006 | Least privilege, denied write, untrusted-input authority expansion, secret-redacted context/log/export and removable tools | §30.4; DI-010 |
+| FR-020; NFR-005 | Layer selection by failure class, negative canary, model/harness seams and required real dogfood | §24, §30, §31; DI-013 |
+| NFR-004, NFR-008; CON-006, CON-007 | Measured calls/tokens/runtime/spend, bounded retry, explicit quota/auth/rate-limit failure, no silent paid fallback | §24.1, §30.3/30.4; DI-010/013 |
+| NFR-010; CON-008 | Count avoidable versus reserved human interventions and recurring bookkeeping | §32; DI-013 |
+
+For scale/context/cost/intervention claims, freeze before the qualifying run:
+
+- workload: number of Epics/Features/Specs/claims, dependency depth/fan-in, authority/context size and meaningful session interruption;
+- environment: supported OS/shell/Python, backend/adapter, SubhForge revision, fixture/profile and harness/model configuration;
+- metric and threshold: tool calls/latency for status and next-work, context accounting, tokens/model calls/retries, variable cost and elapsed duration, recoverability and avoidable intervention;
+- repeat policy and explicit exceptions, including how failures and requalification are handled;
+- attribution: distinguish existing subscription cost, variable model spend, backend/storage/test-environment cost and human time; mark unavailable telemetry as unknown rather than zero.
+
+Do not manufacture numeric targets during a review without workload evidence. DI-013 remains open until Subhadeep accepts realistic, bounded thresholds.
+
+Additional focused qualification must prove:
+
+1. Backend pagination/truncation/access failure cannot produce a false complete graph or unsafe eligibility; mutation conflicts and a lost successful-write response recover without duplicate creates or stale overwrite.
+2. Authority changes after context assembly/before a hold or completion are detected and contained; revised verdict content cannot reuse approval for an earlier package.
+3. Two child changes on separate branches are actually assembled and verified together; later code/contract/suite/environment changes cannot reuse unsupported freshness or human acceptance.
+4. Recorded operational export plus matching Git references restores identities, relationships, holds/obligations and evidence meaning with no second live writable authority.
+5. Windows/PowerShell bootstrap, interrupted discovery bootstrap and direct valid-authority admission work on the supported setup.
+6. Injected instructions in notes/repository/tool output cannot expand write authority or expose secrets; denied/quota/authentication failures preserve safe progress and report the real cause without paid fallback.
+
+Use deterministic proof for mechanical properties and the smallest real integration/model-bearing slice for boundaries it cannot prove alone.
+
 ---
 
 ## 30. Dogfood Sequence
@@ -241,6 +287,9 @@ The scenarios exercise normative rules in `design/workflow/SUBHFORGE-V0.2-WORKFL
 | 9 | False-small authority change | Apparently small request that changes FR/NFR/architecture is routed out of fast lane | Workflow §17.1 + Workflow §16 |
 | 10 | Missing traceability | Missing required trace stops/escalates; system never assumes the work is unaffected | Architecture §10.1 + Workflow §16 |
 | 11 | In-flight Spec authority change | Affected `ACTIVE` Spec is paused with branch/worktree preserved; reconcile selects RESUME/ADAPT/SUPERSEDE **without finishing stale work or deleting useful implementation** | Workflow §16.1–§16.2 |
+| 12 | APPLY succeeds with remaining REVERIFY/NEW_WORK_REQUIRED | Normal completion stays gated; explicitly approved verification/grooming can satisfy the obligation despite the REC's own gate; REC closes only at its defined obligation boundary | Workflow §16.6 review proposal |
+| 13 | Unaffected/cancelled analysis with paused ACTIVE Spec | Current-authority and other-hold checks precede release; baseline refresh/tests can run through authorized recovery; Spec returns ACTIVE safely or remains visibly blocked | Workflow §§16.2,16.4,16.6 review proposals |
+| 14 | Later operation overwrites an earlier postcondition | Invalid package is rejected before APPLY; normalized persistent effects survive retry, including crash after the last write | Workflow §16.3 review proposal |
 
 #### Shared reconciliation fixture — ACCEPTED
 
@@ -274,7 +323,8 @@ For every mutating verdict, the completed verdict must satisfy:
 - lifecycle/evidence state is internally consistent;
 - **evidence invalidation and re-verification obligations are correct and limited to affected claims/scopes**;
 - unaffected-state preservation holds against the reconciliation baseline snapshot, ignoring unrelated out-of-scope human edits;
-- every approved operation postcondition is satisfied.
+- every approved operation postcondition is satisfied (the Workflow §16.3 stable-postcondition rule applies);
+- remaining follow-up obligations are visible and only their explicitly authorized satisfying operations can bypass that REC's own gate.
 
 Per-operation idempotency, scope-hold, halted-verdict and overlap mechanics are asserted against Workflow §16.3–§16.5 rather than restated here.
 
@@ -371,7 +421,7 @@ Guardrails additionally prove:
 
 Requires:
 
-- all BLOCKING Discovery questions required by v0.2 scope are closed and promoted;
+- all release-blocking Discovery questions required by v0.2 scope are closed and promoted (release criticality is distinct from a DI's BLOCKED work status);
 - larger-scale/context qualification;
 - STANDARD + LARGE regression against the accepted `DI-011` compatibility boundary;
 - install/bootstrap/doctor/release checks;
@@ -381,6 +431,8 @@ Requires:
 - sufficient diagnostics/recovery;
 - temporary construction/review scaffolding is not required for product operation;
 - final release bar accepted by Subhadeep.
+
+The release evidence record must identify the exact SubhForge/Git/backend-schema/configuration revisions under test, reference the frozen §24.10 coverage/thresholds, and link results, exceptions and any required reruns. RC labels identify evidence bundles, not substitute schedules or automatic promotions.
 
 Dogfood evidence is not removed merely to preserve schedule.
 

@@ -46,6 +46,7 @@ Each DI records:
 - **Owner**;
 - **Status**;
 - **Depends on**;
+- **Release criticality** — release-blocking or explicitly safe to defer, as classified provisionally/finally by DI-002; this is separate from work status;
 - **Evidence / completion method**;
 - **Outcome**;
 - **Promote to**.
@@ -67,6 +68,7 @@ Rules:
 4. A chat conclusion is not DI closure.
 5. A DI closes only after its accepted outcome is durable in the owning authority.
 6. Git history preserves earlier Discovery wording; completed historical process does not need a permanent live DI.
+7. References to DI-002's provisional classification mean that recorded milestone, not DI-002's final CLOSED status. No release-blocking prerequisite may be silently treated as NON_BLOCKING. Final scope freeze depends on resolved decisions, not vice versa.
 
 ---
 
@@ -153,6 +155,8 @@ These facts may be revisited only if new evidence materially contradicts them.
 
 **Evidence / completion method:** Use the same representative work graph for both candidates. Evaluate hierarchy/sub-item fit, Contains/Governed-by/Depends-on representation, lifecycle state, blockers/escalations, reconciliation state/holds, FR/NFR traceability, suite ownership, evidence/implementation references, PR/commit linkage, human usability, API/MCP support, least-privilege writes, idempotent recovery, high-frequency status/next-work query cost, export/recovery and vendor lock-in. Define no fields beyond accepted workflow needs.
 
+Review additions: include minimum discovery bootstrap before delivery initialization; complete/paginated reads, version/conflict detection, duplicate-create recovery after a lost response, and the cost/licensing of required fields/API access. Demonstrate restore from a recorded export with stable identity/relationships and matching Git references. A feature list or export button alone is insufficient evidence.
+
 **Outcome:** Open.
 
 **Promote to:** Architecture and Workflow Contracts where physical representation affects workflow contracts.
@@ -174,6 +178,8 @@ These facts may be revisited only if new evidence materially contradicts them.
 **Depends on:** DI-001 and DI-002's provisional scope classification.
 
 **Evidence / completion method:** Prefer a single durable, inspectable project-level marker/configuration that does not create a competing state store and remains understandable if Kilo/model tooling is unavailable.
+
+Review addition: define the supported local execution environment (Subhadeep's Windows/PowerShell setup, Python/tool prerequisites and path/encoding assumptions), bootstrap checks, missing/contradictory-mode behavior and explicit handling of any unsupported mode conversion. Supporting every operating system is not required.
 
 **Outcome:** Open.
 
@@ -202,6 +208,8 @@ These facts may be revisited only if new evidence materially contradicts them.
 
 **Evidence / completion method:** Persist identifiers/references rather than copied authority. Define only mechanically provable identity/reference/freshness checks required by readiness, status, reconciliation and evidence freshness. Avoid a synchronization subsystem or second truth store.
 
+Review additions: resolve Architecture §4.4 and Workflow §23.2, including exact accepted revision/approval recognition, authority activation before REC holds exist, stale-context rejection at mutation/completion, composed integration baseline, claim identity/version, immutable run/environment identity, effective gates, waiver boundaries and revision-bound human acceptance. Demonstrate concurrent/manual edit and uncertain-write recovery without requiring a cross-system transaction or a second live store.
+
 **Outcome:** Open.
 
 **Promote to:** Architecture; Workflow/Qualification only for semantics/proof that depend on the representation.
@@ -224,6 +232,8 @@ These facts may be revisited only if new evidence materially contradicts them.
 
 **Evidence / completion method:** Use the smallest representation that supports deterministic pre/postconditions, scope holds, resume, partial APPLY recovery, overlap/conflict detection and fail-closed behavior without duplicating authority.
 
+Review additions: prove Workflow §§16.3–16.6 proposals: approval bound to exact verdict/baseline, stable postconditions across ordered operations, APPLY completion distinct from REC obligation closure, authorized obligation work despite its own hold, unaffected/cancelled pause recovery, and partial hold acquisition/release failure. Do not rely on a mutable APPLIED marker to solve replay.
+
 **Outcome:** Open.
 
 **Promote to:** Architecture + Workflow Contracts.
@@ -242,7 +252,7 @@ These facts may be revisited only if new evidence materially contradicts them.
 
 **Status:** BLOCKED
 
-**Depends on:** DI-001 and scope confirmation through DI-002.
+**Depends on:** DI-001 and DI-002's provisional scope classification (not its final closure).
 
 **Evidence / completion method:** Prefer human-readable architecture authority plus the smallest machine-readable contract required by deterministic verification.
 
@@ -266,9 +276,11 @@ These facts may be revisited only if new evidence materially contradicts them.
 
 **Status:** BLOCKED
 
-**Depends on:** DI-001 and scope confirmation through DI-002.
+**Depends on:** DI-001 and DI-002's provisional scope classification (not its final closure).
 
 **Evidence / completion method:** Minimize physical agents/commands while preserving one owner per responsibility, authority boundaries and resumability. Prefer deriving interaction mode from invoked capability, durable target and owning authority instead of creating a new conversation-state engine.
+
+Review additions: define the missing minimum Bug, Idea/Research and REC lifecycle contracts, including closure guards and owners; direct-authority Project admission without invented Ideation provenance; bounded Bug/Fix against accepted behavior in MAINTENANCE/COMPLETE projects without reopening completed children; and the authorization envelope for an on-demand delivery invocation. State which routine handoffs it may execute, where it stops, and what fresh invocation is needed after an exception. No background scheduler or routine Spec approval is implied.
 
 **Outcome:** Open.
 
@@ -313,6 +325,8 @@ These facts may be revisited only if new evidence materially contradicts them.
 **Depends on:** DI-002's provisional scope classification. Work-management integration specifics also depend on DI-003.
 
 **Evidence / completion method:** Apply real recurring need, credible provenance, non-duplication, authority compatibility, least privilege, context/tool cost, security/supply-chain risk, failure degradation and removability. Cloud/vendor integrations default to project-specific unless evidence proves global value.
+
+Review additions: validate authority-expansion attempts through supplied notes/repository/tool output, denied writes, secret redaction in diagnostics/context/export, and declared subscription/backend/environment costs. Retry/authentication/permission failure must not silently choose a paid fallback.
 
 **Outcome:** Open.
 
@@ -388,6 +402,8 @@ These facts may be revisited only if new evidence materially contradicts them.
 
 **Evidence / completion method:** For every expensive/model-bearing layer name the failure class it protects against and why cheaper deterministic evidence is insufficient. Dogfood remains mandatory release evidence; synthetic smoke does not replace it.
 
+Review additions: freeze Qualification §24.10's requirement-to-proof coverage and measurable NFR thresholds before claiming RC/release success. Include real backend consistency/recovery, composed implementation evidence, exported-state restore, supported Windows bootstrap, security/permission/fallback failures and the amended reconciliation cases. Classify each applicable property as required, explicitly deferred or out of scope with authority; do not infer coverage from scenario names.
+
 **Outcome:** Open.
 
 **Promote to:** Qualification.
@@ -409,6 +425,8 @@ These facts may be revisited only if new evidence materially contradicts them.
 **Depends on:** DI-002's provisional scope classification plus the architectural DIs required by the chosen thin slice, especially DI-003–DI-008.
 
 **Evidence / completion method:** Specify entry/exit behavior, durable identities/state, minimum work-backend operations, handoffs, bounded context, status/resume, tests and acceptance evidence. Optional PR creation is excluded unless DI-012 is deliberately pulled into the skeleton.
+
+Review addition: prove discovery/backend bootstrap and valid-authority direct admission, plus a composed implementation baseline that can support later Feature verification. The skeleton need not implement all higher-level acceptance, but its exit must state which lifecycle/evidence boundaries are actually proven.
 
 **Outcome:** Open.
 
@@ -536,3 +554,30 @@ A Discovery Item is CLOSED only when:
 **Pre-code is closed when DI-016 is CLOSED.** There is no separate pre-code-gate tracker.
 
 Git history preserves prior Discovery versions; this document should remain small enough to understand the current frontier without reconstructing old process history.
+
+---
+
+## 8. DI-001 Review Finding Ledger — 2026-10-06
+
+Reviewed active design at commit `d4eaad40d7d242bb0dfeea2baeb4f8f42cf5bbf3`, PRD first, then Discovery, Architecture, Workflow and Qualification. No archived file contents were read. The attached earlier timeline is superseded by the active Git schedule.
+
+This ledger is evidence for DI-001, not another work frontier. "Proposed" means corrected draft wording awaiting DI-001 human acceptance; "Expanded DI" means the physical/semantic decision remains open in its existing owner. No DI is closed by this review.
+
+| Finding | Priority | Gap / consequence | Action / owning home | Disposition |
+|---|---|---|---|---|
+| RV-01 | High | REC blocks verification/readiness required to close its own obligations; paused baseline tests also cannot run | Workflow §§16.4–16.6 distinguish APPLY completion, bounded obligation work and final closure; Qualification cases 12/13 | Proposed; DI-006 must prove |
+| RV-02 | High | Later operations can overwrite earlier postconditions, breaking backend-only replay and final checks | Workflow §16.3 requires normalized persistent effects and revision-bound approval; Qualification case 14 | Proposed; DI-006 must prove |
+| RV-03 | High | Unaffected/cancelled REC releases hold but strands PAUSED Spec; cancellation can also expose changed authority | Workflow §16.4 requires current-authority checks and baseline refresh before ACTIVE; Qualification case 13 | Proposed; DI-006 must prove |
+| RV-04 | High | Accepted authority can change before holds; remote writes/context checks are assumed atomic and complete | Architecture §4.4; DI-003/005/006: activation, conflict control, partial reads and lost-response recovery | Expanded DI; unresolved |
+| RV-05 | High | Effective gates, waivers, claim freshness and revision-bound AC-0 acceptance have no executable contract | Workflow §23.2; DI-005 and Qualification §24.10 | Expanded DI; unresolved |
+| RV-06 | High | Completed child branches do not establish an integrated Feature/Epic baseline | Workflow §23.2; DI-005/014; composed-baseline qualification | Expanded DI; unresolved |
+| RV-07 | High | Ideation requires backend before project-init; direct admission has no Project entry contract | Workflow bootstrap note; DI-003/004/008/014 | Expanded DI; unresolved |
+| RV-08 | High | Bug/research/REC lifecycle omitted; completed-project fixes and invocation authority unclear | Workflow §2.4 note; DI-008 | Expanded DI; unresolved |
+| RV-09 | Medium | Cycle rule conditionally tolerates cycles although PRD requires a DAG | Workflow §11A blocks every execution-dependency cycle | Proposed correction |
+| RV-10 | Medium | Feature/Epic diagrams send unspecified behavior straight to Planner; suite owners can appear recursively mandatory | Workflow §§10.5,13,14 route missing intent upstream and clarify owner designation | Proposed correction |
+| RV-11 | Medium | DI-007/008 can depend on final scope freeze while freeze depends on them | Discovery dependencies use DI-002's provisional milestone; criticality separated from work status | Corrected draft |
+| RV-12 | High | Qualitative scale/cost/recovery criteria lack frozen measurable release thresholds and coverage map | PRD NFR-010; DI-013; Qualification §24.10 candidate coverage/measurement contract | Expanded DI; unresolved |
+| RV-13 | Medium | Export, Windows bootstrap and untrusted-input security are principles without specific proof; operating costs omitted | PRD CON-006/NFR-001/006; DI-003/004/010/013 and Qualification | Expanded DIs; proof pending |
+| RV-14 | Low | README broken historical link, Architecture obsolete filenames and triage example citing an undefined requirement ID | README and Architecture reference active authority; Timeline maps current checkpoints to RC evidence | Corrected draft |
+
+**Assessment:** coherent product direction, but not implementation-ready. Resolve the High findings through the cited DIs and accept the corrected semantics before DI-016. Avoid adding more agents, a second state store or broader automation to compensate for these gaps.
