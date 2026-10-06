@@ -471,6 +471,14 @@ Changing Kilo, model family or provider must not change:
 
 Models and harnesses are replaceable workers/execution surfaces behind stable SubhForge contracts. v0.2 requires **migration-friendly seams**, not a universal provider or multi-harness plug-in framework.
 
+### 6.4 Guarded mutation boundary — REVIEW (`DI-008`)
+
+Agent instructions alone are not enforcement. Agents propose operational mutations through a bounded capability; the deterministic control/adapter layer checks target identity, current accepted authority, invocation permission, lifecycle/dependency/REC guards and relevant version preconditions before committing them. Review and verification remain separate from implementation.
+
+DI-008 must specify which writes are mechanically prevented, which are detected by verification/review, and which remain trusted local actions. In particular, distinguish operational-backend writes, accepted Git-authority changes and ordinary implementation edits. Where practical, remove direct raw write credentials/tools from an agent whose writes must pass the guard. If the chosen harness cannot isolate shell/filesystem access, document that limitation and the containment/detection used; do not claim a sandbox that does not exist.
+
+The boundary must reject invalid proposals even when a model confidently requests them. Approval applies only to its recorded scope/revision and does not disable other guards. This is a narrow control boundary, not a new agent, permission platform or second state store. Its failure-path proof belongs in Qualification §24.11.
+
 ---
 
 ## 7. Current Model Assignment Strategy — CONFIGURABLE
@@ -767,6 +775,22 @@ not:
 
 `install latest → trust automatically`
 
+### 19.4 Proposed minimum engineering-method coverage — REVIEW (`DI-010`)
+
+The baseline should cover the following responsibilities through the smallest non-duplicating skill/rule set. These are admission candidates, not automatically installed dependencies:
+
+| Responsibility | Candidate method/source | SubhForge adaptation boundary |
+|---|---|---|
+| Requirements interrogation | Existing requirements-grilling discipline | Owning Ideation/PRD/Architect interviews only; stop at the readiness frontier |
+| Vertical decomposition | Matt Pocock's `to-tickets` principles | Incorporate into Planner and Workflow §10.6; retain SubhForge's backend, durable hierarchy and machine-governed routine Spec progression |
+| Domain/interface design | Selectively adapt `domain-modeling` and `codebase-design` | Use only where domain/seam complexity warrants it; no automatic mutation of accepted authority |
+| Implementation/diagnosis | TDD and root-cause-first diagnosis | Accepted behavior supplies expectations; skills do not choose missing intent |
+| Engineering review | Existing review discipline plus applicable cross-cutting coverage | Check authority, engineering quality and evidence; no duplicate review lifecycle |
+
+Evaluate the source [Matt Pocock skills collection](https://github.com/mattpocock/skills) and its [to-tickets documentation](https://github.com/mattpocock/skills/blob/main/docs/engineering/to-tickets.md) under §19.3 before adaptation. Pin the reviewed revision and record provenance/licensing. Preserve useful methods, not external commands, alternate trackers, automatic sub-agent fan-out, conversational-memory assumptions or mandatory routine ticket approvals.
+
+Names and popularity do not establish industry-standard compliance. The admission evidence must show that the adapted method improves a real decomposition/review task without adding excessive context, ceremony or cost.
+
 ---
 
 ## 20. MCP Philosophy
@@ -814,6 +838,17 @@ Before normal use:
 Possible integration decisions:
 
 `REJECT | WATCH | READ_ONLY_PILOT | APPROVE_BOUNDED`
+
+### 20.3 Proposed bounded integration baseline — REVIEW (`DI-010`)
+
+| Integration | Proposed admission scope | Boundary |
+|---|---|---|
+| [Official GitHub MCP server](https://github.com/github/github-mcp-server) or equivalent existing bounded integration | Repository/commit/PR access; work-graph access only if GitHub Issues wins DI-003 | Expose only needed tools; guarded writes under §6.4 |
+| Selected operational-backend integration | Required graph capabilities after DI-003 | One live backend; no second tracker for convenience |
+| [Context7](https://github.com/upstash/context7) | Optional documentation lookup where freshness/version accuracy adds value | Official primary documentation preferred; output is advisory and external-call/privacy/cost admission still applies |
+| [Playwright MCP](https://github.com/microsoft/playwright-mcp) | Project-specific browser exploration and diagnostic support | Repeatable browser acceptance verification belongs in authored tests; exploration alone is not regression evidence |
+
+Do not enable every candidate globally. Admit integrations by recurring need, least privilege, tool/context overhead, cost and removability. Prefer an existing sufficient bounded integration over installing a duplicate server. This table does not authorize installation, account access or subscriptions.
 
 ---
 
