@@ -327,7 +327,59 @@ Do not preserve an old architecture-review question merely because it existed. A
 
 ---
 
-## 4. Explicitly Closed / Not Carried Forward
+## 4. Pre-Code Context and Closure Gates
+
+This section replaces the former active `V0.2-PRE-CODE-CHECKLIST.md`. Discovery now owns the live pre-code frontier because unresolved research/decision work and readiness to begin implementation are part of the same decision context.
+
+Dates remain owned by `design/SUBHFORGE-DELIVERY-TIMELINE.md`; accepted product/architecture/workflow/qualification rules remain in their own authority documents.
+
+### 4.1 Completed pre-code context
+
+The following context is already settled and does not need separate active tracking:
+
+- **v0.1 frozen at H10.** H11–H14 were cancelled/superseded; the frozen research baseline remains available through Git history/tag `research_v_0.1_h10`.
+- **Temporary cost-controlled construction workflow established.** `design/V0.2-TEMPORARY-BUILD-WORKFLOW.md` governs current build-time cost/provider controls only.
+- **One canonical v0.2 pre-code lineage retained:** `feature/v0.2.0`.
+- **v0.1 lessons captured** as historical audit input; they are not v0.2 product authority.
+- **Clean active design authority created/reconciled:** PRD, Discovery, Architecture, Workflow Contracts and Qualification.
+- **README authority map and Delivery Timeline reconciled** to the clean document structure and the Dec 31, 2026 / Jan 2027 delivery direction.
+
+These facts may be revisited only if new evidence materially contradicts them.
+
+### 4.2 Current pre-code state
+
+**Current activity:** joint review of the clean PRD, Discovery, Architecture, Workflow Contracts and Qualification set.
+
+Implementation must not begin merely because the documents exist. Pre-code closes only when the gates below pass.
+
+### 4.3 Pre-code closure gates
+
+| Gate | Requirement | Current state |
+|---|---|---|
+| **PCG-01 — Clean design review** | Subhadeep accepts the clean PRD/Discovery/Architecture/Workflow/Qualification set as a coherent baseline. | **OPEN** |
+| **PCG-02 — Scope cut** | Define what must ship in stable v0.2.0 versus later versions; preserve required safety/dogfood evidence. | **BLOCKED by PCG-01** |
+| **PCG-03 — Blocking Discovery closure** | Close/promote every blocking in-scope `DQ-###`; explicitly defer only non-blocking questions that are safe to postpone. | **BLOCKED by PCG-02** |
+| **PCG-04 — Scope + Definition of Done freeze** | Reconcile the PRD DoD/non-goals with resolved Discovery decisions and freeze the release boundary. | **BLOCKED by PCG-03** |
+| **PCG-05 — Walking skeleton defined** | Define the smallest real end-to-end LARGE slice from idea/document intake through reviewed Spec delivery with durable state/resume. | **BLOCKED by PCG-04** |
+| **PCG-06 — Verification strategy frozen** | Map each required failure risk to the cheapest sufficient deterministic/integration/canary/dogfood evidence layer; resolve `DQ-011`. | **BLOCKED by PCG-05** |
+| **PCG-07 — Dogfood path frozen** | Accept MediBot greenfield, Evaluation Guardrails reconciliation and scale/context qualification entry/exit evidence. | **BLOCKED by PCG-06** |
+| **PCG-08 — Implementation plan ready** | Produce dependency-aware, acceptance-driven work units executable from fresh sessions/durable authority. | **BLOCKED by PCG-04–07** |
+| **PCG-09 — Final pre-code approval** | Confirm no known unowned blocker, unacceptable cost/complexity risk or unresolved release-critical assumption remains. | **BLOCKED by prior gates** |
+| **PCG-10 — Begin implementation** | Create/use the implementation branch and begin product code only after PCG-01–09 pass. | **BLOCKED** |
+
+### 4.4 Gate operating rules
+
+- A gate closes only with durable evidence in Discovery or the authority document that owns the result.
+- Closing a `DQ-###` requires promotion into its owning authority; a chat conclusion is not closure.
+- Scope added after PCG-04 requires an explicit trade-off or schedule decision.
+- Research/POCs exist only to close named DQs or prove a named gate; prototype code does not automatically become product code.
+- Real dogfood is release work, not optional polish.
+- If a gate starts expanding into a subsystem whose cost exceeds the failure it protects against, stop and simplify/re-scope before proceeding.
+- No separate pre-code tracker should be recreated unless Discovery demonstrably becomes unable to represent the live decision frontier and closure gates cleanly.
+
+---
+
+## 5. Explicitly Closed / Not Carried Forward
 
 These are not discovery questions for v0.2 unless new evidence reopens them:
 
@@ -345,7 +397,7 @@ These are not discovery questions for v0.2 unless new evidence reopens them:
 
 ---
 
-## 5. Closure Rule
+## 6. Closure Rule
 
 A discovery question is closed only when:
 
