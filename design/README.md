@@ -1,61 +1,145 @@
-# SubhForge v0.2 Design Documents
+# SubhForge v0.2 Design
 
-This directory uses a **single-normative-home** rule:
+This directory contains the active design authority and supporting evidence for SubhForge v0.2.0.
 
-> **Every rule has exactly one authoritative home. Other documents reference that rule; they do not redefine it.**
+The document system follows one rule:
 
-Current pre-code sequencing and status are tracked in [V0.2-PRE-CODE-CHECKLIST.md](V0.2-PRE-CODE-CHECKLIST.md).
+> **Every decision has one authoritative home. Other documents reference it; they do not redefine it.**
 
-## Authority Map
+The design set is intentionally being simplified. Old review/tooling documents may remain temporarily for comparison/history, but they are not allowed to compete with the clean authority set below.
 
-| Document | Owns |
+---
+
+## 1. Active Authority Map
+
+| Document | Authority |
 |---|---|
-| [V0.2-PRE-CODE-CHECKLIST.md](V0.2-PRE-CODE-CHECKLIST.md) | Pre-code work sequence, current item, completion evidence, blocking status, and exit gates; it references but does not redefine normative architecture/workflow/qualification rules |
-| [V0.1-LESSONS-LEARNED.md](V0.1-LESSONS-LEARNED.md) | Evidence-based retrospective from the frozen v0.1 H01-H10 research baseline; audit input for v0.2, not normative product architecture |
-| [V0.2-TEMPORARY-BUILD-WORKFLOW.md](V0.2-TEMPORARY-BUILD-WORKFLOW.md) | Temporary construction workflow: cost ceiling, provider/model responsibilities, escalation and hard-stop rules, completed executability evidence, and architecture-isolation boundary |
-| `V0.2-ARCHITECTURE.md` | Structural architecture, authority planes, logical agents, requirement/traceability architecture, tooling/model/skill/MCP/context boundaries, implementation dependency order, non-goals |
-| `V0.2-WORKFLOW-CONTRACTS.md` | Lifecycle semantics, readiness/grooming, work-plan behavior, verification/evidence semantics, escalation, reconciliation, status/resume, project-version upgrade behavior |
-| `V0.2-ARCHITECTURE-REVIEW.md` | AR backlog, case evidence, POC results, human decisions, review history, cross-reference ledger |
-| `V0.2-ARCHITECTURE-REVIEW-TOOLING.md` | **Temporary** one-time Architecture Fitness Review execution tooling: `/arch-*` agents/capabilities, durable AR state contract, review workflow, model routing, safety/removal rules |
-| `V0.2-IMPLEMENTATION-TOOLING.md` | v0.2 implementation handoff: Architecture Review deliverables, v0.1.1 Existing Authority Admission requirement, and the `/spec → /implement → /verify → /review` execution flow |
-| `V0.2-QUALIFICATION.md` | Validation strategy, fixtures, scenario pass criteria, dogfood, adversarial qualification, RC/stable-release evidence |
-| `SUBHFORGE-DELIVERY-TIMELINE.md` | Dates, milestones, schedule checkpoints only |
+| [prd/SUBHFORGE-V0.2-PRD.md](prd/SUBHFORGE-V0.2-PRD.md) | **Product authority** — what SubhForge v0.2 must do: goals, lifecycle boundary, functional/non-functional requirements, agent responsibilities, handover expectations, guardrails, non-goals and Definition of Done |
+| [discovery/SUBHFORGE-V0.2-DISCOVERY.md](discovery/SUBHFORGE-V0.2-DISCOVERY.md) | **Decision frontier, not normative product authority** — confirmed context, live `DQ-###` questions, assumptions, owners, blocking status and closure/promotion destination |
+| [architecture/SUBHFORGE-V0.2-ARCHITECTURE.md](architecture/SUBHFORGE-V0.2-ARCHITECTURE.md) | **Structural architecture authority** — authority/execution planes, protected invariants, logical agents, traceability architecture, harness/model/tool boundaries, context and implementation dependency structure |
+| [workflow/SUBHFORGE-V0.2-WORKFLOW-CONTRACTS.md](workflow/SUBHFORGE-V0.2-WORKFLOW-CONTRACTS.md) | **Lifecycle/workflow authority** — lifecycle states, readiness, grooming, dependencies, delivery, verification, escalation, change triage, reconciliation, status/resume and evidence semantics |
+| [qualification/SUBHFORGE-V0.2-QUALIFICATION.md](qualification/SUBHFORGE-V0.2-QUALIFICATION.md) | **Proof/release authority** — validation layers, regressions, dogfood, adversarial cases, release evidence and stable-release qualification |
+| [SUBHFORGE-DELIVERY-TIMELINE.md](SUBHFORGE-DELIVERY-TIMELINE.md) | **Schedule authority only** — milestone dates, delivery checkpoints and protected stabilization window |
 
-## Shared Decision Status Vocabulary
+---
+
+## 2. Supporting / Transitional Documents
+
+These are useful inputs or temporary operating aids. They do **not** override the active authority set.
+
+| Document | Purpose |
+|---|---|
+| [V0.2-PRE-CODE-CHECKLIST.md](V0.2-PRE-CODE-CHECKLIST.md) | Tracks the current pre-code sequence, active item, blocking status and completion evidence. It must be reconciled to the clean authority set as pre-code work progresses. |
+| [V0.1-LESSONS-LEARNED.md](V0.1-LESSONS-LEARNED.md) | Historical evidence from the frozen v0.1 H01–H10 research baseline. It informs decisions but is not v0.2 product authority. |
+| [V0.2-TEMPORARY-BUILD-WORKFLOW.md](V0.2-TEMPORARY-BUILD-WORKFLOW.md) | Temporary construction workflow covering model/provider cost discipline and build-time operating rules. It must remain removable without changing SubhForge product semantics. |
+
+---
+
+## 3. Superseded / Pending-Cleanup Artifacts
+
+The following files may remain temporarily so the clean documents can be reviewed against them, but they are **not current v0.2 authority**:
+
+- `V0.2-ARCHITECTURE.md`
+- `V0.2-WORKFLOW-CONTRACTS.md`
+- `V0.2-QUALIFICATION.md`
+- `V0.2-ARCHITECTURE-REVIEW.md`
+- `V0.2-ARCHITECTURE-REVIEW-TOOLING.md`
+- `V0.2-IMPLEMENTATION-TOOLING.md`
+
+They should be removed or archived after the clean authority set is reviewed and accepted and any genuinely unique valid context has been promoted.
+
+In particular, these older artifacts must not reintroduce superseded directions such as:
+
+- v0.1.1 as the implementation bridge for v0.2;
+- `/specbypassceremony`;
+- temporary `/arch-*` architecture-review machinery;
+- the former November 24 stable-release / December 1 VidyaBeacon schedule.
+
+---
+
+## 4. Authority Precedence
+
+When documents appear to conflict, use this order by subject:
+
+1. **Product intent / requirement:** PRD.
+2. **Unresolved question:** Discovery until resolved; no downstream document may guess the answer.
+3. **Structural solution:** Architecture.
+4. **Lifecycle/workflow behavior:** Workflow Contracts.
+5. **How behavior is proven:** Qualification.
+6. **Dates/milestones:** Delivery Timeline.
+7. **Current pre-code execution sequence:** Pre-Code Checklist.
+
+A resolved Discovery question must be promoted to its authoritative home before it is considered closed.
+
+Git history preserves earlier wording; do not create parallel “v2/v3” authority documents for normal evolution.
+
+---
+
+## 5. Shared Decision Status Vocabulary
 
 | Status | Meaning |
 |---|---|
-| **ACCEPTED** | Agreed direction/contract. Reopen only through explicit review with evidence/rationale. |
-| **REVIEW** | Must be validated before architecture/implementation freeze. |
-| **DEFERRED** | Deliberately outside current scope unless evidence reopens it. |
-| **NON-GOAL** | Explicitly rejected scope for v0.2. |
+| **ACCEPTED** | Current agreed rule/direction. Reopen only because of contradiction, implementation limitation, new evidence, dogfood failure, meaningful cost/operational problem or explicit human revision. |
+| **REVIEW** | Direction/semantics are partially established but a named `DQ-###` or evidence gate must close before implementation/release depends on the unresolved detail. |
+| **DEFERRED** | Intentionally outside current v0.2 scope unless evidence reopens it. |
+| **NON-GOAL** | Explicitly excluded from v0.2. |
 
-These status meanings apply across the v0.2 design documents and ledgers.
+Discovery additionally uses:
+
+- **BLOCKING**
+- **NON_BLOCKING**
+- **CLOSED**
+- **SUPERSEDED**
+
+as defined in the Discovery document.
 
 ---
-## Review Promotion Rule
 
-During Architecture Fitness Review:
+## 6. Design Flow
 
-1. the AR case and evidence live in `V0.2-ARCHITECTURE-REVIEW.md`;
-2. temporary review execution follows `V0.2-ARCHITECTURE-REVIEW-TOOLING.md`;
-3. Subhadeep makes the consequential decision;
-4. the accepted result is promoted to its **single owning document**: Architecture/Workflow for product-delivery semantics, Qualification for proof/release obligations, or Timeline for schedule-only decisions;
-5. other documents keep only cross-references/evidence, never a second normative copy.
+```text
+Discovery
+   ↓ resolves/promotes
+PRD
+   ↓
+Architecture
+   ↓
+Workflow Contracts
+   ↓
+Qualification
+   ↓
+Implementation / Dogfood / Release
+```
 
-The Review document therefore preserves **why** a decision was made; it does not become a second copy of the final rule.
+This is an **authority relationship**, not a rule that every change must replay every stage.
 
-## Stable Section IDs
+Existing valid authority may be admitted directly where the Workflow contract allows it. Later material changes use Change Triage/Reconciliation rather than blindly restarting Discovery.
 
-Section numbers inherited from the former consolidated plan are intentionally retained even when they are non-contiguous (for example §10.1, §19, §29A, §31A).
+---
 
-They act as stable design references, similar to durable FR/NFR IDs. Renumbering solely for cosmetic continuity would create unnecessary reference churn.
+## 7. Stable Identity Rule
 
-## Split Audit Rule
+Stable identities such as:
 
-The migration manifest in `V0.2-ARCHITECTURE-REVIEW.md` is non-normative. It exists only to prove where material from the former monolithic plan moved.
+- `FR-###`
+- `NFR-###`
+- `DQ-###`
+- work-item IDs;
+- reconciliation/escalation/blocker IDs
 
-A former rule may disappear only when it is either:
+are durable references and should not be renumbered merely for cosmetic organization.
 
-- moved to a named normative home; or
-- explicitly listed as superseded.
+Document section numbers inherited from earlier design work may remain non-contiguous where changing them would create unnecessary reference churn. Section numbering itself is not authority.
+
+---
+
+## 8. Cleanup Rule
+
+Before deleting a superseded artifact:
+
+1. confirm every still-valid unique decision has an authoritative home;
+2. confirm no active document still depends on the obsolete artifact;
+3. remove or redirect stale cross-references;
+4. rely on Git history for obsolete reasoning/history rather than retaining competing live documents.
+
+The end state should be a **small design surface** that Subhadeep and SubhForge can navigate without ambiguity.
