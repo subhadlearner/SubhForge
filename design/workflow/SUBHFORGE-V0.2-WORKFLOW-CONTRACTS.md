@@ -536,6 +536,34 @@ Completion consequence:
 - a Feature cannot complete unless its integration-suite owner exists, required owner work is COMPLETE, and the applicable Feature integration gate/evidence is current;
 - an Epic cannot complete unless its E2E-suite owner Feature exists, required owner work is COMPLETE, and the applicable Epic E2E gate/evidence is current.
 
+### 10.6 Decomposition-quality and cross-cutting coverage — REVIEW (`DI-008`, `DI-014`)
+
+Before declaring readiness, Planner evaluates the next delivery/decomposition boundary against this rubric:
+
+- the slice delivers bounded observable behavior; an enabler instead identifies the concrete capability/contract and accepted consumer that justify it;
+- acceptance criteria distinguish intended implementation from a deliberately incomplete or incorrect implementation. New behavior should not already pass at the starting baseline; existing invariants may already pass but must have a meaningful negative control;
+- the slice owns the work needed to satisfy its criteria, with external prerequisites explicit rather than grading unowned future work;
+- dependencies are real and consumable contracts are explicit;
+- applicable security, failure/recovery, observability and other accepted NFR/architecture obligations have implementation and proof ownership;
+- a fresh session can reconstruct and execute the work within bounded context;
+- decomposition does not create unnecessary tiny work items or split every technical layer into a separately unverifiable task.
+
+Mechanical checks prove references, required fields, ownership and graph integrity. Semantic review judges slice coherence, acceptance quality and potentially omitted obligations. Passing a schema alone does not establish good decomposition. Routine Spec approval by Subhadeep is not added; unresolved intent still routes to its owning authority.
+
+For each applicable NFR/architecture obligation, produce a read-only coverage projection from existing authority, governance, work ownership and evidence links:
+
+| Coverage question | Required answer |
+|---|---|
+| Where does it apply? | Defined scope or inherited governance |
+| Who implements it? | Owning Feature/Spec, or explicit already-implemented baseline |
+| When is it needed? | Real prerequisite before its first consuming slice, or justified later delivery point |
+| How is it proven? | Named deterministic check, semantic review or human demonstration with an owner |
+| What is uncovered? | Actionable gap or explicitly authorized exemption |
+
+No manually mirrored coverage store is introduced. A declaration of non-applicability must be justified against accepted authority; uncertain applicability routes upstream. Incomplete coverage blocks only the next stage/scope that actually depends on it, not unrelated safe work.
+
+Foundations-first means the minimum accepted foundations needed by the first working vertical slice. It does not authorize speculative infrastructure. DI-014 identifies that first slice and the obligations it exercises; later slices add foundations when accepted architecture or real consumption requires them.
+
 ---
 
 ## 11. Work-Plan and DAG Workflow
@@ -803,6 +831,23 @@ The same overlay rule applies to Epic verification: a passing verification run d
 
 Epic verification should be strong enough that human Epic acceptance is not the
 first place normal integration defects are discovered.
+
+### 14.2 Feature/Epic human acceptance packet — REVIEW (`DI-005`, `DI-008`)
+
+After the applicable automated gate is CLEAR or has a valid allowed exception, the owning Feature/Epic workflow presents a bounded reproducible demonstration for `AC-0`:
+
+- the capability (Feature) or end-to-end outcome/journey (Epic) being accepted;
+- exact implementation and evidence revisions demonstrated;
+- setup, safe sample data and steps through the observable surface;
+- expected observable outcomes and references to the accepted criteria;
+- a relevant negative/recovery path where required by accepted verification intent;
+- known limitations and explicit valid exceptions.
+
+The packet is assembled from existing work/evidence references; it is not a new canonical acceptance store or an obligation to build a dashboard. Screenshots, agent assertions and passing automated checks support but do not replace Subhadeep's judgement.
+
+Subhadeep may **accept**, **reject with observations**, or **defer**. Only explicit acceptance of the demonstrated revision satisfies AC-0. Rejection routes the observations through defect/change triage: fix a proven defect, obtain owning-authority clarification/change where intent differs, or retain the unaccepted gate while resolving the issue. Deferral leaves acceptance pending. Neither rejection nor deferral silently changes criteria, reopens COMPLETE children or completes the Feature/Epic.
+
+Materially changed capability/outcome or evidence premises require acceptance re-assessment under §23.2. Packet generation and ordinary delivery remain within the invoked workflow; this does not add routine Spec approval or automatic human acceptance.
 
 ---
 

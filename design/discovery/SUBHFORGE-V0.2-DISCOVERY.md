@@ -210,6 +210,8 @@ Review addition: define the supported local execution environment (Subhadeep's W
 
 Review additions: resolve Architecture §4.4 and Workflow §23.2, including exact accepted revision/approval recognition, authority activation before REC holds exist, stale-context rejection at mutation/completion, composed integration baseline, claim identity/version, immutable run/environment identity, effective gates, waiver boundaries and revision-bound human acceptance. Demonstrate concurrent/manual edit and uncertain-write recovery without requiring a cross-system transaction or a second live store.
 
+Follow-up: define how Workflow §14.2's acceptance packet references the demonstrated revision and records accept/reject/defer using existing work/evidence authority, without a second acceptance store.
+
 **Outcome:** Open.
 
 **Promote to:** Architecture; Workflow/Qualification only for semantics/proof that depend on the representation.
@@ -282,6 +284,8 @@ Review additions: prove Workflow §§16.3–16.6 proposals: approval bound to ex
 
 Review additions: define the missing minimum Bug, Idea/Research and REC lifecycle contracts, including closure guards and owners; direct-authority Project admission without invented Ideation provenance; bounded Bug/Fix against accepted behavior in MAINTENANCE/COMPLETE projects without reopening completed children; and the authorization envelope for an on-demand delivery invocation. State which routine handoffs it may execute, where it stops, and what fresh invocation is needed after an exception. No background scheduler or routine Spec approval is implied.
 
+Follow-up: map Architecture §6.4's guarded mutation boundary to actual harness/tools/credentials and explicitly record prevention versus detection/trusted-local limitations. Map Workflow §10.6's planning-quality checks and §14.2's Feature/Epic acceptance/rejection routing to existing owners; no new approval at routine Spec level.
+
 **Outcome:** Open.
 
 **Promote to:** Architecture / agent-command contracts.
@@ -327,6 +331,8 @@ Review additions: define the missing minimum Bug, Idea/Research and REC lifecycl
 **Evidence / completion method:** Apply real recurring need, credible provenance, non-duplication, authority compatibility, least privilege, context/tool cost, security/supply-chain risk, failure degradation and removability. Cloud/vendor integrations default to project-specific unless evidence proves global value.
 
 Review additions: validate authority-expansion attempts through supplied notes/repository/tool output, denied writes, secret redaction in diagnostics/context/export, and declared subscription/backend/environment costs. Retry/authentication/permission failure must not silently choose a paid fallback.
+
+Follow-up: evaluate the concrete skill-method and MCP candidates in Architecture §§19.4/20.3. Pin/adapt only those that earn admission; do not import another tracker, routine ticket-approval flow or automatic agent fan-out. Confirm removal and bounded tool/context overhead. Context7 and Playwright remain optional/project-specific rather than automatic global dependencies.
 
 **Outcome:** Open.
 
@@ -404,6 +410,8 @@ Review additions: validate authority-expansion attempts through supplied notes/r
 
 Review additions: freeze Qualification §24.10's requirement-to-proof coverage and measurable NFR thresholds before claiming RC/release success. Include real backend consistency/recovery, composed implementation evidence, exported-state restore, supported Windows bootstrap, security/permission/fallback failures and the amended reconciliation cases. Classify each applicable property as required, explicitly deferred or out of scope with authority; do not infer coverage from scenario names.
 
+Follow-up: select the smallest mechanical/stateful/adapter/agent-evaluation proof mix under Qualification §24.11, define semantic grading examples and negative controls, freeze per-case/aggregate execution limits and trial reporting, and prove the positive baseline before expanding adversarial scenarios. FULL smoke breadth must not force repeated model execution of every workflow path.
+
 **Outcome:** Open.
 
 **Promote to:** Qualification.
@@ -427,6 +435,8 @@ Review additions: freeze Qualification §24.10's requirement-to-proof coverage a
 **Evidence / completion method:** Specify entry/exit behavior, durable identities/state, minimum work-backend operations, handoffs, bounded context, status/resume, tests and acceptance evidence. Optional PR creation is excluded unless DI-012 is deliberately pulled into the skeleton.
 
 Review addition: prove discovery/backend bootstrap and valid-authority direct admission, plus a composed implementation baseline that can support later Feature verification. The skeleton need not implement all higher-level acceptance, but its exit must state which lifecycle/evidence boundaries are actually proven.
+
+Follow-up: identify the first demonstrable vertical slice and its minimal applicable cross-cutting foundations under Workflow §10.6. Establish an uninterrupted positive baseline before qualification expansion; defer infrastructure that has no accepted obligation or real consumer.
 
 **Outcome:** Open.
 
@@ -581,3 +591,18 @@ This ledger is evidence for DI-001, not another work frontier. "Proposed" means 
 | RV-14 | Low | README broken historical link, Architecture obsolete filenames and triage example citing an undefined requirement ID | README and Architecture reference active authority; Timeline maps current checkpoints to RC evidence | Corrected draft |
 
 **Assessment:** coherent product direction, but not implementation-ready. Resolve the High findings through the cited DIs and accept the corrected semantics before DI-016. Avoid adding more agents, a second state store or broader automation to compensate for these gaps.
+
+### Follow-up recommendation placement — 2026-10-06
+
+Subhadeep requested that the additional suggestions be recorded in their owning documents. The additions remain REVIEW pending their owning DI/baseline acceptance; recording them does not close a DI or install a dependency.
+
+| Recommendation | Owning document | Closure work |
+|---|---|---|
+| Cross-cutting coverage and decomposition-quality rubric; minimum foundations for the first slice | Workflow §10.6 | DI-008/DI-014; representation follows DI-005 |
+| Reproducible Feature/Epic acceptance packet and accept/reject/defer routing | Workflow §14.2 | DI-005/DI-008 |
+| Guarded mutation capability and honest enforcement limits | Architecture §6.4 | DI-008; proof DI-013 |
+| Concrete, selectively adapted skill-method candidates | Architecture §19.4 | DI-010 |
+| Bounded GitHub/work-backend baseline and optional documentation/browser integrations | Architecture §20.3 | DI-010; backend DI-003 |
+| Mechanical/stateful/adapter tests, small agent evaluations and smoke cost controls | Qualification §24.11 and §24 | DI-013; positive skeleton DI-014 |
+
+PRD and Timeline receive no further changes: these additions refine how existing requirements are delivered and proven, rather than introducing new product scope or dates.

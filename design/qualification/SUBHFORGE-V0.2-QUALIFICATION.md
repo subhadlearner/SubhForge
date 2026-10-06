@@ -26,7 +26,7 @@ where it adds confidence.
 flowchart TD
     C[Change] --> L1[Deterministic unit/static/contract checks]
     L1 --> I{Crosses agent/command/model/handoff boundary?}
-    I -- No --> D[Done for inner loop]
+    I -- No --> S
     I -- Yes --> F[FAST smoke / focused model-bearing proof]
     F --> S{Release or system-wide change?}
     S -- No --> D
@@ -44,6 +44,8 @@ Rules:
 6. FULL comes after cheap gates are green;
 7. an early FULL run requires an explicit reason;
 8. synthetic qualification complements real dogfood and must not become a substitute for it.
+
+FULL denotes complete required synthetic proof for the selected qualification scope, not a requirement to rerun a model-driven project lifecycle for every scenario. Its bounded executable smoke profile still obeys §24.1's tiny-fixture runtime budget. Real-project dogfood and final release evidence remain separate mandatory obligations under §§30–31.
 
 ### 24.1 Performance budgets retained from hardening
 
@@ -73,6 +75,8 @@ FULL should:
 - bound retries;
 - capture per-scenario timing/model/token data;
 - keep fixture product complexity tiny.
+
+Before expanding FULL/model-bearing qualification, establish one uninterrupted positive walking-skeleton baseline with the real required boundaries. Then add targeted failure cases from deterministic snapshots; do not grow the expensive adversarial suite while its ordinary positive path remains unproven. Deterministic unit/contract negative tests may be developed with the corresponding code from the start. A baseline blocked by provider/environment failure is reported as incomplete rather than converted into a passing qualification run.
 
 ### 24.3 Future targeted fixture candidates retained
 
@@ -235,6 +239,40 @@ Additional focused qualification must prove:
 6. Injected instructions in notes/repository/tool output cannot expand write authority or expose secrets; denied/quota/authentication failures preserve safe progress and report the real cause without paid fallback.
 
 Use deterministic proof for mechanical properties and the smallest real integration/model-bearing slice for boundaries it cannot prove alone.
+
+### 24.11 Mechanical tests, agent evaluations and grader controls — REVIEW (`DI-013`)
+
+Most mechanical SubhForge behavior should be proven with ordinary tests. Real-model evaluation is reserved for semantic judgement and actual model/harness handoffs; neither layer substitutes for the other.
+
+| Layer | Proof target | Execution boundary |
+|---|---|---|
+| Deterministic unit/contract tests | Lifecycle transitions, DAG eligibility, holds, evidence gates, authority guards and mutation validation | Scripted valid/invalid agent proposals and controlled state; no model needed |
+| Stateful/generated tests | Sequences of pause, change, retry, retirement, overlapping scope and recovery | Independent test oracle plus invariants after relevant transitions; preserve seed/minimized failure |
+| Real adapter integration | Pagination, permissions, manual/concurrent edits, lost responses and duplicate-create recovery | Selected backend's actual API in disposable bounded test scope |
+| Small agent evaluations | Ambiguity routing, decomposition quality, authority restraint and handoff correctness | Minimal accepted context, bounded tools and observable outcomes |
+| Real dogfood | Meaningful end-to-end usefulness, recovery and human coordination burden | Actual delivery lifecycle and evidence; synthetic tests do not replace it |
+
+For stateful tests, useful invariants include: no illegal completion, no duplicate durable identity after retry, no unsafe work through a hold, correct rejection of cycles, and preservation of unaffected scope. Add narrowly justified metamorphic checks: adding unrelated work cannot change existing eligibility; non-semantic formatting cannot change interpreted authority; repeating a satisfied approved operation cannot add another logical mutation. A test-only reference model is an oracle, not a production state backend.
+
+[Hypothesis stateful testing](https://hypothesis.readthedocs.io/en/latest/stateful.html) is a candidate for action-sequence generation/minimization, not a mandatory framework dependency. Begin with ordinary focused cases and add generated sequences where they reveal interactions more efficiently than hand-written cases.
+
+Agent evaluations require an explicit task, starting authority/state, allowed action envelope and expected observable properties. Grade final authoritative state and relevant sanitized tool/action records, not merely the agent's claim of success. Permit multiple valid decompositions/action paths unless a normative contract fixes ordering. Do not grade exact prose or incidental tool-call sequences as correctness.
+
+Use deterministic graders for mechanically decidable properties. Semantic graders assess decomposition/acceptance quality against a bounded rubric and must be calibrated against Subhadeep-reviewed examples; a model judge cannot be the sole certification of authority safety or human acceptance. Safety violations are failures, not weaknesses averaged away by a high aggregate quality score. Persist useful results/references and sanitized diagnostics, not secrets or hidden chain-of-thought.
+
+The [Anthropic agent-evaluation guidance](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) is supporting method evidence for outcome-based evaluation and combining code, model and human graders; it does not define SubhForge's authority or mandate a new evaluation service.
+
+Controls to prevent another unbounded smoke effort:
+
+1. Every scenario names the failure class it protects and why an existing cheaper check is insufficient. There is no inherited scenario-count target.
+2. Use deterministic fixture setup, checkpoints and failure injection. Ask the model only for the judgement/handoff under test; do not ask it to manufacture and restore test failures.
+3. Before execution, declare model-call, token/cost, runtime and retry limits for the case and aggregate profile. DI-013 freezes realistic limits; exceeding them stops visibly with safe persisted progress.
+4. Keep failed trials and their causes. Separate model errors, product bugs and environment failures. Never retry until green and report only the successful attempt; any repeat/requalification follows the declared policy.
+5. Prove the grader detects deliberately broken expectations or outcomes. Examples include an unauthorized mutation, false readiness, unrelated evidence invalidation or duplicate logical create; choose representative negative controls for the safety properties claimed.
+6. Bootstrap a small representative agent-evaluation set, then add cases from actual defects/dogfood escapes. Reuse unaffected current proof and rerun the affected slice; release coverage remains complete.
+7. The test mechanism itself must stay simpler than the production behavior it qualifies. A dedicated orchestration validator, telemetry platform or paid evaluation service requires DI-013's value/complexity justification.
+
+Qualification also exercises Workflow §§10.6/14.2 and Architecture §6.4: omitted cross-cutting ownership, vacuous acceptance criteria, over-fragmented slices, rejected/deferred human acceptance, and invalid mutation proposals must be detected or routed correctly. A mock/scripted agent can prove guard behavior; only a real-agent slice can support claims about semantic performance.
 
 ---
 
