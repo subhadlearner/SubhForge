@@ -15,7 +15,7 @@ The design set is intentionally being simplified. Old review/tooling documents m
 | Document | Authority |
 |---|---|
 | [prd/SUBHFORGE-V0.2-PRD.md](prd/SUBHFORGE-V0.2-PRD.md) | **Product authority** — what SubhForge v0.2 must do: goals, lifecycle boundary, functional/non-functional requirements, agent responsibilities, handover expectations, guardrails, non-goals and Definition of Done |
-| [discovery/SUBHFORGE-V0.2-DISCOVERY.md](discovery/SUBHFORGE-V0.2-DISCOVERY.md) | **Decision frontier, not normative product authority** — confirmed context, live `DQ-###` questions, assumptions, owners, blocking status and closure/promotion destination |
+| [discovery/SUBHFORGE-V0.2-DISCOVERY.md](discovery/SUBHFORGE-V0.2-DISCOVERY.md) | **Decision frontier, not normative product authority** — confirmed context, live `DI-###` questions, assumptions, owners, blocking status and closure/promotion destination |
 | [architecture/SUBHFORGE-V0.2-ARCHITECTURE.md](architecture/SUBHFORGE-V0.2-ARCHITECTURE.md) | **Structural architecture authority** — authority/execution planes, protected invariants, logical agents, traceability architecture, harness/model/tool boundaries, context and implementation dependency structure |
 | [workflow/SUBHFORGE-V0.2-WORKFLOW-CONTRACTS.md](workflow/SUBHFORGE-V0.2-WORKFLOW-CONTRACTS.md) | **Lifecycle/workflow authority** — lifecycle states, readiness, grooming, dependencies, delivery, verification, escalation, change triage, reconciliation, status/resume and evidence semantics |
 | [qualification/SUBHFORGE-V0.2-QUALIFICATION.md](qualification/SUBHFORGE-V0.2-QUALIFICATION.md) | **Proof/release authority** — validation layers, regressions, dogfood, adversarial cases, release evidence and stable-release qualification |
@@ -81,7 +81,7 @@ Git history preserves earlier wording; do not create parallel “v2/v3” author
 | Status | Meaning |
 |---|---|
 | **ACCEPTED** | Current agreed rule/direction. Reopen only because of contradiction, implementation limitation, new evidence, dogfood failure, meaningful cost/operational problem or explicit human revision. |
-| **REVIEW** | Direction/semantics are partially established but a named `DQ-###` or evidence gate must close before implementation/release depends on the unresolved detail. |
+| **REVIEW** | Direction/semantics are partially established but a named `DI-###` or evidence gate must close before implementation/release depends on the unresolved detail. |
 | **DEFERRED** | Intentionally outside current v0.2 scope unless evidence reopens it. |
 | **NON-GOAL** | Explicitly excluded from v0.2. |
 
@@ -124,7 +124,7 @@ Stable identities such as:
 
 - `FR-###`
 - `NFR-###`
-- `DQ-###`
+- `DI-###`
 - work-item IDs;
 - reconciliation/escalation/blocker IDs
 
