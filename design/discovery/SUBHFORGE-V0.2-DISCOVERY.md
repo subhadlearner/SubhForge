@@ -181,6 +181,8 @@ Review additions: include minimum discovery bootstrap before delivery initializa
 
 Review addition: define the supported local execution environment (Subhadeep's Windows/PowerShell setup, Python/tool prerequisites and path/encoding assumptions), bootstrap checks, missing/contradictory-mode behavior and explicit handling of any unsupported mode conversion. Supporting every operating system is not required.
 
+FR-022 closure work: define the short guided project-setup entry, supported prerequisite/version manifest, mode/stage-specific project templates, release/configuration pinning, managed-file ownership/conflict policy and idempotent interrupted-setup recovery. Separate read-only prerequisite/health checking from authorized setup/remediation. Supplied valid authority and existing customizations must survive setup; templates must not fabricate acceptance or a second live work hierarchy. Physical agent/harness setup follows DI-008 and admitted dependencies follow DI-010.
+
 **Outcome:** Open.
 
 **Promote to:** Architecture / project bootstrap contract.
@@ -287,6 +289,8 @@ Review additions: define the missing minimum Bug, Idea/Research and REC lifecycl
 Follow-up: map Architecture §6.4's guarded mutation boundary to actual harness/tools/credentials and explicitly record prevention versus detection/trusted-local limitations. Map Workflow §10.6's planning-quality checks and §14.2's Feature/Epic acceptance/rejection routing to existing owners; no new approval at routine Spec level.
 
 FR-021 closure work: select the single model-map format/path, stable selection keys and centrally configured role defaults; implement explicit caller override → configured default → versioned provider identifier resolution under Architecture §7. Prove actual dispatch through the selected harness rather than a prompt claiming a model change. Include unknown/missing selection, unsupported capabilities/binding, mid-invocation map update, no silent paid fallback and agent-file independence when a compatible mapped version changes. The intended primary/independent reasoning and economical implementation preferences may be expressed as central defaults; no model-version table is retained in agent definitions or Architecture. Map resolution must preserve authority, credentials, budget and context guards.
+
+For FR-022, prove setup makes the required logical agents/capabilities usable in the selected harness from a fresh project scope, using centrally configured models rather than manual per-agent edits.
 
 **Outcome:** Open.
 
@@ -415,6 +419,8 @@ Review additions: freeze Qualification §24.10's requirement-to-proof coverage a
 Follow-up: select the smallest mechanical/stateful/adapter/agent-evaluation proof mix under Qualification §24.11, define semantic grading examples and negative controls, freeze per-case/aggregate execution limits and trial reporting, and prove the positive baseline before expanding adversarial scenarios. FULL smoke breadth must not force repeated model execution of every workflow path.
 
 Include FR-021's resolver/dispatch regressions under Qualification §24.12. Deterministic tests prove precedence, map snapshot identity and guard behavior; a small real-harness check proves the configured selection can actually be honored. Do not require paid calls across every configured model for each map edit.
+
+Include FR-022's fresh-project, prerequisite-failure, read-only checking and setup-retry proof under Qualification §24.13. Cover the supported STANDARD/LARGE setup boundary defined by DI-004/DI-011; no multi-OS installer framework is required.
 
 **Outcome:** Open.
 

@@ -458,6 +458,24 @@ Agent responsibility and model selection shall be independent. Subhadeep shall b
 
 This requires a small central map and a supported selection path, not automatic discovery of new releases or a universal provider router. Adopting a new provider/harness may require adapter changes; upgrading a compatible version behind an existing supported key must not require agent-file edits.
 
+#### FR-022 — Simple project setup and prerequisite verification
+
+Starting a new SubhForge-managed project shall use a short guided setup path that does not require Subhadeep to manually copy agent files, assemble templates or reconstruct software prerequisites. This applies to the selected STANDARD/LARGE mode and supported local environment.
+
+Setup shall:
+
+- establish the intended project scope, durable mode and pinned SubhForge release/configuration references;
+- make the applicable agent/capability definitions available to the configured harness and connect them to FR-021's central model map without duplicating model-version definitions;
+- initialize the applicable project-local authority/document/configuration templates for the selected mode and entry stage; valid supplied authority may be admitted rather than overwritten or recreated;
+- preserve the one-backend rule: operational Epic/Feature/Spec work is created through the selected backend, not a duplicate live Markdown hierarchy;
+- check required software availability and compatible versions against the supported prerequisite manifest, including applicable runtime, Git, shell/harness and required integration dependencies; distinguish required, optional, missing, incompatible and unchecked conditions;
+- verify locally checkable configuration/model-map/backend-binding prerequisites and report access/authentication checks honestly; any optional live check must expose its scope and cost rather than silently making paid model calls;
+- report a clear readiness result with precise remediation and the safe next invocation, without claiming READY when a required prerequisite is unresolved;
+- safely resume or repeat interrupted setup without duplicate identities, overwriting existing project work or destroying customizations. Managed files/changes must be identifiable and conflicts surfaced;
+- keep prerequisite/health checking read-only. Installation, configuration mutation or remediation belongs to the setup path within the explicit invocation authorization, existing permission and budget boundaries; no silent system-wide installation, subscription or paid fallback is assumed.
+
+Templates are starting structures, not accepted requirements, completed decisions or evidence. Setup readiness proves the environment is usable for the selected next stage; it does not bypass discovery, authority admission or delivery readiness gates. A project should remain understandable and recoverable without the original setup session.
+
 ---
 
 ## 4. Operating Model Requirements

@@ -217,6 +217,7 @@ The following is a review coverage map, not a declaration of completeness or pas
 | FR-019; NFR-006 | Least privilege, denied write, untrusted-input authority expansion, secret-redacted context/log/export and removable tools | §30.4; DI-010 |
 | FR-020; NFR-005 | Layer selection by failure class, negative canary, model/harness seams and required real dogfood | §24, §30, §31; DI-013 |
 | FR-021 | Explicit model override/default resolution, central version updates, map snapshots and actual harness dispatch without authority/billing fallback | §24.12; Architecture §7; DI-008/013 |
+| FR-022 | Simple scoped agent/template setup, prerequisite checks, honest readiness, customization preservation and interruption-safe retry | §24.13; DI-004/008/010/011/013 |
 | NFR-004, NFR-008; CON-006, CON-007 | Measured calls/tokens/runtime/spend, bounded retry, explicit quota/auth/rate-limit failure, no silent paid fallback | §24.1, §30.3/30.4; DI-010/013 |
 | NFR-010; CON-008 | Count avoidable versus reserved human interventions and recurring bookkeeping | §32; DI-013 |
 
@@ -289,6 +290,20 @@ Prove PRD FR-021 and Architecture §7 with deterministic resolver/adapter tests 
 6. Evidence records requested/default selection, map revision, actual resolved provider/model and execution binding. The real-harness slice proves dispatch or an honest unsupported result, not a model name merely printed in a prompt.
 
 An unsupported result validates the refusal path only; it does not satisfy the positive supported-selection release requirement. Use existing approved access and a bounded compatibility canary. Map-only updates rerun affected cheap resolution checks and the applicable canary; they do not mandate every provider/model or the whole dogfood lifecycle on each edit.
+
+---
+
+### 24.13 Project-setup and prerequisite regression — REVIEW (`DI-004`, `DI-008`, `DI-013`)
+
+Prove PRD FR-022 on the supported local setup:
+
+1. A fresh selected-mode project receives the applicable agents/capabilities, model-map/release bindings and mode/stage-specific templates without manual file copying. No duplicate live operational work hierarchy is created.
+2. Missing/incompatible required software or configuration prevents false readiness and produces precise remediation/next steps. Optional or unchecked conditions are labelled; a local configuration check does not claim an unperformed live-access check passed.
+3. Prerequisite/health checking changes no host/project/backend state and makes no undeclared paid call. Authorized setup changes only its managed scope.
+4. Interrupted/repeated setup preserves existing authority, implementation and customizations, avoids duplicate identities, and resumes safely or exposes a specific conflict.
+5. Valid supplied authority is admitted without overwriting it with blank templates or inventing upstream history. Generated templates never count as accepted requirements or completed gates.
+
+Use deterministic filesystem/configuration/prerequisite fixtures for most cases and a small real supported-environment/harness setup check. Install/bootstrap/doctor release checks reference this proof rather than establishing a separate product rule.
 
 ---
 
