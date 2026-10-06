@@ -29,7 +29,7 @@ These are useful inputs or temporary operating aids. They do **not** override th
 
 | Document | Purpose |
 |---|---|
-| [V0.1-LESSONS-LEARNED.md](V0.1-LESSONS-LEARNED.md) | Historical evidence from the frozen v0.1 H01–H10 research baseline. It informs decisions but is not v0.2 product authority. |
+| Frozen v0.1 H01–H10 research baseline in Git history | Historical input only; it does not override the active authority set. Archived material is outside the current review scope. |
 
 ---
 
@@ -40,12 +40,7 @@ The following files may remain temporarily so the clean documents can be reviewe
 - `old/V0.2-PRE-CODE-CHECKLIST.md` — archived historical tracker; live pre-code work now lives in Discovery
 - `old/V0.2-TEMPORARY-BUILD-WORKFLOW.md` — archived construction/cost evidence; durable constraints now live in the PRD
 
-- `V0.2-ARCHITECTURE.md`
-- `V0.2-WORKFLOW-CONTRACTS.md`
-- `V0.2-QUALIFICATION.md`
-- `V0.2-ARCHITECTURE-REVIEW.md`
-- `V0.2-ARCHITECTURE-REVIEW-TOOLING.md`
-- `V0.2-IMPLEMENTATION-TOOLING.md`
+- Earlier architecture, workflow, qualification and review/tooling generations, where retained in Git history or the archive.
 
 They should be removed or archived after the clean authority set is reviewed and accepted and any genuinely unique valid context has been promoted.
 

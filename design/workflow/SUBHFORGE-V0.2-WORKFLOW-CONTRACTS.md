@@ -12,6 +12,8 @@
 >
 > Physical command/agent/backend representation that remains open under a `DI-###` must not be guessed here. Qualification should prove these contracts rather than redefine them.
 
+The 2026-10-06 review corrections below are proposals pending DI-001 acceptance. Revised reconciliation contracts also require DI-006's physical design and proof before implementation.
+
 ---
 
 ## 1. Workflow Scope — ACCEPTED
@@ -32,6 +34,8 @@ No PR or deployment lifecycle state is added merely to represent systems outside
 Lifecycle state is persisted in the selected operational work backend. Git remains the authority for canonical product/architecture/code truth; lifecycle history comes from backend history plus Git/PR evidence where applicable.
 
 ### States and allowed transitions
+
+This table currently defines Project/Epic/Feature/Spec only. Bug, Idea/Research and REC operational lifecycles are not implicitly covered by it. DI-008 must define their minimum owners, guards and outcomes before the corresponding capabilities are implemented.
 
 | Type | States | Allowed transitions |
 |---|---|---|
@@ -73,7 +77,7 @@ Lifecycle state is persisted in the selected operational work backend. Git remai
 | Spec `DRAFT → READY_FOR_IMPLEMENTATION` | `/spec` | §10.3 Spec readiness gate passes |
 | Spec `READY_FOR_IMPLEMENTATION → ACTIVE` | `/implement` | prerequisites/dependencies are valid and execution is admitted |
 | Spec `ACTIVE → PAUSED_FOR_RECONCILE` | deterministic reconciliation-control layer | reconciliation analysis places the active Spec inside the held candidate scope |
-| Spec `PAUSED_FOR_RECONCILE → ACTIVE` | reconciliation resume path | approved `RESUME_UNCHANGED` or `ADAPT/REPURPOSE` disposition + §16.2 baseline refresh + required affected tests pass |
+| Spec `PAUSED_FOR_RECONCILE → ACTIVE` | reconciliation resume path | approved `RESUME_UNCHANGED` or `ADAPT/REPURPOSE`, or safe recorded no-impact/cancellation restoration under §16.4; §16.2 baseline refresh + required affected tests pass |
 | Spec `ACTIVE → COMPLETE` | `/review` | final `APPROVE`; effective Spec delivery gate is clear/allowed exception; no open blocking ESC/BLK/REC obligation references the Spec |
 | Feature `ACTIVE → COMPLETE` | `/feature <ID> complete` | every non-RETIRED child Spec COMPLETE; Feature verification/effective gate passes; human `AC-0` accepted; no blocking ESC/BLK/REC/owed-contract obligation remains |
 | Epic `ACTIVE → COMPLETE` | `/epic <ID> complete` | every non-RETIRED child Feature COMPLETE; Epic verification/effective gate passes; human `AC-0` accepted; no blocking ESC/BLK/REC/owed-contract obligation remains |
@@ -87,6 +91,12 @@ Lifecycle state is persisted in the selected operational work backend. Git remai
 - Mutating LARGE delivery commands require Project state compatible with the action. In particular, new Epic delivery requires Project `ACTIVE` or `MAINTENANCE`.
 - When Project is `PAUSED`, `COMPLETE` or `RETIRED`, normal mutating LARGE commands fail closed unless the requested operation is an explicitly allowed human-owned lifecycle transition.
 - Read-only `/status` remains available regardless of Project lifecycle state.
+
+### Bootstrap and direct-admission boundary — REVIEW (`DI-003`, `DI-004`, `DI-008`)
+
+Ideation already needs an operational backend for Project and research identities, before `/project-init` admits delivery. The backend binding/bootstrap therefore cannot first become available at delivery initialization. The owning DIs must distinguish minimum discovery bootstrap from the later repository/delivery baseline, and prove interrupted bootstrap can resume without duplicate Project/research items.
+
+Direct admission under §9.2 must also establish Project identity, selected mode, backend binding and the appropriate PLANNING entry without fabricating completed Ideation history. Define that entry/transition explicitly in DI-008; the `/ideate` transition in the table is not permission to invent provenance. DI-004 owns the supported local execution environment and mode/config bootstrap contract.
 
 ---
 
@@ -405,7 +415,7 @@ Common gate rules for Epic, Feature and Spec:
 - if the expected owner itself is ambiguous, return `HUMAN_DECISION_REQUIRED` rather than invent ownership;
 - no blocking dependency cycle exists;
 - no blocking escalation, blocker, reconciliation hold or incomplete/halted REC affects
-  the item;
+  the item; an explicitly authorized REC-obligation operation follows §16.6 and must still satisfy all other guards;
 - non-blocking open questions have an owner and are explicitly safe to defer;
 - parent/ancestor authority is in a compatible state;
 - material upstream drift has been reconciled before readiness is claimed.
@@ -519,6 +529,7 @@ Rules:
 - Expected assertions come from accepted ACs, journeys, contracts, architecture/invariant obligations and testing requirements. A missing expectation is routed to its owning authority, not guessed by the suite.
 - Supporting tests may live near production code where technically appropriate, but the work graph still has exactly one primary owner for suite completeness/maintenance so responsibility is not ambiguous.
 - The E2E-suite Feature is still an ordinary Feature for lifecycle/dependency purposes. It may use one of its child Specs as its own integration-suite owner; no special lifecycle type is introduced.
+- Suite ownership is a reference/designation, not a new dependency or a requirement to create another dedicated suite-owning child recursively. An existing delivery Feature/Spec may own its own required suite. This avoids an infinite hierarchy of test-only owners.
 
 Completion consequence:
 
@@ -560,6 +571,7 @@ Rules:
   ineligibility is derived from the DAG rather than persisted as duplicate state;
 - any work item inside the candidate/touched scope of an **analysing, awaiting-approval,
   applying, incomplete or halted REC** is ineligible for normal work-plan selection;
+  explicitly authorized recovery/obligation work is governed by §16.6 and does not become ordinary eligible work merely because it would help close a REC;
 - if such a held item is an `ACTIVE` Spec, it is additionally persisted as
   `PAUSED_FOR_RECONCILE` to protect its open implementation branch/worktree;
 - downstream items depending on that reconciling scope are derived as temporarily
@@ -602,7 +614,7 @@ A consumer may begin implementation against a provider contract only when that c
 
 ### Cycles
 
-- A cycle is a readiness/integrity blocker when it prevents either side from establishing its contract independently.
+- Every cycle in `Depends on` is an integrity blocker: execution prerequisites must remain a DAG. Mutually referring contracts do not justify cyclic execution edges; model a shared accepted contract or correct the decomposition instead.
 - Resolve it by checking for a shared/higher authority, a wrong decomposition or an incorrectly modelled edge.
 - If that does not resolve it, return `HUMAN_DECISION_REQUIRED`.
 - **Never invent an ordering to hide a cycle.**
@@ -745,7 +757,7 @@ flowchart TD
     G -- BLOCKED --> D{Cause}
     D -- Known defect --> FX[Fix bounded defect]
     D -- Unknown --> DG[Diagnose → Fix]
-    D -- Unspecified behavior --> NS[Planner creates/grooms new Spec]
+    D -- Unspecified behavior --> NS[Owning authority resolves intent, then Planner grooms work]
     D -- Authority contradiction --> RC[Reconciliation]
     FX --> V
     DG --> V
@@ -777,7 +789,7 @@ flowchart TD
     G -- BLOCKED --> D{Cause}
     D -- Known defect --> FX[Fix bounded defect]
     D -- Unknown --> DG[Diagnose → Fix]
-    D -- Missing behavior --> NW[Planner adds/grooms required work]
+    D -- Missing behavior --> NW[Owning authority resolves intent, then Planner grooms work]
     D -- Authority contradiction --> RC[Reconciliation]
     FX --> V
     DG --> V
@@ -961,7 +973,7 @@ If baseline refresh or required tests fail, the Spec remains
 This default minimizes wasted work without allowing stale-authority or stale-baseline
 implementation to continue.
 
-### 16.3 Idempotent reconciliation APPLY operations — ACCEPTED
+### 16.3 Idempotent reconciliation APPLY operations — REVIEW (`DI-001`, `DI-006`)
 
 Every approved mutating reconciliation operation receives a stable operation key:
 
@@ -978,6 +990,10 @@ It records the stable operation ID plus enough information to prove the intended
 - target;
 - required safe precondition where applicable;
 - expected postcondition / resulting backend state.
+
+Approval binds to the exact verdict revision/content identity, accepted authority delta and relevant analysis baseline. Editing the verdict or changing a relevant premise requires revalidation and renewed approval where approved intent changes. A generic prior "yes" does not authorize a different operation package.
+
+**Stable-postcondition requirement:** the verdict must be normalized so later operations preserve every earlier operation's postcondition. Compose sequential edits of the same field into its intended final mutation instead of approving `A → B` followed by `B → C` and later requiring both `B` and `C`. Otherwise the backend-only retry algorithm cannot distinguish a completed package from a conflict or safely replay it. Reject such a package before APPLY; DI-006 must prove this validation and its representability on the selected backend. Transient preparation may occur inside a guarded operation, but it is not a separate approved effect with a postcondition that later disappears.
 
 The verdict is **not rewritten or committed after every APPLY operation**.
 
@@ -1058,7 +1074,7 @@ Optional execution telemetry
 Retry/recovery
     → re-derive satisfaction from backend postconditions
 ```
-### 16.4 Verdict-level reconciliation scope and completion gate — ACCEPTED
+### 16.4 Verdict-level reconciliation scope and completion gate — REVIEW (`DI-001`, `DI-006`)
 
 A multi-operation reconciliation verdict may legitimately pass through an
 intermediate graph that is not yet globally valid. Therefore SubhForge distinguishes:
@@ -1107,7 +1123,7 @@ conceptually:
 This deterministic hold write is the **only normal pre-approval work-graph mutation**.
 It may also transition an affected `ACTIVE` Spec to
 `PAUSED_FOR_RECONCILE` and associate it with the REC, because protecting the open
-branch requires a persisted lifecycle guard. It may not change planned content,
+branch requires a persisted lifecycle guard. Its safe no-impact/cancellation restoration is governed below. It may not change planned content,
 dependencies, acceptance criteria, completion state or other operational semantics.
 
 This happens before semantic analysis is complete and before human approval, so work
@@ -1118,14 +1134,15 @@ The physical representation is backend-specific and remains open under Discovery
 - the REC identifies its current candidate/touched work-item scope;
 - items in that scope are ineligible for ordinary implementation, verification,
   completion or work-plan selection while the REC is analysing, awaiting approval,
-  applying or halted;
+  applying or halted; the explicitly approved recovery/obligation path in §16.6 is the bounded exception;
 - downstream work whose true dependency chain relies on a reconciling item is
   derived as temporarily ineligible;
 - unrelated eligible work remains available;
 - an item proven unaffected during analysis may be released from this REC's hold only
   when no other open REC holds it;
 - if analysis/verdict is explicitly cancelled before mutation, remaining scope holds are
-  cleared after confirming no operation was applied;
+  cleared only after confirming no operation was applied and current accepted authority leaves no unresolved impact on that scope; cancelling analysis does not undo an accepted authority change;
+- releasing a hold does not by itself return a paused Spec to ACTIVE. For an unaffected or safely cancelled pre-APPLY scope, the control layer must record the no-impact/cancellation outcome, prove current authority remains consumable, check other holds/blockers, and use §16.2's baseline refresh/tests before restoring ACTIVE. If those checks fail, preserve the pause with a visible owner/reason and safe next action;
 - `/status` exposes the open/halted REC, candidate/touched scope, current phase,
   failing/next operation when known, derived blocked dependents, **hold acquisition time**
   and **current hold age** so forgotten approvals/reconciliations are visible;
@@ -1151,7 +1168,8 @@ operations already satisfied by the halted verdict. It must not assume the graph
 rolled back to the pre-reconciliation snapshot.
 
 Only after all operations are satisfied **and** universal verdict postconditions pass
-may the reconciliation scope lock be cleared and the REC considered complete.
+may APPLY be considered complete. The normal mutation hold may then be narrowed/released
+as specified in §16.6; the REC remains open until its remaining obligations resolve.
 
 Conceptually:
 
@@ -1165,7 +1183,7 @@ op-01 → op-02 → ... → op-N   (strict listed order)
 all operation postconditions satisfied?
       ↓ yes
 run universal verdict postconditions
-      ├─ PASS → clear reconciliation scope → REC COMPLETE
+      ├─ PASS → APPLY complete → execute approved obligations → REC COMPLETE
       └─ FAIL → keep scope reconciling/halted → diagnose / complete / replace
 
 any op conflict
@@ -1204,9 +1222,15 @@ pretend the project returned to the earlier pre-REC graph.
 
 ---
 
-### 16.6 Reconciliation obligation resolution — ACCEPTED
+### 16.6 Reconciliation obligation resolution — REVIEW (`DI-001`, `DI-006`)
 
 An open REC may carry explicit obligations. The workflow that actually satisfies an obligation updates/resolves it; the REC is complete only when current authoritative/backend state proves every obligation resolved or superseded.
+
+**Preventing a hold/verification deadlock:** distinguish completion of the approved graph mutation (APPLY) from closure of the REC's follow-up obligations. Once APPLY postconditions pass, release/narrow the mutation hold only where the resulting authority/state is internally safe. Keep obligation-specific delivery gates on affected claims/items until their required work is satisfied.
+
+The approved verdict must identify the bounded owning operations allowed to satisfy its obligations: grooming replacement work, adapting/resuming an in-flight Spec under §16.2, running the required checks, and collecting renewed human acceptance where affected. Those operations may run despite that REC's own obligation gate; they must still satisfy current authority, dependency integrity, other REC holds and all unrelated guards. They do not permit premature ordinary completion. `/status` and work-plan projections distinguish authorized obligation work from ordinary eligible delivery.
+
+Baseline refresh/tests needed before an ACTIVE pause can end use this same bounded recovery path. An unresolved `REVERIFY` must block reliance on the affected evidence, not the very verification required to replace it. A REC may close before replacement implementation finishes when its only remaining `NEW_WORK_REQUIRED` obligation was expressly defined to end at readiness; ordinary delivery still requires implementation and evidence.
 
 | Obligation | Resolved when | Typical owner |
 |---|---|---|
@@ -1267,7 +1291,7 @@ Example shape:
 ```text
 Change Triage
 
-Touched FRs: FR-017, FR-024
+Touched FRs: FR-010, FR-013
 Touched NFRs: none
 Touched Protected Invariants: none
 
@@ -1438,6 +1462,23 @@ Testing tiers are defined by execution need:
 - waiver/risk acceptance is explicit and cannot cover human acceptance `AC-0`;
 - completed Specs do not casually reopen because higher-level verification found
   an integration defect; fixes are bounded and evidence is refreshed.
+
+### 23.2 Evidence and effective delivery gate — REVIEW (`DI-005`)
+
+The existing references to "effective gate", "allowed exception", "current evidence" and human `AC-0` need one consumable contract. DI-005 must promote the minimum representation and deterministic derivation rules for:
+
+- globally unambiguous claim identity (work-item ID + stable AC ID), revision and retirement/supersession;
+- exact implementation identity, including dirty/uncommitted state when applicable, authority/contract revisions, suite/check version and relevant test environment;
+- immutable run result and its claim/scope association, including factual failures, missing/partial evidence and explicit freshness/invalidation;
+- the applicable required checks at Spec/Feature/Epic level, a derived CLEAR/BLOCKED gate and the exact conditions for an allowed exception;
+- explicit waiver owner, affected failing claim, rationale, scope and expiry/revalidation; a waiver never rewrites failed evidence, overrides missing authority/integrity, or covers human `AC-0`;
+- durable human acceptance tied to the capability/outcome and evidence/implementation revision actually demonstrated; materially changed acceptance requires renewed judgement, not reuse of an old checkbox;
+- claim-level preservation only when unchanged premises can be proven; otherwise invalidate the affected report/scope conservatively;
+- bounded Bug/fix impact on completed child evidence and parent verification/acceptance without reopening COMPLETE lifecycle states.
+
+Before higher-level evidence can be trusted, the owning workflow must identify the composed implementation baseline containing the child changes under test. A completed Spec on an isolated branch does not by itself prove Feature/Epic integration. DI-005/DI-014 must define baseline assembly/conflict recovery without making automated PR creation or production deployment mandatory.
+
+These are completion conditions for the existing DI, not a selected evidence database/schema or a new verification agent.
 
 ---
 

@@ -7,6 +7,8 @@
 
 > This document defines **what SubhForge v0.2.0 must be and the constraints within which it must be built**. Structural implementation choices belong in Architecture, workflow mechanics belong in Workflow Contracts, release proof belongs in Qualification, and unresolved pre-code work belongs in Discovery.
 
+The 2026-10-06 review clarifications are proposed additions pending DI-001 acceptance; no scope freeze or Discovery closure is implied.
+
 ---
 
 ## 1. Core Product Requirement
@@ -113,6 +115,8 @@ Rules:
 - repeated equivalent model failure must stop/escalate rather than burn budget indefinitely.
 
 The exact provider/model split is execution configuration, not a permanent product requirement.
+
+Construction spend and the cost of operating SubhForge-managed projects are distinct measurements. Backend licensing, storage, hosted test environments and optional integrations must be surfaced before adoption; the construction ceiling does not implicitly authorize them. Discovery DI-003/DI-010/DI-013 must establish an affordable operating baseline with Subhadeep.
 
 ### CON-007 — No silent paid/provider fallback
 
@@ -288,6 +292,8 @@ SubhForge shall provide deterministic, read-only projections of:
 
 Status/work-plan capabilities shall never mutate project state and shall avoid fake precision.
 
+An incomplete, inaccessible or stale backend view must be reported as such; missing results must not be presented as zero work, successful completion or proven eligibility.
+
 ---
 
 ### 3.3 Delivery, verification and acceptance
@@ -391,6 +397,8 @@ Reconciliation shall:
 Work shall resume by re-invoking the owning workflow against the same durable identity rather than depending on prior chat/session memory.
 
 Safe progress shall persist before stopping because of time, cost, context pressure or external failure.
+
+An uncertain write result must be resolved from authoritative state before retrying or reporting success. Resume must preserve durable logical identity and must not duplicate work merely because a response was lost.
 
 ---
 
@@ -505,6 +513,8 @@ Correctness and recoverability outrank convenience and schedule.
 
 Failures should be detected, contained, diagnosable and recoverable.
 
+Qualification must include recovery of the operational graph from a recorded export together with matching Git authority/evidence references. An export that cannot reconstruct identity, relationships and lifecycle meaning does not satisfy project independence (CON-010).
+
 ### NFR-002 — Resumability
 
 Interrupted work must reconstruct from Git + operational state without requiring prior chat history.
@@ -536,6 +546,8 @@ v0.2 is not required to build a generic provider/harness plugin framework.
 
 External integrations shall use least privilege, bounded tool exposure, secret isolation, untrusted-output handling and explicit authorization for consequential writes.
 
+Supplied documents, research, repository content and tool responses cannot grant mutation authority or redirect secrets. Qualification must exercise attempted authority expansion through those inputs, as well as denied access and redacted diagnostics.
+
 ### NFR-007 — Observability and diagnostics
 
 Failures, blockers, held scopes, next actions and recovery instructions must be visible enough that Subhadeep normally does not need to inspect SubhForge internals.
@@ -557,6 +569,8 @@ v0.2 LARGE evolution shall not silently regress the accepted STANDARD behavior b
 During real dogfood, avoidable manual status reconstruction, handoff coordination, repeated settled questions and routine Spec approvals are product-quality failures.
 
 For VidyaBeacon, such intervention should approach zero.
+
+Before release qualification, DI-013 shall define measurable acceptance thresholds for cost/context/scale, recovery and avoidable human intervention, including fixture size, environment, repeat policy and permitted exceptions. Narrative claims of "acceptable" behavior alone do not prove these NFRs.
 
 ---
 
