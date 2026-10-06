@@ -69,6 +69,8 @@ A resolved Discovery question must be promoted to its authoritative home before 
 
 Git history preserves earlier wording; do not create parallel “v2/v3” authority documents for normal evolution.
 
+PRD owns goals, agent responsibilities, model-selection requirements and operating policies. Architecture realizes them through components, stores, interfaces, execution paths and enforcement seams; it references those requirements rather than keeping another role-to-model or product-policy table. Concrete model versions/defaults belong in the central execution-configuration map defined by FR-021, not in agent files or architectural prose.
+
 ---
 
 ## 5. Shared Decision Status Vocabulary

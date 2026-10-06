@@ -352,7 +352,7 @@ Key rules:
 
 ### 9.3 Interaction routing — ACCEPTED
 
-Workflow behavior follows Architecture §8.1.
+Workflow behavior realizes PRD §4.2; Architecture §8.1 provides the routing seam.
 
 - **Owning workflow → Subhadeep:** Ideation, PRD and Architect may interview for missing authoritative information or a consequential decision/approval.
 - **Subhadeep → Agent:** a conversation about an existing artifact/work item defaults to bounded explain/challenge behavior.
@@ -1373,6 +1373,8 @@ Approval is concentrated where a semantic classification could incorrectly bypas
 - **PROTECTED_ARCHITECTURE_CONFLICT** → no triage approval is required to stop/escalate;
   the later architecture decision is explicitly human-authorized.
 
+For an exceptional protected-invariant revision, perform an explicit architecture review, revise the canonical architecture, review/approve its architecture PR, and only then reconcile against that newly accepted authority. No automatic rebaseline engine or ordinary Planner/Fixer permission is implied.
+
 The fast lane cannot add new observable product behavior, weaken an accepted requirement, change a Protected Architecture Invariant, or bypass traceability/evidence updates that the refinement actually requires.
 
 It is a triage shortcut for genuinely local work, **not a process bypass**.
@@ -1445,7 +1447,7 @@ At a safe persistence boundary:
 - do not persist chain-of-thought, expanded prompt context or half-completed tool execution;
 - return:
   - `EPIC_CONTINUE`, `FEATURE_CONTINUE` or `SPEC_CONTINUE` when useful local grooming work remains and the invocation is ending cleanly;
-  - `CONTEXT_CEILING_EXCEEDED` when Architecture §21's hard context ceiling would otherwise be crossed. Mandatory authority is never dropped merely to fit the budget.
+  - `CONTEXT_CEILING_EXCEEDED` when PRD NFR-003's hard context ceiling would otherwise be crossed. Architecture §21 supplies the bounded packet. Mandatory authority is never dropped merely to fit the budget.
 
 A later invocation of the **same owning command + same durable ID** reconstructs from current authority rather than chat history.
 

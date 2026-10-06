@@ -216,6 +216,7 @@ The following is a review coverage map, not a declaration of completeness or pas
 | FR-018; NFR-003 | Measure assembled context including mandatory authority/tool output; pressure and hard ceiling; safe continuation | §24.6, §30.3; DI-008/013 |
 | FR-019; NFR-006 | Least privilege, denied write, untrusted-input authority expansion, secret-redacted context/log/export and removable tools | §30.4; DI-010 |
 | FR-020; NFR-005 | Layer selection by failure class, negative canary, model/harness seams and required real dogfood | §24, §30, §31; DI-013 |
+| FR-021 | Explicit model override/default resolution, central version updates, map snapshots and actual harness dispatch without authority/billing fallback | §24.12; Architecture §7; DI-008/013 |
 | NFR-004, NFR-008; CON-006, CON-007 | Measured calls/tokens/runtime/spend, bounded retry, explicit quota/auth/rate-limit failure, no silent paid fallback | §24.1, §30.3/30.4; DI-010/013 |
 | NFR-010; CON-008 | Count avoidable versus reserved human interventions and recurring bookkeeping | §32; DI-013 |
 
@@ -273,6 +274,21 @@ Controls to prevent another unbounded smoke effort:
 7. The test mechanism itself must stay simpler than the production behavior it qualifies. A dedicated orchestration validator, telemetry platform or paid evaluation service requires DI-013's value/complexity justification.
 
 Qualification also exercises Workflow §§10.6/14.2 and Architecture §6.4: omitted cross-cutting ownership, vacuous acceptance criteria, over-fragmented slices, rejected/deferred human acceptance, and invalid mutation proposals must be detected or routed correctly. A mock/scripted agent can prove guard behavior; only a real-agent slice can support claims about semantic performance.
+
+---
+
+### 24.12 Central model-selection regression — REVIEW (`DI-008`, `DI-013`)
+
+Prove PRD FR-021 and Architecture §7 with deterministic resolver/adapter tests plus a minimal real-harness compatibility slice:
+
+1. The same agent contract runs with two valid explicit selection keys without agent-file edits; omission resolves its configured default.
+2. Updating a supported key's compatible model-version identifier in the map changes the next invocation's resolved selection without changing any agent definition.
+3. Unknown keys, absent defaults, unsupported capabilities/bindings and a harness unable to honor the selected identifier stop explicitly before model work; no unrecorded provider/model/billing fallback occurs.
+4. Changing the map while a call is running does not change its captured selection. New or resumed invocations record the new map revision and resolved identifier visibly.
+5. Caller overrides do not mutate shared defaults, spill into other agents or lift authority/tool/budget/context guards. Deterministic-only capabilities do not acquire an unnecessary model call.
+6. Evidence records requested/default selection, map revision, actual resolved provider/model and execution binding. The real-harness slice proves dispatch or an honest unsupported result, not a model name merely printed in a prompt.
+
+An unsupported result validates the refusal path only; it does not satisfy the positive supported-selection release requirement. Use existing approved access and a bounded compatibility canary. Map-only updates rerun affected cheap resolution checks and the applicable canary; they do not mandate every provider/model or the whole dogfood lifecycle on each edit.
 
 ---
 
