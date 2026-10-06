@@ -10,7 +10,7 @@
 > - This document: durable structural architecture decisions
 > - Detailed workflow behavior: the Workflow Contracts document, pending its own reconciliation pass
 >
-> An unresolved `DQ-###` remains Discovery authority. This document must not guess its answer merely to appear complete.
+> An unresolved `DI-###` remains Discovery authority. This document must not guess its answer merely to appear complete.
 
 ---
 
@@ -258,7 +258,7 @@ Do not create:
 
 for normal evolution. Git history already provides versioning.
 
-### 4.2 Operational Work Graph — REVIEW (`DQ-001`, `DQ-003`)
+### 4.2 Operational Work Graph — REVIEW (`DI-003`, `DI-003`)
 
 For LARGE projects, SubhForge will use **one external operational work-graph system of record** for:
 
@@ -278,7 +278,7 @@ For LARGE projects, SubhForge will use **one external operational work-graph sys
 
 The repository should **not** contain a duplicate Markdown Epic/Feature/Spec tree.
 
-The backend is deliberately **not settled yet**. Discovery `DQ-001` requires evidence-based comparison of at least:
+The backend is deliberately **not settled yet**. Discovery `DI-003` requires evidence-based comparison of at least:
 
 - **Jira**; and
 - **GitHub Issues**.
@@ -303,7 +303,7 @@ The comparison uses the same representative work graph and measures:
 
 The evaluation must remain bounded. If a candidate needs backend-specific rescue machinery merely to make the representative graph workable, that is negative evidence rather than permission to grow the comparison into a migration project.
 
-Whichever backend wins becomes the **single live operational authority**. Discovery `DQ-003` then defines the smallest backend schema needed by accepted requirements—no speculative fields or duplicated authority. A periodic machine-readable export is allowed for disaster recovery, but the export is never a second writable/live source of truth.
+Whichever backend wins becomes the **single live operational authority**. Discovery `DI-003` then defines the smallest backend schema needed by accepted requirements—no speculative fields or duplicated authority. A periodic machine-readable export is allowed for disaster recovery, but the export is never a second writable/live source of truth.
 
 If both candidates prove unsuitable, preserve the **separation of Product Truth and Operational Work Graph** rather than returning automatically to thousands of repository planning artifacts.
 
@@ -345,7 +345,7 @@ Examples may include:
 
 The exact list is project-specific.
 
-The **semantics** of Protected Architecture Invariants are accepted here. Their smallest durable physical representation remains open under Discovery `DQ-007`; implementation must not invent a heavyweight invariant subsystem before that decision closes.
+The **semantics** of Protected Architecture Invariants are accepted here. Their smallest durable physical representation remains open under Discovery `DI-007`; implementation must not invent a heavyweight invariant subsystem before that decision closes.
 
 ### 5.2 Normal workflow rule — ACCEPTED
 
@@ -400,12 +400,12 @@ Therefore:
 | **Kilo** | Current primary execution harness for SubhForge commands/agents | Replaceable execution choice; must not define lifecycle semantics |
 | **Git** | Versioned product/code/architecture authority | Core |
 | **GitHub** | Repository hosting, commit/PR linkage and optional PR creation | Core repository integration; post-PR release orchestration remains out of scope |
-| **Operational Work Graph Backend** | LARGE-project Idea/Epic/Feature/Spec/Bug graph | **REVIEW:** Discovery `DQ-001` (Jira vs GitHub Issues), then `DQ-003` schema |
+| **Operational Work Graph Backend** | LARGE-project Idea/Epic/Feature/Spec/Bug graph | **REVIEW:** Discovery `DI-003` (Jira vs GitHub Issues), then `DI-003` schema |
 | **Claude Code + Pro** | Current bounded path for independent co-architecture/challenge and selected hard diagnosis | Current execution option, never authority or a required lifecycle dependency |
 | **Python deterministic helpers** | Graph/status/smoke/context/evidence mechanics where code is stronger than prompting | Core principle |
 | **Project CI/build/test tooling** | Product-specific build/test/deploy evidence | Chosen by project architecture; SubhForge must integrate without hard-coding one stack |
-| **MCP / bounded external tools** | Current knowledge, repository/service access and bounded actions | Capability class; baseline integrations remain REVIEW under `DQ-014` |
-| **Skills** | Reusable engineering methods and technology guidance | Capability class; baseline global set remains REVIEW under `DQ-013` |
+| **MCP / bounded external tools** | Current knowledge, repository/service access and bounded actions | Capability class; baseline integrations remain REVIEW under `DI-010` |
+| **Skills** | Reusable engineering methods and technology guidance | Capability class; baseline global set remains REVIEW under `DI-010` |
 
 ### 6.1 Harness portability rule — ACCEPTED
 
@@ -487,7 +487,7 @@ Rules:
 
 ## 8. Logical Agent Architecture
 
-Physical Kilo filenames may evolve; these logical names, responsibilities and authority boundaries are architectural. Discovery `DQ-008` owns the eventual logical-role → physical-command/agent mapping.
+Physical Kilo filenames may evolve; these logical names, responsibilities and authority boundaries are architectural. Discovery `DI-008` owns the eventual logical-role → physical-command/agent mapping.
 
 | Specific agent / capability | Responsibility | Authority boundary | Capability / entrypoint | Model association | Grill direction |
 |---|---|---|---|---|---|
@@ -544,7 +544,7 @@ If the conversation becomes a request to change accepted authority, the receivin
 
 **Planner/Reconciliation Planner** should receive settled product/architecture authority. A material ambiguity means an **upstream gap**, not another planning interview.
 
-The exact physical mechanism for distinguishing these interaction modes remains open under Discovery `DQ-009`; prefer derivation from command/target/owner rather than a new conversational state engine.
+The exact physical mechanism for distinguishing these interaction modes remains open under Discovery `DI-008`; prefer derivation from command/target/owner rather than a new conversational state engine.
 
 ### 8.2 One owner per responsibility — ACCEPTED
 
@@ -563,7 +563,7 @@ Do not let:
 
 ---
 
-The following requirement-identity and traceability **semantics** are **ACCEPTED**. Their physical Git/backend representation remains open under Discovery `DQ-006`:
+The following requirement-identity and traceability **semantics** are **ACCEPTED**. Their physical Git/backend representation remains open under Discovery `DI-005`:
 
 Canonical PRD requirements use **stable, permanent identifiers**.
 
@@ -671,9 +671,9 @@ Authority precedence remains:
 
 A skill cannot silently replace an approved product/technology decision.
 
-### 19.1 Current available/candidate skill inventory — REVIEW (`DQ-013`)
+### 19.1 Current available/candidate skill inventory — REVIEW (`DI-010`)
 
-The following inventory is useful input, but **does not mean every listed skill belongs in the v0.2 global baseline**. Discovery `DQ-013` decides the smallest set that earns global scope.
+The following inventory is useful input, but **does not mean every listed skill belongs in the v0.2 global baseline**. Discovery `DI-010` decides the smallest set that earns global scope.
 
 | Skill | Primary responsibility |
 |---|---|
@@ -695,7 +695,7 @@ The following inventory is useful input, but **does not mean every listed skill 
 | `amazon-dynamodb` | Access-pattern-led DynamoDB design |
 | `azure-architecture` | Azure reliability/security/operations/cost |
 
-### 19.2 Capability families to evaluate under `DQ-013`
+### 19.2 Capability families to evaluate under `DI-010`
 
 Whether by an existing skill, adapted skill, command, deterministic tool or
 project rule, evaluate coverage for:
@@ -765,12 +765,12 @@ MCP is a **tool/transport boundary**, not an authority boundary.
 
 An MCP response does not become project truth just because an agent saw it.
 
-### 20.1 Candidate MCP / integration classes — REVIEW (`DQ-014`)
+### 20.1 Candidate MCP / integration classes — REVIEW (`DI-010`)
 
 | Integration | Intended use | v0.2 position |
 |---|---|---|
-| **Work-management integration** | Read/mutate operational work graph | Required capability; concrete backend/transport follows `DQ-001` and `DQ-014` |
-| **GitHub repository integration** | Repository/commit/optional-PR operations and GitHub Issues if selected as work backend | High-value/core repository boundary; exact baseline tool surface follows `DQ-014` |
+| **Work-management integration** | Read/mutate operational work graph | Required capability; concrete backend/transport follows `DI-003` and `DI-010` |
+| **GitHub repository integration** | Repository/commit/optional-PR operations and GitHub Issues if selected as work backend | High-value/core repository boundary; exact baseline tool surface follows `DI-010` |
 | **Official documentation/knowledge integrations** | Current .NET/Azure/platform knowledge where freshness matters | Evaluate selectively |
 | **AWS/Azure platform integration** | Bounded inspection and carefully authorized operations | Project-specific; not globally enabled by default |
 | **Human-in-the-loop/notification integration** | Reduce interaction friction where useful | Optional / evidence-driven |
@@ -865,13 +865,13 @@ of record instead of requiring Subhadeep to restate project history.
 
 ---
 
-## 23A. Lifecycle Observability — REVIEW (`DQ-012`)
+## 23A. Lifecycle Observability — REVIEW (`DI-009`)
 
 > **Kilo owns harness/runtime telemetry. SubhForge owns lifecycle observability.**
 
 Kilo logs may be useful evidence, but they are not by themselves the SubhForge observability model.
 
-The PRD requires diagnosable lifecycle behavior. The following is the **candidate minimum set** to validate under `DQ-012`; retain only what is necessary to answer what happened, why work stopped, what authority/evidence was used and what safe next action exists:
+The PRD requires diagnosable lifecycle behavior. The following is the **candidate minimum set** to validate under `DI-009`; retain only what is necessary to answer what happened, why work stopped, what authority/evidence was used and what safe next action exists:
 
 - operation / command / capability;
 - target Project/Epic/Feature/Spec/Bug/REC/ESC/BLK;
@@ -946,7 +946,7 @@ This index preserves the user-facing capability view without restating normative
 | First-class reconciliation | `V0.2-WORKFLOW-CONTRACTS.md` §16 |
 | Analyse → approve → apply separation | `V0.2-WORKFLOW-CONTRACTS.md` §16 |
 | Replaceable AI workers / harness boundaries | §§6–8 in this document |
-| Skills + MCP | §§19–20 in this document; baseline scope still resolves through `DQ-013`/`DQ-014` |
+| Skills + MCP | §§19–20 in this document; baseline scope still resolves through `DI-010`/`DI-010` |
 | Feature/Epic verification + human acceptance | `V0.2-WORKFLOW-CONTRACTS.md` §§13–14 and §23 |
 | Intelligent validation economics | `V0.2-QUALIFICATION.md` §24 |
 | Human authority with low ceremony | §3 in this document |
