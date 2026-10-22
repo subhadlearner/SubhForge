@@ -4,7 +4,8 @@ This directory preserves evidence-backed lessons from building other projects th
 
 ## Current source
 
-- [InsightForge learning ledger](insightforge-learning-ledger.md) — reviewed after each completed InsightForge delivery ticket.
+- [InsightForge learning ledger](insightforge-learning-ledger.md) — evidence-backed transferable lessons reviewed after delivery tickets.
+- [Final InsightForge retrospective](insightforge-retrospective.md) — synthesis after capstone submission; includes unproven claims and SubhForge review questions.
 - InsightForge repository: https://github.com/subhadlearner/insightforge-agent
 
 ## Review protocol
